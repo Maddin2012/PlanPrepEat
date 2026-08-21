@@ -1,0 +1,62 @@
+rules_version = '2';
+
+// Sicherheitsregeln für Rezeptbuch & Essensplan.
+//
+// Modell: Alle Daten hängen unter households/{hid}. Die Kennung des Haushalts
+// ist ein 16-stelliges Zufallswort und zugleich der Einladungscode. Wer ihn
+// kennt, darf beitreten; wer nicht Mitglied ist, sieht nichts.
+//
+// Deployen mit:  firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Existiert der Haushalt nicht, schlägt get() fehl und die Regel verweigert
+    // den Zugriff — genau das gewünschte Verhalten, ohne zusätzliches exists().
+    function isMember(hid) {
+      return signedIn()
+        && get(/databases/$(database)/documents/households/$(hid))
+             .data.members[request.auth.uid] == true;
+    }
+
+    // Beitritt: Es darf ausschließlich das Feld `members` verändert werden, und
+    // darin ausschließlich der eigene Eintrag. Damit kann niemand den Haushalt
+    // umbenennen oder die andere Person hinauswerfen, nur weil er den Code hat.
+    function isSelfJoin() {
+      return signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        && request.resource.data.members.diff(resource.data.members)
+             .affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.members[request.auth.uid] == true;
+    }
+
+    match /households/{hid} {
+      // Ein einzelnes get() ist für jeden Angemeldeten erlaubt, damit ein
+      // falsch abgetippter Code eine verständliche Meldung ergibt statt eines
+      // Rechtefehlers. Auflisten aller Haushalte ist nicht erlaubt.
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Beim Anlegen muss man sich selbst als Mitglied eintragen.
+      allow create: if signedIn()
+        && request.resource.data.members[request.auth.uid] == true;
+
+      allow update: if isMember(hid) || isSelfJoin();
+      allow delete: if isMember(hid);
+
+      // Rezepte, Zutaten, Pläne, Plätze und Einkaufszustand: nur für Mitglieder.
+      match /{document=**} {
+        allow read, write: if isMember(hid);
+      }
+    }
+
+    // Alles außerhalb von households ist zu.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
