@@ -1,0 +1,513 @@
+import { useEffect, useId, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useIngredientMap, useRecipeMap } from '../../data/hooks.ts'
+import { useRepository } from '../../data/RepositoryContext.tsx'
+import type { CategoryCode, UnitCode } from '../../domain/types.ts'
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  UNIT_LABELS,
+  UNIT_ORDER,
+} from '../../domain/units.ts'
+import { PageHeader } from '../../components/PageHeader.tsx'
+import {
+  Button,
+  Field,
+  IconButton,
+  Select,
+  Sheet,
+  Spinner,
+  TextArea,
+  TextInput,
+} from '../../components/ui.tsx'
+import {
+  CameraIcon,
+  CloseIcon,
+  PlusIcon,
+  TrashIcon,
+} from '../../components/Icons.tsx'
+import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
+import {
+  emptyItemDraft,
+  itemDraftFrom,
+  normalizeName,
+  parseTags,
+  resolveItems,
+  type ItemDraft,
+} from './ingredientDraft.ts'
+
+type PhotoState =
+  /** unverändert lassen */
+  | { kind: 'keep' }
+  /** entfernen */
+  | { kind: 'clear' }
+  /** neu setzen */
+  | { kind: 'set'; full: string; thumb: string }
+
+export default function RecipeEditPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const repository = useRepository()
+  const recipes = useRecipeMap()
+  const catalog = useIngredientMap()
+  const existing = id ? recipes.get(id) : undefined
+
+  const [name, setName] = useState('')
+  const [servings, setServings] = useState('2')
+  const [minutes, setMinutes] = useState('')
+  const [tags, setTags] = useState('')
+  const [steps, setSteps] = useState('')
+  const [items, setItems] = useState<ItemDraft[]>([emptyItemDraft()])
+  const [photo, setPhoto] = useState<PhotoState>({ kind: 'keep' })
+  const [preview, setPreview] = useState<string | null>(null)
+
+  const [ready, setReady] = useState(!id)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Das vorhandene Rezept einmalig ins Formular übernehmen. Danach nicht mehr,
+  // sonst würde eine Änderung der anderen Person die eigene Eingabe überschreiben.
+  useEffect(() => {
+    if (!id || ready || !existing) return
+    setName(existing.name)
+    setServings(String(existing.servings))
+    setMinutes(existing.minutes > 0 ? String(existing.minutes) : '')
+    setTags(existing.tags.join(', '))
+    setSteps(existing.steps)
+    setItems(
+      existing.items.length > 0
+        ? existing.items.map((item) => itemDraftFrom(item, catalog))
+        : [emptyItemDraft()],
+    )
+    setPreview(existing.thumb ?? null)
+    setReady(true)
+  }, [id, ready, existing, catalog])
+
+  // Beim Bearbeiten das Vollbild nachladen, damit die Vorschau scharf ist.
+  useEffect(() => {
+    if (!id || !existing?.hasPhoto) return
+    let active = true
+    repository.loadPhoto(id).then((data) => {
+      if (active && data) setPreview(data)
+    })
+    return () => {
+      active = false
+    }
+  }, [id, existing?.hasPhoto, repository])
+
+  if (id && !ready) return <Spinner label="Rezept wird geladen …" />
+
+  async function pickPhoto(file: File) {
+    setError(null)
+    try {
+      const prepared = await preparePhoto(file)
+      setPhoto({ kind: 'set', full: prepared.full, thumb: prepared.thumb })
+      setPreview(prepared.full)
+    } catch (cause) {
+      setError(
+        cause instanceof ImageTooLargeError
+          ? 'Dieses Bild ist zu groß. Nimm ein kleineres oder mach ein neues Foto.'
+          : 'Das Bild konnte nicht gelesen werden.',
+      )
+    }
+  }
+
+  function removePhoto() {
+    setPhoto({ kind: 'clear' })
+    setPreview(null)
+  }
+
+  async function save() {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setError('Das Rezept braucht einen Namen.')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+    try {
+      const resolved = await resolveItems(items, catalog, repository)
+      const draft = {
+        name: trimmed,
+        servings: Math.max(1, Number.parseInt(servings, 10) || 1),
+        minutes: Math.max(0, Number.parseInt(minutes, 10) || 0),
+        tags: parseTags(tags),
+        steps: steps.trim(),
+        items: resolved,
+        thumb:
+          photo.kind === 'set'
+            ? photo.thumb
+            : photo.kind === 'clear'
+              ? undefined
+              : existing?.thumb,
+      }
+      const update =
+        photo.kind === 'set' ? photo.full : photo.kind === 'clear' ? null : undefined
+
+      if (id) {
+        await repository.updateRecipe(id, draft, update)
+        navigate(`/rezepte/${id}`, { replace: true })
+      } else {
+        const created = await repository.createRecipe(draft, update)
+        navigate(`/rezepte/${created}`, { replace: true })
+      }
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : 'Speichern hat nicht geklappt.',
+      )
+      setSaving(false)
+    }
+  }
+
+  async function remove() {
+    if (!id) return
+    await repository.deleteRecipe(id)
+    navigate('/rezepte', { replace: true })
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={id ? 'Rezept bearbeiten' : 'Neues Rezept'}
+        back
+        actions={
+          id && (
+            <IconButton
+              label="Rezept löschen"
+              className="text-red-600"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <TrashIcon className="size-5" />
+            </IconButton>
+          )
+        }
+      />
+
+      <form
+        className="space-y-5 p-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void save()
+        }}
+      >
+        <PhotoPicker preview={preview} onPick={pickPhoto} onRemove={removePhoto} />
+
+        <Field label="Name">
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Nudelauflauf"
+            autoFocus={!id}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Portionen" hint="Für so viele gelten die Mengen unten.">
+            <TextInput
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={servings}
+              onChange={(event) => setServings(event.target.value)}
+            />
+          </Field>
+          <Field label="Dauer" hint="In Minuten, optional.">
+            <TextInput
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={minutes}
+              onChange={(event) => setMinutes(event.target.value)}
+              placeholder="30"
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="Schlagwörter"
+          hint="Mit Komma trennen, z.B. schnell, vegetarisch."
+        >
+          <TextInput
+            value={tags}
+            onChange={(event) => setTags(event.target.value)}
+            placeholder="schnell, vegetarisch"
+          />
+        </Field>
+
+        <IngredientEditor
+          items={items}
+          onChange={setItems}
+          knownNames={[...catalog.values()].map((entry) => entry.name)}
+          catalogByName={
+            new Map(
+              [...catalog.values()].map((entry) => [
+                normalizeName(entry.name),
+                entry.category,
+              ]),
+            )
+          }
+        />
+
+        <Field label="Zubereitung" hint="Ein Schritt pro Zeile liest sich am besten.">
+          <TextArea
+            rows={8}
+            value={steps}
+            onChange={(event) => setSteps(event.target.value)}
+            placeholder={'Zwiebeln würfeln und anbraten.\nNudeln kochen.\n…'}
+          />
+        </Field>
+
+        {error && (
+          <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
+        )}
+      </form>
+
+      {/* Speichern bleibt in Daumenreichweite, egal wie lang das Formular wird. */}
+      <div className="safe-bottom sticky bottom-0 border-t border-clay-200 bg-surface/95 p-4 backdrop-blur">
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => navigate(-1)}
+            disabled={saving}
+          >
+            Abbrechen
+          </Button>
+          <Button className="flex-[2]" onClick={() => void save()} disabled={saving}>
+            {saving ? 'Speichert …' : 'Speichern'}
+          </Button>
+        </div>
+      </div>
+
+      <Sheet
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Rezept löschen?"
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Behalten
+            </Button>
+            <Button variant="danger" className="flex-1" onClick={() => void remove()}>
+              Löschen
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-ink-600">
+          „{name}" wird für euch beide entfernt. Aus bereits geplanten Tagen
+          verschwindet das Rezept ebenfalls.
+        </p>
+      </Sheet>
+    </>
+  )
+}
+
+function PhotoPicker({
+  preview,
+  onPick,
+  onRemove,
+}: {
+  preview: string | null
+  onPick: (file: File) => void
+  onRemove: () => void
+}) {
+  const inputId = useId()
+
+  return (
+    <div>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) onPick(file)
+          // Zurücksetzen, damit dieselbe Datei erneut gewählt werden kann.
+          event.target.value = ''
+        }}
+      />
+
+      {preview ? (
+        <div className="relative overflow-hidden rounded-2xl ring-1 ring-clay-200">
+          <img src={preview} alt="" className="h-44 w-full object-cover" />
+          <div className="absolute top-2 right-2 flex gap-2">
+            <label
+              htmlFor={inputId}
+              className="flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur"
+              aria-label="Anderes Bild wählen"
+            >
+              <CameraIcon className="size-4.5" />
+            </label>
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label="Bild entfernen"
+              className="flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur"
+            >
+              <CloseIcon className="size-4.5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label
+          htmlFor={inputId}
+          className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-clay-200 bg-surface text-ink-400 transition-colors active:bg-clay-50"
+        >
+          <CameraIcon className="size-6" />
+          <span className="text-sm font-medium">Foto hinzufügen</span>
+        </label>
+      )}
+    </div>
+  )
+}
+
+function IngredientEditor({
+  items,
+  onChange,
+  knownNames,
+  catalogByName,
+}: {
+  items: ItemDraft[]
+  onChange: (items: ItemDraft[]) => void
+  knownNames: string[]
+  catalogByName: Map<string, CategoryCode>
+}) {
+  const listId = useId()
+
+  function patch(key: string, changes: Partial<ItemDraft>) {
+    onChange(
+      items.map((item) => (item.key === key ? { ...item, ...changes } : item)),
+    )
+  }
+
+  return (
+    <section>
+      <div className="mb-2 flex items-baseline justify-between">
+        <h2 className="text-sm font-medium text-ink-600">Zutaten</h2>
+        <span className="text-xs text-ink-400">
+          Menge leer lassen = „nach Gefühl"
+        </span>
+      </div>
+
+      <datalist id={listId}>
+        {knownNames.map((entry) => (
+          <option key={entry} value={entry} />
+        ))}
+      </datalist>
+
+      <ul className="space-y-2">
+        {items.map((item) => {
+          const known = catalogByName.get(normalizeName(item.name))
+          const isNew = item.name.trim().length > 0 && known === undefined
+
+          return (
+            <li
+              key={item.key}
+              className="rounded-xl bg-surface p-2 ring-1 ring-clay-200"
+            >
+              <div className="flex items-center gap-2">
+                <TextInput
+                  value={item.amount}
+                  inputMode="decimal"
+                  onChange={(event) =>
+                    patch(item.key, { amount: event.target.value })
+                  }
+                  placeholder="200"
+                  aria-label="Menge"
+                  className="w-20 shrink-0 text-center ring-0"
+                />
+                <Select
+                  value={item.unit}
+                  aria-label="Einheit"
+                  onChange={(event) =>
+                    patch(item.key, { unit: event.target.value as UnitCode })
+                  }
+                  className="w-24 shrink-0 ring-0"
+                >
+                  {UNIT_ORDER.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {UNIT_LABELS[unit]}
+                    </option>
+                  ))}
+                </Select>
+                <TextInput
+                  value={item.name}
+                  list={listId}
+                  aria-label="Zutat"
+                  onChange={(event) => {
+                    const value = event.target.value
+                    const match = catalogByName.get(normalizeName(value))
+                    patch(item.key, {
+                      name: value,
+                      // Bekannte Zutat: Abteilung aus dem Katalog übernehmen.
+                      category: match ?? item.category,
+                    })
+                  }}
+                  placeholder="Zwiebeln"
+                  className="min-w-0 flex-1 ring-0"
+                />
+                <IconButton
+                  label="Zutat entfernen"
+                  className="size-9 text-ink-400"
+                  onClick={() =>
+                    onChange(
+                      items.length === 1
+                        ? [emptyItemDraft()]
+                        : items.filter((entry) => entry.key !== item.key),
+                    )
+                  }
+                >
+                  <CloseIcon className="size-4.5" />
+                </IconButton>
+              </div>
+
+              {isNew && (
+                <div className="mt-2 flex items-center gap-2 border-t border-clay-200 pt-2">
+                  <span className="shrink-0 text-xs text-ink-400">
+                    Neue Zutat — wo im Laden?
+                  </span>
+                  <Select
+                    value={item.category}
+                    aria-label="Abteilung"
+                    onChange={(event) =>
+                      patch(item.key, {
+                        category: event.target.value as CategoryCode,
+                      })
+                    }
+                    className="min-w-0 flex-1 py-1.5 text-sm ring-0"
+                  >
+                    {CATEGORY_ORDER.map((category) => (
+                      <option key={category} value={category}>
+                        {CATEGORY_LABELS[category]}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      <Button
+        variant="secondary"
+        block
+        className="mt-2"
+        onClick={() =>
+          onChange([...items, emptyItemDraft(items.at(-1)?.unit ?? 'g')])
+        }
+      >
+        <PlusIcon className="size-5" />
+        Zutat hinzufügen
+      </Button>
+    </section>
+  )
+}

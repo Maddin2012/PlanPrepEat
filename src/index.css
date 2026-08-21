@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-leaf-50: #f2f8f2;
+  --color-leaf-100: #dcedde;
+  --color-leaf-200: #bcdcc0;
+  --color-leaf-300: #8ec296;
+  --color-leaf-400: #5aa267;
+  --color-leaf-500: #3a8547;
+  --color-leaf-600: #2a6a37;
+  --color-leaf-700: #23552e;
+  --color-leaf-800: #1e4426;
+  --color-leaf-900: #193821;
+
+  --color-clay-50: #faf7f2;
+  --color-clay-100: #f2ebe0;
+  --color-clay-200: #e4d8c6;
+  --color-clay-300: #cdb999;
+  --color-clay-400: #b2966e;
+  --color-clay-500: #9a7b52;
+
+  --color-ink-400: #8a8f89;
+  --color-ink-500: #6b716a;
+  --color-ink-600: #4d534c;
+  --color-ink-700: #343a34;
+  --color-ink-900: #1a1f1a;
+
+  --color-surface: #ffffff;
+  --color-canvas: #f7f9f6;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  /* Höhe der unteren Reiterleiste inkl. Home-Indikator des Geräts. */
+  --tabbar-height: calc(4rem + env(safe-area-inset-bottom));
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  /* Verhindert das Gummiband-Scrollen der Seite hinter der App. */
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Auf iOS zoomt Safari beim Fokussieren, wenn die Schrift kleiner als 16px ist. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+/* Tippen soll nicht das graue Blitzen auslösen. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility safe-top {
+  padding-top: env(safe-area-inset-top);
+}
