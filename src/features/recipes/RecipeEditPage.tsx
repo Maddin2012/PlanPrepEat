@@ -2,13 +2,8 @@ import { useEffect, useId, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useIngredientMap, useRecipeMap } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
-import type { CategoryCode, UnitCode } from '../../domain/types.ts'
-import {
-  CATEGORY_LABELS,
-  CATEGORY_ORDER,
-  UNIT_LABELS,
-  UNIT_ORDER,
-} from '../../domain/units.ts'
+import type { UnitCode } from '../../domain/types.ts'
+import { UNIT_LABELS, UNIT_ORDER } from '../../domain/units.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import {
   Button,
@@ -30,8 +25,6 @@ import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
 import {
   emptyItemDraft,
   itemDraftFrom,
-  normalizeName,
-  parseTags,
   resolveItems,
   type ItemDraft,
 } from './ingredientDraft.ts'
@@ -55,7 +48,6 @@ export default function RecipeEditPage() {
   const [name, setName] = useState('')
   const [servings, setServings] = useState('2')
   const [minutes, setMinutes] = useState('')
-  const [tags, setTags] = useState('')
   const [steps, setSteps] = useState('')
   const [items, setItems] = useState<ItemDraft[]>([emptyItemDraft()])
   const [photo, setPhoto] = useState<PhotoState>({ kind: 'keep' })
@@ -73,16 +65,15 @@ export default function RecipeEditPage() {
     setName(existing.name)
     setServings(String(existing.servings))
     setMinutes(existing.minutes > 0 ? String(existing.minutes) : '')
-    setTags(existing.tags.join(', '))
     setSteps(existing.steps)
     setItems(
       existing.items.length > 0
-        ? existing.items.map((item) => itemDraftFrom(item, catalog))
+        ? existing.items.map(itemDraftFrom)
         : [emptyItemDraft()],
     )
     setPreview(existing.thumb ?? null)
     setReady(true)
-  }, [id, ready, existing, catalog])
+  }, [id, ready, existing])
 
   // Beim Bearbeiten das Vollbild nachladen, damit die Vorschau scharf ist.
   useEffect(() => {
@@ -133,7 +124,6 @@ export default function RecipeEditPage() {
         name: trimmed,
         servings: Math.max(1, Number.parseInt(servings, 10) || 1),
         minutes: Math.max(0, Number.parseInt(minutes, 10) || 0),
-        tags: parseTags(tags),
         steps: steps.trim(),
         items: resolved,
         thumb:
@@ -225,29 +215,10 @@ export default function RecipeEditPage() {
           </Field>
         </div>
 
-        <Field
-          label="Schlagwörter"
-          hint="Mit Komma trennen, z.B. schnell, vegetarisch."
-        >
-          <TextInput
-            value={tags}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder="schnell, vegetarisch"
-          />
-        </Field>
-
         <IngredientEditor
           items={items}
           onChange={setItems}
           knownNames={[...catalog.values()].map((entry) => entry.name)}
-          catalogByName={
-            new Map(
-              [...catalog.values()].map((entry) => [
-                normalizeName(entry.name),
-                entry.category,
-              ]),
-            )
-          }
         />
 
         <Field label="Zubereitung" hint="Ein Schritt pro Zeile liest sich am besten.">
@@ -373,12 +344,10 @@ function IngredientEditor({
   items,
   onChange,
   knownNames,
-  catalogByName,
 }: {
   items: ItemDraft[]
   onChange: (items: ItemDraft[]) => void
   knownNames: string[]
-  catalogByName: Map<string, CategoryCode>
 }) {
   const listId = useId()
 
@@ -403,98 +372,68 @@ function IngredientEditor({
         ))}
       </datalist>
 
+      {/*
+        Zwei Zeilen statt einer: Name, Menge, Einheit und Löschknopf passen auf
+        einem 390 Pixel breiten Handy nicht nebeneinander, ohne dass der
+        Zutatenname unlesbar schmal wird. Die Breiten steuert durchgehend das
+        Raster — die Felder selbst füllen nur ihre Zelle aus.
+      */}
       <ul className="space-y-2">
-        {items.map((item) => {
-          const known = catalogByName.get(normalizeName(item.name))
-          const isNew = item.name.trim().length > 0 && known === undefined
+        {items.map((item) => (
+          <li
+            key={item.key}
+            className="space-y-2 rounded-xl bg-surface p-2 ring-1 ring-clay-200"
+          >
+            <TextInput
+              value={item.name}
+              list={listId}
+              aria-label="Zutat"
+              onChange={(event) => patch(item.key, { name: event.target.value })}
+              placeholder="Zwiebeln"
+              className="ring-0"
+            />
 
-          return (
-            <li
-              key={item.key}
-              className="rounded-xl bg-surface p-2 ring-1 ring-clay-200"
-            >
-              <div className="flex items-center gap-2">
-                <TextInput
-                  value={item.amount}
-                  inputMode="decimal"
-                  onChange={(event) =>
-                    patch(item.key, { amount: event.target.value })
-                  }
-                  placeholder="200"
-                  aria-label="Menge"
-                  className="w-20 shrink-0 text-center ring-0"
-                />
-                <Select
-                  value={item.unit}
-                  aria-label="Einheit"
-                  onChange={(event) =>
-                    patch(item.key, { unit: event.target.value as UnitCode })
-                  }
-                  className="w-24 shrink-0 ring-0"
-                >
-                  {UNIT_ORDER.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {UNIT_LABELS[unit]}
-                    </option>
-                  ))}
-                </Select>
-                <TextInput
-                  value={item.name}
-                  list={listId}
-                  aria-label="Zutat"
-                  onChange={(event) => {
-                    const value = event.target.value
-                    const match = catalogByName.get(normalizeName(value))
-                    patch(item.key, {
-                      name: value,
-                      // Bekannte Zutat: Abteilung aus dem Katalog übernehmen.
-                      category: match ?? item.category,
-                    })
-                  }}
-                  placeholder="Zwiebeln"
-                  className="min-w-0 flex-1 ring-0"
-                />
-                <IconButton
-                  label="Zutat entfernen"
-                  className="size-9 text-ink-400"
-                  onClick={() =>
-                    onChange(
-                      items.length === 1
-                        ? [emptyItemDraft()]
-                        : items.filter((entry) => entry.key !== item.key),
-                    )
-                  }
-                >
-                  <CloseIcon className="size-4.5" />
-                </IconButton>
-              </div>
-
-              {isNew && (
-                <div className="mt-2 flex items-center gap-2 border-t border-clay-200 pt-2">
-                  <span className="shrink-0 text-xs text-ink-400">
-                    Neue Zutat — wo im Laden?
-                  </span>
-                  <Select
-                    value={item.category}
-                    aria-label="Abteilung"
-                    onChange={(event) =>
-                      patch(item.key, {
-                        category: event.target.value as CategoryCode,
-                      })
-                    }
-                    className="min-w-0 flex-1 py-1.5 text-sm ring-0"
-                  >
-                    {CATEGORY_ORDER.map((category) => (
-                      <option key={category} value={category}>
-                        {CATEGORY_LABELS[category]}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
-            </li>
-          )
-        })}
+            <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+              <TextInput
+                value={item.amount}
+                inputMode="decimal"
+                onChange={(event) =>
+                  patch(item.key, { amount: event.target.value })
+                }
+                placeholder="200"
+                aria-label="Menge"
+                className="text-center ring-0"
+              />
+              <Select
+                value={item.unit}
+                aria-label="Einheit"
+                onChange={(event) =>
+                  patch(item.key, { unit: event.target.value as UnitCode })
+                }
+                className="ring-0"
+              >
+                {UNIT_ORDER.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {UNIT_LABELS[unit]}
+                  </option>
+                ))}
+              </Select>
+              <IconButton
+                label="Zutat entfernen"
+                className="size-10 text-ink-400"
+                onClick={() =>
+                  onChange(
+                    items.length === 1
+                      ? [emptyItemDraft()]
+                      : items.filter((entry) => entry.key !== item.key),
+                  )
+                }
+              >
+                <CloseIcon className="size-4.5" />
+              </IconButton>
+            </div>
+          </li>
+        ))}
       </ul>
 
       <Button

@@ -8,7 +8,6 @@ import {
 } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import type {
-  CategoryCode,
   ManualItem,
   ShoppingItem,
   ShoppingState,
@@ -17,18 +16,11 @@ import type {
 import {
   buildShoppingList,
   collectPlanned,
-  groupByCategory,
   liveShoppingKeys,
   manualKey,
   pruneShoppingState,
 } from '../../domain/aggregate.ts'
-import {
-  CATEGORY_LABELS,
-  CATEGORY_ORDER,
-  UNIT_LABELS,
-  UNIT_ORDER,
-  formatAmount,
-} from '../../domain/units.ts'
+import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
 import { formatShoppingListText } from '../../domain/exportList.ts'
 import { formatPlanRange } from '../../domain/planWindow.ts'
 import { newId } from '../../data/ids.ts'
@@ -107,7 +99,6 @@ export default function ShoppingPage() {
 
   const openCount = items.filter((item) => !item.checked).length
   const visible = hideDone ? items.filter((item) => !item.checked) : items
-  const groups = useMemo(() => groupByCategory(visible), [visible])
 
   function flash(message: string) {
     setToast(message)
@@ -198,24 +189,17 @@ export default function ShoppingPage() {
         />
       ) : (
         <div className="space-y-5 p-4">
-          {groups.map((group) => (
-            <section key={group.category}>
-              <h2 className="mb-1.5 px-1 text-xs font-semibold tracking-wide text-ink-400 uppercase">
-                {CATEGORY_LABELS[group.category]}
-              </h2>
-              <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
-                {group.items.map((item) => (
-                  <li key={item.key}>
-                    <ItemRow
-                      item={item}
-                      onToggle={() => toggle(item)}
-                      onEdit={() => setEditing(item)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
+            {visible.map((item) => (
+              <li key={item.key}>
+                <ItemRow
+                  item={item}
+                  onToggle={() => toggle(item)}
+                  onEdit={() => setEditing(item)}
+                />
+              </li>
+            ))}
+          </ul>
 
           <div className="space-y-2 pt-2">
             <Button block onClick={() => void exportToKeep()}>
@@ -441,7 +425,6 @@ function AddItemSheet({
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [unit, setUnit] = useState<UnitCode>('stk')
-  const [category, setCategory] = useState<CategoryCode>('household')
 
   function submit() {
     const trimmed = name.trim()
@@ -452,7 +435,6 @@ function AddItemSheet({
       name: trimmed,
       amount: parsed > 0 ? parsed : null,
       unit: parsed > 0 ? unit : null,
-      category,
     })
     setName('')
     setAmount('')
@@ -501,19 +483,6 @@ function AddItemSheet({
             </Select>
           </Field>
         </div>
-
-        <Field label="Abteilung" hint="Bestimmt, wo der Posten in der Liste steht.">
-          <Select
-            value={category}
-            onChange={(event) => setCategory(event.target.value as CategoryCode)}
-          >
-            {CATEGORY_ORDER.map((entry) => (
-              <option key={entry} value={entry}>
-                {CATEGORY_LABELS[entry]}
-              </option>
-            ))}
-          </Select>
-        </Field>
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-ink-400">

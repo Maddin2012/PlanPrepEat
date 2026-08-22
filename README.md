@@ -8,9 +8,9 @@ App verhält: eigenes Icon, Vollbild, funktioniert auch ohne Netz.
 ## Die drei Reiter
 
 **Rezeptbuch.** Rezepte mit Zutaten (Gramm, Milliliter, Stück, EL, TL …), Foto,
-Zubereitungszeit, Schlagwörtern und Zubereitungsschritten. Jedes Rezept gilt für
-eine bestimmte Portionszahl; in der Rezeptansicht könnt ihr hoch- und
-runterrechnen, ohne das Rezept zu ändern.
+Zubereitungszeit und Zubereitungsschritten. Jedes Rezept gilt für eine bestimmte
+Portionszahl; in der Rezeptansicht könnt ihr hoch- und runterrechnen, ohne das
+Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zutaten.
 
 **Essensplan.** Ein Zeitraum läuft immer von Mittwoch bis zum Sonntag der
 Folgewoche — 12 Tage, je Tag eine Spalte für Mittagessen und eine für Abendbrot.
@@ -19,7 +19,7 @@ ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.
 Neue Zeiträume legt ihr über das Plus oben an; alte bleiben als Archiv erhalten.
 
 **Einkaufsliste.** Ergibt sich automatisch aus den eingeplanten Rezepten,
-zusammengefasst und nach Supermarkt-Abteilung sortiert. Zweimal 200 g Zwiebeln
+zusammengefasst und alphabetisch sortiert. Zweimal 200 g Zwiebeln
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.
 Ihr könnt abhaken, Mengen korrigieren, Posten streichen („hab ich noch da") und
 eigene Sachen wie Klopapier ergänzen.
@@ -180,7 +180,7 @@ erst beim Öffnen geladen wird.
 
 ```
 households/{id}                      { name, members: { uid: true } }
-  ingredients/{id}                   Zutatenkatalog mit Supermarkt-Abteilung
+  ingredients/{id}                   Zutatenkatalog für Vorschläge und Zusammenfassen
   recipes/{id}                       Rezept inkl. Vorschaubild
     media/photo                      Vollbild, wird nachgeladen
   plans/{startdatum}                 Ein 12-Tage-Zeitraum

@@ -5,7 +5,6 @@ import type { ShoppingItem } from './types.ts'
 function item(partial: Partial<ShoppingItem> & { name: string }): ShoppingItem {
   return {
     key: partial.name,
-    category: 'other',
     amount: null,
     unit: null,
     checked: false,
@@ -17,32 +16,21 @@ function item(partial: Partial<ShoppingItem> & { name: string }): ShoppingItem {
 }
 
 const items: ShoppingItem[] = [
-  item({ name: 'Zwiebeln', category: 'produce', amount: 500, unit: 'g' }),
-  item({ name: 'Milch', category: 'dairy', amount: 1000, unit: 'ml' }),
-  item({ name: 'Salz', category: 'pantry' }),
-  item({
-    name: 'Nudeln',
-    category: 'pantry',
-    amount: 500,
-    unit: 'g',
-    checked: true,
-  }),
+  item({ name: 'Milch', amount: 1000, unit: 'ml' }),
+  item({ name: 'Nudeln', amount: 500, unit: 'g', checked: true }),
+  item({ name: 'Salz' }),
+  item({ name: 'Zwiebeln', amount: 500, unit: 'g' }),
 ]
 
 describe('formatShoppingListText', () => {
-  it('gruppiert nach Abteilung und lässt Abgehaktes weg', () => {
+  it('schreibt eine durchgehende Liste und lässt Abgehaktes weg', () => {
     expect(formatShoppingListText(items, { startDate: '2026-08-26' })).toBe(
       [
         'Einkaufsliste Mi, 26.08. – So, 06.09.2026',
         '',
-        'Obst & Gemüse',
-        '- Zwiebeln, 500 g',
-        '',
-        'Kühlregal',
         '- Milch, 1 l',
-        '',
-        'Vorrat',
         '- Salz',
+        '- Zwiebeln, 500 g',
       ].join('\n'),
     )
   })

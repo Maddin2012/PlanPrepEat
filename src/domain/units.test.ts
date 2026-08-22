@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  categoryRank,
   formatAmount,
   formatNumber,
   normalize,
@@ -76,11 +75,5 @@ describe('formatAmount', () => {
   it('hängt keine überflüssigen Nullen an', () => {
     expect(formatNumber(2)).toBe('2')
     expect(formatNumber(2.5)).toBe('2,5')
-  })
-})
-
-describe('categoryRank', () => {
-  it('stellt Obst & Gemüse vor Sonstiges', () => {
-    expect(categoryRank('produce')).toBeLessThan(categoryRank('other'))
   })
 })

@@ -235,7 +235,6 @@ function toRecipeData(draft: RecipeDraft): Record<string, unknown> {
     name: draft.name,
     servings: draft.servings,
     minutes: draft.minutes,
-    tags: draft.tags,
     steps: draft.steps,
     items: draft.items.map((item) => ({
       ingredientId: item.ingredientId,
@@ -254,7 +253,6 @@ function toRecipe(id: string, data: Record<string, unknown>): Recipe {
     name: (data.name as string) ?? '',
     servings: (data.servings as number) ?? 1,
     minutes: (data.minutes as number) ?? 0,
-    tags: (data.tags as string[]) ?? [],
     steps: (data.steps as string) ?? '',
     items: (data.items as Recipe['items']) ?? [],
     thumb: (data.thumb as string | null) ?? undefined,

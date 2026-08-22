@@ -1,4 +1,4 @@
-import type { UnitCode, CategoryCode } from './types.ts'
+import type { UnitCode } from './types.ts'
 
 export const UNIT_LABELS: Record<UnitCode, string> = {
   g: 'g',
@@ -116,34 +116,4 @@ export function formatAmount(
   if (!unit) return formatNumber(amount)
   const pretty = prettify(amount, unit)
   return `${formatNumber(pretty.amount)} ${UNIT_LABELS[pretty.unit]}`
-}
-
-export const CATEGORY_LABELS: Record<CategoryCode, string> = {
-  produce: 'Obst & Gemüse',
-  bakery: 'Backwaren',
-  meat: 'Fleisch & Fisch',
-  dairy: 'Kühlregal',
-  frozen: 'Tiefkühl',
-  pantry: 'Vorrat',
-  drinks: 'Getränke',
-  household: 'Haushalt',
-  other: 'Sonstiges',
-}
-
-/** Reihenfolge der Abteilungen auf der Einkaufsliste. */
-export const CATEGORY_ORDER: CategoryCode[] = [
-  'produce',
-  'bakery',
-  'meat',
-  'dairy',
-  'frozen',
-  'pantry',
-  'drinks',
-  'household',
-  'other',
-]
-
-export function categoryRank(category: CategoryCode): number {
-  const index = CATEGORY_ORDER.indexOf(category)
-  return index === -1 ? CATEGORY_ORDER.length : index
 }

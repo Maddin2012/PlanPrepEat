@@ -1,6 +1,5 @@
 import type { ShoppingItem } from './types.ts'
-import { CATEGORY_LABELS, formatAmount } from './units.ts'
-import { groupByCategory } from './aggregate.ts'
+import { formatAmount } from './units.ts'
 import { formatPlanRange } from './planWindow.ts'
 
 export interface ExportOptions {
@@ -34,22 +33,13 @@ export function formatShoppingListText(
     return `${heading}\n\n(nichts offen)`
   }
 
-  const blocks = groupByCategory(visible).map((group) => {
-    const lines = group.items.map((item) => `- ${formatItemLine(item)}`)
-    return [CATEGORY_LABELS[group.category], ...lines].join('\n')
-  })
-
-  return [heading, '', ...intersperse(blocks, '')].join('\n')
+  return [heading, '', ...visible.map((item) => `- ${formatItemLine(item)}`)].join(
+    '\n',
+  )
 }
 
 /** „Zwiebeln, 500 g" bzw. nur „Salz", wenn keine Menge hinterlegt ist. */
 export function formatItemLine(item: ShoppingItem): string {
   const amount = formatAmount(item.amount, item.unit)
   return amount ? `${item.name}, ${amount}` : item.name
-}
-
-function intersperse<T>(values: T[], separator: T): T[] {
-  return values.flatMap((value, index) =>
-    index === 0 ? [value] : [separator, value],
-  )
 }

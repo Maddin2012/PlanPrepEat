@@ -1,9 +1,4 @@
-import type {
-  CategoryCode,
-  Ingredient,
-  RecipeItem,
-  UnitCode,
-} from '../../domain/types.ts'
+import type { Ingredient, RecipeItem, UnitCode } from '../../domain/types.ts'
 import { newId } from '../../data/ids.ts'
 import type { Repository } from '../../data/repository.ts'
 
@@ -16,25 +11,19 @@ export interface ItemDraft {
   amount: string
   unit: UnitCode
   note: string
-  /** Abteilung, falls die Zutat neu ist und erst angelegt werden muss. */
-  category: CategoryCode
 }
 
 export function emptyItemDraft(unit: UnitCode = 'g'): ItemDraft {
-  return { key: newId(), name: '', amount: '', unit, note: '', category: 'other' }
+  return { key: newId(), name: '', amount: '', unit, note: '' }
 }
 
-export function itemDraftFrom(
-  item: RecipeItem,
-  catalog: Map<string, Ingredient>,
-): ItemDraft {
+export function itemDraftFrom(item: RecipeItem): ItemDraft {
   return {
     key: newId(),
     name: item.name,
     amount: item.amount === 0 ? '' : formatForInput(item.amount),
     unit: item.unit,
     note: item.note ?? '',
-    category: catalog.get(item.ingredientId)?.category ?? 'other',
   }
 }
 
@@ -81,18 +70,7 @@ export async function resolveItems(
     let ingredient = byName.get(key)
 
     if (!ingredient) {
-      ingredient = {
-        id: newId(),
-        name,
-        category: draft.category,
-        defaultUnit: draft.unit,
-      }
-      byName.set(key, ingredient)
-      created.push(ingredient)
-    } else if (ingredient.category !== draft.category) {
-      // Die Abteilung im Formular gewinnt — so korrigiert man eine falsche
-      // Einordnung dort, wo sie auffällt, statt in einem eigenen Menü.
-      ingredient = { ...ingredient, category: draft.category }
+      ingredient = { id: newId(), name, defaultUnit: draft.unit }
       byName.set(key, ingredient)
       created.push(ingredient)
     }
@@ -108,14 +86,4 @@ export async function resolveItems(
 
   await Promise.all(created.map((entry) => repository.saveIngredient(entry)))
   return items
-}
-
-/** Zerlegt „schnell, vegetarisch" in einzelne Schlagwörter. */
-export function parseTags(input: string): string[] {
-  const seen = new Set<string>()
-  for (const part of input.split(',')) {
-    const tag = part.trim()
-    if (tag) seen.add(tag)
-  }
-  return [...seen]
 }

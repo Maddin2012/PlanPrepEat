@@ -1,5 +1,4 @@
 import type {
-  CategoryCode,
   Ingredient,
   PlanSlot,
   Recipe,
@@ -7,7 +6,7 @@ import type {
   ShoppingState,
   UnitCode,
 } from './types.ts'
-import { categoryRank, normalize, roundForShopping } from './units.ts'
+import { normalize, roundForShopping } from './units.ts'
 import { scaleAmount } from './scaling.ts'
 
 /**
@@ -53,7 +52,6 @@ export function collectPlanned(
 interface Bucket {
   key: string
   name: string
-  category: CategoryCode
   amount: number
   unit: UnitCode
   sources: Set<string>
@@ -87,7 +85,6 @@ export function buildShoppingList(
         buckets.set(key, {
           key,
           name: known?.name ?? item.name,
-          category: known?.category ?? 'other',
           amount,
           unit,
           sources: new Set([recipe.name]),
@@ -110,7 +107,6 @@ export function buildShoppingList(
     items.push({
       key: bucket.key,
       name: bucket.name,
-      category: bucket.category,
       // Menge 0 heißt „ohne Mengenangabe" (z.B. Salz nach Geschmack) und wird
       // in der Liste nur mit dem Namen dargestellt.
       amount: amount === 0 ? null : amount,
@@ -127,7 +123,6 @@ export function buildShoppingList(
     items.push({
       key,
       name: entry.name,
-      category: entry.category,
       amount: entry.amount,
       unit: entry.unit,
       checked: state.checked[key] === true,
@@ -140,26 +135,9 @@ export function buildShoppingList(
   return items.sort(compareShoppingItems)
 }
 
+/** Alphabetisch nach deutschem Alphabet, Groß- und Kleinschreibung egal. */
 function compareShoppingItems(a: ShoppingItem, b: ShoppingItem): number {
-  const byCategory = categoryRank(a.category) - categoryRank(b.category)
-  if (byCategory !== 0) return byCategory
   return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
-}
-
-export interface ShoppingGroup {
-  category: CategoryCode
-  items: ShoppingItem[]
-}
-
-/** Gruppiert die fertige Liste nach Supermarkt-Abteilung. */
-export function groupByCategory(items: ShoppingItem[]): ShoppingGroup[] {
-  const groups: ShoppingGroup[] = []
-  for (const item of items) {
-    const last = groups[groups.length - 1]
-    if (last && last.category === item.category) last.items.push(item)
-    else groups.push({ category: item.category, items: [item] })
-  }
-  return groups
 }
 
 /**

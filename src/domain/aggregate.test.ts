@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   buildShoppingList,
   collectPlanned,
-  groupByCategory,
   liveShoppingKeys,
   manualKey,
   pruneShoppingState,
@@ -17,12 +16,8 @@ import type {
   ShoppingState,
 } from './types.ts'
 
-function ingredient(
-  id: string,
-  name: string,
-  category: Ingredient['category'] = 'other',
-): Ingredient {
-  return { id, name, category, defaultUnit: 'g' }
+function ingredient(id: string, name: string): Ingredient {
+  return { id, name, defaultUnit: 'g' }
 }
 
 function recipe(
@@ -36,7 +31,6 @@ function recipe(
     name,
     servings,
     minutes: 0,
-    tags: [],
     steps: '',
     items,
     createdAt: 0,
@@ -45,10 +39,10 @@ function recipe(
 }
 
 const catalog = new Map<string, Ingredient>([
-  ['onion', ingredient('onion', 'Zwiebeln', 'produce')],
-  ['milk', ingredient('milk', 'Milch', 'dairy')],
-  ['pasta', ingredient('pasta', 'Nudeln', 'pantry')],
-  ['salt', ingredient('salt', 'Salz', 'pantry')],
+  ['onion', ingredient('onion', 'Zwiebeln')],
+  ['milk', ingredient('milk', 'Milch')],
+  ['pasta', ingredient('pasta', 'Nudeln')],
+  ['salt', ingredient('salt', 'Salz')],
 ])
 
 describe('buildShoppingList', () => {
@@ -157,7 +151,7 @@ describe('buildShoppingList', () => {
     expect(list[0].unit).toBeNull()
   })
 
-  it('sortiert nach Supermarkt-Abteilung', () => {
+  it('sortiert alphabetisch', () => {
     const a = recipe('a', 'Auflauf', 2, [
       { ingredientId: 'pasta', name: 'Nudeln', amount: 250, unit: 'g' },
       { ingredientId: 'onion', name: 'Zwiebeln', amount: 1, unit: 'stk' },
@@ -170,11 +164,27 @@ describe('buildShoppingList', () => {
       emptyShoppingState(),
     )
 
-    expect(list.map((item) => item.category)).toEqual([
-      'produce',
-      'dairy',
-      'pantry',
+    expect(list.map((item) => item.name)).toEqual([
+      'Milch',
+      'Nudeln',
+      'Zwiebeln',
     ])
+  })
+
+  it('sortiert unabhängig von Groß- und Kleinschreibung', () => {
+    const a = recipe('a', 'Auflauf', 2, [
+      { ingredientId: 'x', name: 'zucker', amount: 1, unit: 'g' },
+      { ingredientId: 'y', name: 'Äpfel', amount: 1, unit: 'g' },
+      { ingredientId: 'z', name: 'Butter', amount: 1, unit: 'g' },
+    ])
+
+    const list = buildShoppingList(
+      [{ recipe: a, servings: 2 }],
+      catalog,
+      emptyShoppingState(),
+    )
+
+    expect(list.map((item) => item.name)).toEqual(['Äpfel', 'Butter', 'zucker'])
   })
 
   it('nimmt den Namen aus dem Katalog, damit Umbenennungen durchschlagen', () => {
@@ -203,7 +213,6 @@ describe('buildShoppingList', () => {
     )
 
     expect(list[0].name).toBe('Gelöschte Zutat')
-    expect(list[0].category).toBe('other')
   })
 })
 
@@ -243,19 +252,11 @@ describe('Nutzer-Zustand über der Liste', () => {
   it('mischt eigene Posten an der richtigen Stelle ein', () => {
     const state: ShoppingState = {
       ...emptyShoppingState(),
-      manual: [
-        {
-          id: 'm1',
-          name: 'Klopapier',
-          amount: 1,
-          unit: 'pkg',
-          category: 'household',
-        },
-      ],
+      manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
     }
     const list = buildShoppingList(planned, catalog, state)
-    expect(list.map((item) => item.name)).toEqual(['Zwiebeln', 'Klopapier'])
-    expect(list[1].manual).toBe(true)
+    expect(list.map((item) => item.name)).toEqual(['Klopapier', 'Zwiebeln'])
+    expect(list.find((item) => item.manual)?.name).toBe('Klopapier')
   })
 
   it('überlebt eine Änderung am Essensplan', () => {
@@ -263,15 +264,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       checked: { [onionKey]: true },
       overrides: {},
       removed: [],
-      manual: [
-        {
-          id: 'm1',
-          name: 'Klopapier',
-          amount: 1,
-          unit: 'pkg',
-          category: 'household',
-        },
-      ],
+      manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
     }
 
     // Ein zweites Rezept kommt in den Plan.
@@ -298,9 +291,7 @@ describe('pruneShoppingState', () => {
       checked: { [shoppingKey('onion', 'g')]: true, [manualKey('m1')]: true },
       overrides: { [shoppingKey('weg', 'g')]: 5 },
       removed: [shoppingKey('auch-weg', 'g')],
-      manual: [
-        { id: 'm1', name: 'Klopapier', amount: null, unit: null, category: 'household' },
-      ],
+      manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
     }
 
     const pruned = pruneShoppingState(
@@ -346,20 +337,5 @@ describe('collectPlanned', () => {
       { key: '2026-08-26_lunch', entries: [{ recipeId: 'weg', servings: 2 }] },
     ]
     expect(collectPlanned(slots, recipesById)).toEqual([])
-  })
-})
-
-describe('groupByCategory', () => {
-  it('fasst aufeinanderfolgende Abteilungen zusammen', () => {
-    const a = recipe('a', 'Auflauf', 2, [
-      { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
-      { ingredientId: 'pasta', name: 'Nudeln', amount: 100, unit: 'g' },
-      { ingredientId: 'salt', name: 'Salz', amount: 1, unit: 'prise' },
-    ])
-    const groups = groupByCategory(
-      buildShoppingList([{ recipe: a, servings: 2 }], catalog, emptyShoppingState()),
-    )
-    expect(groups.map((group) => group.category)).toEqual(['produce', 'pantry'])
-    expect(groups[1].items).toHaveLength(2)
   })
 })

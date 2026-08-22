@@ -7,7 +7,6 @@ import { formatAmount } from '../../domain/units.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button, EmptyState, Spinner } from '../../components/ui.tsx'
 import { ClockIcon, UsersIcon } from '../../components/Icons.tsx'
-import { useWakeLock } from '../../lib/useWakeLock.ts'
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,7 +16,6 @@ export default function RecipeDetailPage() {
 
   const [servings, setServings] = useState<number | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
-  const wakeLock = useWakeLock()
 
   // Der Portionsregler startet bei der Angabe des Rezepts, bleibt danach aber
   // beim selbst gewählten Wert stehen.
@@ -88,17 +86,12 @@ export default function RecipeDetailPage() {
       )}
 
       <div className="space-y-6 p-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
-          {recipe.minutes > 0 && (
-            <span className="inline-flex items-center gap-1.5">
-              <ClockIcon className="size-4" />
-              {recipe.minutes} Minuten
-            </span>
-          )}
-          {recipe.tags.length > 0 && (
-            <span className="text-leaf-600">{recipe.tags.join(' · ')}</span>
-          )}
-        </div>
+        {recipe.minutes > 0 && (
+          <p className="inline-flex items-center gap-1.5 text-sm text-ink-500">
+            <ClockIcon className="size-4" />
+            {recipe.minutes} Minuten
+          </p>
+        )}
 
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
           <div className="flex items-center justify-between gap-3">
@@ -149,22 +142,7 @@ export default function RecipeDetailPage() {
 
         {steps.length > 0 && (
           <section>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-ink-600">Zubereitung</h2>
-              {wakeLock.supported && (
-                <button
-                  type="button"
-                  onClick={wakeLock.toggle}
-                  className={
-                    wakeLock.active
-                      ? 'rounded-full bg-leaf-600 px-3 py-1.5 text-xs font-medium text-white'
-                      : 'rounded-full bg-white px-3 py-1.5 text-xs font-medium text-ink-600 ring-1 ring-clay-200'
-                  }
-                >
-                  {wakeLock.active ? 'Bildschirm bleibt an' : 'Bildschirm anlassen'}
-                </button>
-              )}
-            </div>
+            <h2 className="mb-2 text-sm font-medium text-ink-600">Zubereitung</h2>
 
             <ol className="space-y-3">
               {steps.map((step, index) => (

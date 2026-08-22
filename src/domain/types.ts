@@ -18,27 +18,14 @@ export type UnitCode =
   | 'bund'
   | 'pkg'
 
-/** Supermarkt-Abteilungen, in der Reihenfolge, in der man sie durchläuft. */
-export type CategoryCode =
-  | 'produce'
-  | 'bakery'
-  | 'meat'
-  | 'dairy'
-  | 'frozen'
-  | 'pantry'
-  | 'drinks'
-  | 'household'
-  | 'other'
-
 /**
- * Ein Eintrag aus dem Zutaten-Katalog. Der Katalog verhindert, dass „Zwiebel"
- * und „Zwiebeln" in der Einkaufsliste als zwei Posten landen, und trägt die
- * Supermarkt-Abteilung für die Sortierung.
+ * Ein Eintrag aus dem Zutaten-Katalog. Der Katalog liefert die Vorschläge beim
+ * Tippen und verhindert, dass „Zwiebel" und „Zwiebeln" in der Einkaufsliste als
+ * zwei getrennte Posten landen.
  */
 export interface Ingredient {
   id: string
   name: string
-  category: CategoryCode
   /** Einheit, die beim Anlegen einer neuen Rezeptzeile vorgeschlagen wird. */
   defaultUnit: UnitCode
 }
@@ -61,7 +48,6 @@ export interface Recipe {
   servings: number
   /** Zubereitungszeit in Minuten, 0 = keine Angabe. */
   minutes: number
-  tags: string[]
   /** Zubereitungsschritte als Fließtext, eine Zeile pro Schritt. */
   steps: string
   items: RecipeItem[]
@@ -101,7 +87,6 @@ export interface ManualItem {
   name: string
   amount: number | null
   unit: UnitCode | null
-  category: CategoryCode
 }
 
 /**
@@ -124,7 +109,6 @@ export interface ShoppingState {
 export interface ShoppingItem {
   key: string
   name: string
-  category: CategoryCode
   /** null nur bei manuellen Posten ohne Mengenangabe. */
   amount: number | null
   unit: UnitCode | null
