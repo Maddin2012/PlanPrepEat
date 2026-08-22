@@ -12,7 +12,6 @@ import {
   Select,
   Sheet,
   Spinner,
-  TextArea,
   TextInput,
 } from '../../components/ui.tsx'
 import {
@@ -22,6 +21,7 @@ import {
   TrashIcon,
 } from '../../components/Icons.tsx'
 import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
+import { StepsEditor, stepsFromText, stepsToText } from './StepsEditor.tsx'
 import {
   emptyItemDraft,
   itemDraftFrom,
@@ -48,7 +48,7 @@ export default function RecipeEditPage() {
   const [name, setName] = useState('')
   const [servings, setServings] = useState('2')
   const [minutes, setMinutes] = useState('')
-  const [steps, setSteps] = useState('')
+  const [steps, setSteps] = useState<string[]>([''])
   const [items, setItems] = useState<ItemDraft[]>([emptyItemDraft()])
   const [photo, setPhoto] = useState<PhotoState>({ kind: 'keep' })
   const [preview, setPreview] = useState<string | null>(null)
@@ -65,7 +65,7 @@ export default function RecipeEditPage() {
     setName(existing.name)
     setServings(String(existing.servings))
     setMinutes(existing.minutes > 0 ? String(existing.minutes) : '')
-    setSteps(existing.steps)
+    setSteps(stepsFromText(existing.steps))
     setItems(
       existing.items.length > 0
         ? existing.items.map(itemDraftFrom)
@@ -124,7 +124,7 @@ export default function RecipeEditPage() {
         name: trimmed,
         servings: Math.max(1, Number.parseInt(servings, 10) || 1),
         minutes: Math.max(0, Number.parseInt(minutes, 10) || 0),
-        steps: steps.trim(),
+        steps: stepsToText(steps),
         items: resolved,
         thumb:
           photo.kind === 'set'
@@ -221,14 +221,7 @@ export default function RecipeEditPage() {
           knownNames={[...catalog.values()].map((entry) => entry.name)}
         />
 
-        <Field label="Zubereitung" hint="Ein Schritt pro Zeile liest sich am besten.">
-          <TextArea
-            rows={8}
-            value={steps}
-            onChange={(event) => setSteps(event.target.value)}
-            placeholder={'Zwiebeln würfeln und anbraten.\nNudeln kochen.\n…'}
-          />
-        </Field>
+        <StepsEditor steps={steps} onChange={setSteps} />
 
         {error && (
           <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
