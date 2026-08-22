@@ -122,11 +122,32 @@ export function TextArea({
   )
 }
 
+/**
+ * Pfeil nach unten als Hintergrundbild. Ohne ihn sieht ein Auswahlfeld
+ * genauso aus wie ein Textfeld, und man kommt gar nicht auf die Idee,
+ * darauf zu tippen.
+ */
+const CHEVRON =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b716a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 9l7 7 7-7'/%3E%3C/svg%3E\")"
+
 export function Select({
   className,
+  style,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cx(CONTROL, 'appearance-none pr-8', className)} {...props} />
+  return (
+    <select
+      className={cx(CONTROL, 'appearance-none pr-9', className)}
+      style={{
+        backgroundImage: CHEVRON,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 0.6rem center',
+        backgroundSize: '1.1rem',
+        ...style,
+      }}
+      {...props}
+    />
+  )
 }
 
 /**
@@ -237,25 +258,5 @@ export function Spinner({ label = 'Lädt …' }: { label?: string }) {
       <span className="size-4 animate-spin rounded-full border-2 border-clay-200 border-t-leaf-500" />
       {label}
     </div>
-  )
-}
-
-export function Chip({
-  active,
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }) {
-  return (
-    <button
-      type="button"
-      className={cx(
-        'shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-        active
-          ? 'bg-leaf-600 text-white'
-          : 'bg-white text-ink-600 ring-1 ring-clay-200',
-        className,
-      )}
-      {...props}
-    />
   )
 }

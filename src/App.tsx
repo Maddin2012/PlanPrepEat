@@ -32,7 +32,7 @@ function Shell() {
   const fullscreen = /\/(neu|bearbeiten)$/.test(pathname)
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col bg-canvas">
+    <div className="mx-auto flex h-full max-w-4xl flex-col bg-canvas">
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
         style={{ paddingBottom: fullscreen ? 0 : 'var(--tabbar-height)' }}
@@ -59,7 +59,7 @@ function TabBar() {
   return (
     <nav
       className={cx(
-        'fixed inset-x-0 bottom-0 z-40 mx-auto max-w-2xl safe-bottom',
+        'fixed inset-x-0 bottom-0 z-40 mx-auto max-w-4xl safe-bottom',
         'border-t border-clay-200 bg-surface/95 backdrop-blur',
       )}
     >
