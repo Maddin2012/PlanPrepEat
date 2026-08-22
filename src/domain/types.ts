@@ -103,6 +103,16 @@ export interface ShoppingState {
   /** Weggestrichene abgeleitete Posten („hab ich noch da"). */
   removed: string[]
   manual: ManualItem[]
+  /**
+   * Die von Hand gewählte Reihenfolge, als Liste von Schlüsseln.
+   *
+   * Leer heißt „noch nie etwas verschoben" — dann bleibt die Liste
+   * alphabetisch. Erst das erste Verschieben schreibt die Reihenfolge fest.
+   * Posten, die hier fehlen (weil sie später über ein neues Rezept dazukamen),
+   * hängen sich alphabetisch hinten an, statt sich in die sortierte
+   * Ladenrunde zu mogeln.
+   */
+  order: string[]
 }
 
 /** Ein fertig berechneter Posten der Einkaufsliste. */
@@ -126,4 +136,5 @@ export const emptyShoppingState = (): ShoppingState => ({
   overrides: {},
   removed: [],
   manual: [],
+  order: [],
 })

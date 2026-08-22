@@ -132,12 +132,38 @@ export function buildShoppingList(
     })
   }
 
-  return items.sort(compareShoppingItems)
+  return items.sort(shoppingComparator(state.order))
 }
 
-/** Alphabetisch nach deutschem Alphabet, Groß- und Kleinschreibung egal. */
-function compareShoppingItems(a: ShoppingItem, b: ShoppingItem): number {
-  return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+/**
+ * Die Reihenfolge der Einkaufsliste, in drei Stufen:
+ *
+ * 1. Offene Posten vor abgehakten — Erledigtes rutscht nach unten und bleibt
+ *    dort durchgestrichen stehen, statt zwischen dem zu stören, was noch fehlt.
+ * 2. Innerhalb dessen die von Hand gewählte Reihenfolge aus `order`.
+ * 3. Was in `order` nicht vorkommt, alphabetisch und hinten dran. Das betrifft
+ *    alles, was später über ein neu eingeplantes Rezept dazugekommen ist.
+ *
+ * Der Index wird einmal als Map vorgebaut, statt bei jedem Vergleich durch das
+ * Array zu suchen.
+ */
+export function shoppingComparator(
+  order: readonly string[] = [],
+): (a: ShoppingItem, b: ShoppingItem) => number {
+  const position = new Map(order.map((key, index) => [key, index]))
+  const rank = (item: ShoppingItem) => position.get(item.key) ?? Infinity
+
+  return (a, b) => {
+    if (a.checked !== b.checked) return a.checked ? 1 : -1
+
+    // Ränge direkt vergleichen statt zu subtrahieren: Bei zwei unbekannten
+    // Posten wäre die Differenz NaN, bei bekannt gegen unbekannt unendlich.
+    const rankA = rank(a)
+    const rankB = rank(b)
+    if (rankA !== rankB) return rankA < rankB ? -1 : 1
+
+    return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+  }
 }
 
 /**
@@ -157,6 +183,7 @@ export function pruneShoppingState(
     overrides: pickKeys(state.overrides, isLive),
     removed: state.removed.filter(isLive),
     manual: state.manual,
+    order: state.order.filter(isLive),
   }
 }
 

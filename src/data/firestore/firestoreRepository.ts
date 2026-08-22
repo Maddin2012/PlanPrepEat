@@ -268,5 +268,8 @@ function toShoppingState(data: Record<string, unknown>): ShoppingState {
     overrides: (data.overrides as ShoppingState['overrides']) ?? {},
     removed: (data.removed as string[]) ?? [],
     manual: (data.manual as ShoppingState['manual']) ?? [],
+    // Listen aus der Zeit vor der freien Sortierung haben kein `order` — die
+    // bleiben damit einfach alphabetisch, bis zum ersten Verschieben.
+    order: (data.order as string[]) ?? [],
   }
 }

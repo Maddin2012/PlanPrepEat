@@ -1,5 +1,24 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   useIngredientMap,
   useRecipeMap,
@@ -41,6 +60,7 @@ import {
   CartIcon,
   CheckIcon,
   CopyIcon,
+  GripIcon,
   PlusIcon,
   ShareIcon,
   TrashIcon,
@@ -97,8 +117,29 @@ export default function ShoppingPage() {
     [update],
   )
 
-  const openCount = items.filter((item) => !item.checked).length
-  const visible = hideDone ? items.filter((item) => !item.checked) : items
+  // Die Liste kommt schon sortiert an: offene zuerst, dann die abgehakten.
+  const open = items.filter((item) => !item.checked)
+  const done = items.filter((item) => item.checked)
+  const openCount = open.length
+
+  /**
+   * Verschieben. Beim ersten Mal wird die aktuelle Reihenfolge aller Posten
+   * festgeschrieben — vorher ist `order` leer und alles steht alphabetisch.
+   * Abgehakte hängen hinten dran, damit sie ihre Position behalten, wenn das
+   * Häkchen später wieder wegfällt.
+   */
+  const move = useCallback(
+    (fromKey: string, toKey: string) => {
+      const keys = [...open.map((item) => item.key), ...done.map((item) => item.key)]
+      const from = keys.indexOf(fromKey)
+      const to = keys.indexOf(toKey)
+      if (from === -1 || to === -1 || from === to) return
+
+      keys.splice(to, 0, ...keys.splice(from, 1))
+      update((current) => ({ ...current, order: keys }))
+    },
+    [open, done, update],
+  )
 
   function flash(message: string) {
     setToast(message)
@@ -189,17 +230,31 @@ export default function ShoppingPage() {
         />
       ) : (
         <div className="space-y-5 p-4">
-          <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
-            {visible.map((item) => (
-              <li key={item.key}>
-                <ItemRow
-                  item={item}
-                  onToggle={() => toggle(item)}
-                  onEdit={() => setEditing(item)}
-                />
-              </li>
-            ))}
-          </ul>
+          <SortableList
+            items={open}
+            onMove={move}
+            onToggle={toggle}
+            onEdit={setEditing}
+          />
+
+          {!hideDone && done.length > 0 && (
+            <section>
+              <h2 className="mb-1.5 px-1 text-xs font-semibold tracking-wide text-ink-400 uppercase">
+                Erledigt ({done.length})
+              </h2>
+              <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
+                {done.map((item) => (
+                  <li key={item.key}>
+                    <ItemRow
+                      item={item}
+                      onToggle={() => toggle(item)}
+                      onEdit={() => setEditing(item)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div className="space-y-2 pt-2">
             <Button block onClick={() => void exportToKeep()}>
@@ -278,10 +333,13 @@ function ItemRow({
   item,
   onToggle,
   onEdit,
+  handle,
 }: {
   item: ShoppingItem
   onToggle: () => void
   onEdit: () => void
+  /** Der Anfasser zum Verschieben, nur bei offenen Posten. */
+  handle?: ReactNode
 }) {
   return (
     <div className="flex items-stretch">
@@ -336,7 +394,119 @@ function ItemRow({
           />
         )}
       </button>
+
+      {handle}
     </div>
+  )
+}
+
+/**
+ * Der verschiebbare Teil der Liste — die offenen Posten.
+ *
+ * Gezogen wird ausschließlich am Anfasser rechts. Läge der Griff auf der ganzen
+ * Zeile, kämen sich Wischen zum Scrollen und Ziehen zum Sortieren dauernd in
+ * die Quere, und Antippen zum Abhaken gleich mit.
+ */
+function SortableList({
+  items,
+  onMove,
+  onToggle,
+  onEdit,
+}: {
+  items: ShoppingItem[]
+  onMove: (fromKey: string, toKey: string) => void
+  onToggle: (item: ShoppingItem) => void
+  onEdit: (item: ShoppingItem) => void
+}) {
+  const sensors = useSensors(
+    // Erst nach ein paar Pixeln Bewegung greifen, sonst zählt schon ein
+    // Antippen des Griffs als Ziehen.
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  if (items.length === 0) return null
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragEnd={({ active, over }) => {
+        if (over && active.id !== over.id) {
+          onMove(String(active.id), String(over.id))
+        }
+      }}
+    >
+      <SortableContext
+        items={items.map((item) => item.key)}
+        strategy={verticalListSortingStrategy}
+      >
+        <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
+          {items.map((item) => (
+            <SortableRow
+              key={item.key}
+              item={item}
+              onToggle={() => onToggle(item)}
+              onEdit={() => onEdit(item)}
+            />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
+  )
+}
+
+function SortableRow({
+  item,
+  onToggle,
+  onEdit,
+}: {
+  item: ShoppingItem
+  onToggle: () => void
+  onEdit: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.key })
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cx(
+        'bg-surface',
+        // Die gezogene Zeile über die anderen legen, sonst verschwindet sie
+        // beim Vorbeiziehen unter der Nachbarzeile.
+        isDragging && 'relative z-10 shadow-lg ring-1 ring-leaf-300',
+      )}
+    >
+      <ItemRow
+        item={item}
+        onToggle={onToggle}
+        onEdit={onEdit}
+        handle={
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            aria-label={`${item.name} verschieben`}
+            // touch-none verhindert, dass der Browser die Geste als Scrollen
+            // beansprucht, bevor dnd-kit sie überhaupt zu sehen bekommt.
+            className="flex shrink-0 touch-none items-center px-2.5 text-clay-300 transition-colors active:text-ink-500"
+            {...attributes}
+            {...listeners}
+          >
+            <GripIcon className="size-5" />
+          </button>
+        }
+      />
+    </li>
   )
 }
 

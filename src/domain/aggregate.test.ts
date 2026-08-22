@@ -151,7 +151,7 @@ describe('buildShoppingList', () => {
     expect(list[0].unit).toBeNull()
   })
 
-  it('sortiert alphabetisch', () => {
+  it('sortiert alphabetisch, solange nichts verschoben wurde', () => {
     const a = recipe('a', 'Auflauf', 2, [
       { ingredientId: 'pasta', name: 'Nudeln', amount: 250, unit: 'g' },
       { ingredientId: 'onion', name: 'Zwiebeln', amount: 1, unit: 'stk' },
@@ -216,6 +216,77 @@ describe('buildShoppingList', () => {
   })
 })
 
+describe('Reihenfolge der Einkaufsliste', () => {
+  const dreierlei = recipe('a', 'Auflauf', 2, [
+    { ingredientId: 'milk', name: 'Milch', amount: 200, unit: 'ml' },
+    { ingredientId: 'pasta', name: 'Nudeln', amount: 250, unit: 'g' },
+    { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
+  ])
+  const planned = [{ recipe: dreierlei, servings: 2 }]
+
+  const milk = shoppingKey('milk', 'ml')
+  const pasta = shoppingKey('pasta', 'g')
+  const onion = shoppingKey('onion', 'g')
+
+  const namesOf = (state: ShoppingState) =>
+    buildShoppingList(planned, catalog, state).map((item) => item.name)
+
+  it('schiebt Abgehaktes ans Ende', () => {
+    expect(
+      namesOf({ ...emptyShoppingState(), checked: { [milk]: true } }),
+    ).toEqual(['Nudeln', 'Zwiebeln', 'Milch'])
+  })
+
+  it('sortiert auch innerhalb der Abgehakten alphabetisch', () => {
+    expect(
+      namesOf({
+        ...emptyShoppingState(),
+        checked: { [pasta]: true, [milk]: true },
+      }),
+    ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
+  })
+
+  it('folgt der von Hand gewählten Reihenfolge', () => {
+    expect(
+      namesOf({ ...emptyShoppingState(), order: [onion, milk, pasta] }),
+    ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
+  })
+
+  it('hängt später Dazugekommenes alphabetisch hinten an', () => {
+    // Nur zwei der drei Posten wurden je verschoben.
+    expect(namesOf({ ...emptyShoppingState(), order: [onion, pasta] })).toEqual([
+      'Zwiebeln',
+      'Nudeln',
+      'Milch',
+    ])
+  })
+
+  it('lässt das Häkchen schwerer wiegen als die eigene Reihenfolge', () => {
+    // Zwiebeln stehen in `order` ganz vorn, sind aber abgehakt.
+    expect(
+      namesOf({
+        ...emptyShoppingState(),
+        order: [onion, milk, pasta],
+        checked: { [onion]: true },
+      }),
+    ).toEqual(['Milch', 'Nudeln', 'Zwiebeln'])
+  })
+
+  it('stellt eigene Posten genauso ein wie berechnete', () => {
+    const state: ShoppingState = {
+      ...emptyShoppingState(),
+      manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
+      order: [manualKey('m1'), onion],
+    }
+    expect(namesOf(state)).toEqual([
+      'Klopapier',
+      'Zwiebeln',
+      'Milch',
+      'Nudeln',
+    ])
+  })
+})
+
 describe('Nutzer-Zustand über der Liste', () => {
   const a = recipe('a', 'Auflauf', 2, [
     { ingredientId: 'onion', name: 'Zwiebeln', amount: 200, unit: 'g' },
@@ -265,6 +336,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       overrides: {},
       removed: [],
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
+      order: [],
     }
 
     // Ein zweites Rezept kommt in den Plan.
@@ -292,6 +364,11 @@ describe('pruneShoppingState', () => {
       overrides: { [shoppingKey('weg', 'g')]: 5 },
       removed: [shoppingKey('auch-weg', 'g')],
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
+      order: [
+        shoppingKey('onion', 'g'),
+        shoppingKey('weg', 'g'),
+        manualKey('m1'),
+      ],
     }
 
     const pruned = pruneShoppingState(
@@ -306,6 +383,27 @@ describe('pruneShoppingState', () => {
     expect(pruned.overrides).toEqual({})
     expect(pruned.removed).toEqual([])
     expect(pruned.manual).toHaveLength(1)
+  })
+
+  it('räumt auch die eigene Reihenfolge auf', () => {
+    const state: ShoppingState = {
+      ...emptyShoppingState(),
+      manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
+      order: [
+        shoppingKey('onion', 'g'),
+        shoppingKey('weg', 'g'),
+        manualKey('m1'),
+      ],
+    }
+
+    const pruned = pruneShoppingState(
+      state,
+      new Set([shoppingKey('onion', 'g')]),
+    )
+
+    // Der Schlüssel der ausgeplanten Zutat fällt raus, die übrigen bleiben
+    // in ihrer Reihenfolge stehen.
+    expect(pruned.order).toEqual([shoppingKey('onion', 'g'), manualKey('m1')])
   })
 })
 

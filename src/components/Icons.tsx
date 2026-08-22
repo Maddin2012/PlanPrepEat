@@ -139,6 +139,13 @@ export const SettingsIcon = (props: IconProps) => (
   </Icon>
 )
 
+/** Anfasser zum Verschieben — zwei Reihen Punkte, wie überall üblich. */
+export const GripIcon = (props: IconProps) => (
+  <Icon {...props} strokeWidth={2.5}>
+    <path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01" />
+  </Icon>
+)
+
 export const CloudOffIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 3l18 18" />
