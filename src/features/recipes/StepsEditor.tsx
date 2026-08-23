@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button, IconButton } from '../../components/ui.tsx'
 import { CloseIcon, PlusIcon } from '../../components/Icons.tsx'
+import { MicButton } from '../../components/MicButton.tsx'
+import { splitSpokenSteps } from '../../domain/dictation.ts'
 
 /**
  * Die Zubereitung als nummerierte Schrittliste.
@@ -105,13 +107,32 @@ export function StepsEditor({
     })
   }
 
+  /**
+   * Ein diktierter Abschnitt wird ein Schritt — bei mehreren Sätzen am Stück
+   * entsprechend mehrere. Ein noch leerer letzter Schritt wird dabei aufgefüllt
+   * statt übersprungen.
+   */
+  function addSpoken(text: string) {
+    const spoken = splitSpokenSteps(text)
+    if (spoken.length === 0) return
+    const base = steps.at(-1)?.trim() ? steps : steps.slice(0, -1)
+    onChange([...base, ...spoken])
+  }
+
   return (
     <section>
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-ink-600">Zubereitung</h2>
-        <span className="text-xs text-ink-400">
-          Eingabetaste = nächster Schritt
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ink-400">
+            Eingabetaste = nächster Schritt
+          </span>
+          <MicButton
+            label="Zubereitung"
+            hint="Ein Schritt nach dem anderen, mit kurzer Pause dazwischen."
+            onChunk={addSpoken}
+          />
+        </div>
       </div>
 
       <ol className="space-y-2">

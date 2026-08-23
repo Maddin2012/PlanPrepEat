@@ -16,6 +16,20 @@ Das Foto könnt ihr **direkt aufnehmen** oder **aus der Galerie** wählen — be
 steht als eigener Knopf im Formular. Die App rechnet das Bild danach klein, und
 hochkant aufgenommene Fotos stehen richtig herum.
 
+**Diktieren.** Neben Name, Zutaten und Zubereitung sitzt je ein Mikrofonknopf.
+Antippen, sprechen, unten auf „Fertig" — jede Sprechpause wird eine neue
+Zutatenzeile beziehungsweise ein neuer Schritt. Mengen und Einheiten erkennt die
+App dabei mit: aus „fünfhundert Gramm Mehl" wird die Zeile *Mehl · 500 · g*, aus
+„drei Eier" *Eier · 3 · Stück*, aus „eine Prise Salz" *Salz · 1 · Prise*. Was sie
+nicht versteht, landet vollständig im Namensfeld — sichtbar und mit zwei
+Handgriffen richtiggestellt.
+
+Die Tastatur bleibt davon unberührt; tippen könnt ihr weiterhin überall, auch mit
+der Mikrofontaste eurer eigenen Tastatur. Das Diktat läuft über die
+Spracherkennung des Browsers, kostet also nichts, **braucht aber Internet** —
+Chrome verarbeitet den Ton auf Googles Servern. Browser ohne diese Schnittstelle
+(Firefox) zeigen den Knopf gar nicht erst an.
+
 **Essensplan.** Ein fortlaufender Kalender, je Tag eine Spalte für Mittagessen
 und eine für Abendbrot. Im Blick sind 12 Tage: heute, die drei Tage davor und
 acht voraus. Die vergangenen Tage sind mit Absicht dabei — lief ein Tag anders

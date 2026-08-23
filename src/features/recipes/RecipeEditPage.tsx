@@ -21,6 +21,9 @@ import {
   PlusIcon,
   TrashIcon,
 } from '../../components/Icons.tsx'
+import { MicButton } from '../../components/MicButton.tsx'
+import { parseSpokenIngredient } from '../../domain/dictation.ts'
+import { newId } from '../../data/ids.ts'
 import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
 import { StepsEditor, stepsFromText, stepsToText } from './StepsEditor.tsx'
 import {
@@ -185,14 +188,25 @@ export default function RecipeEditPage() {
       >
         <PhotoPicker preview={preview} onPick={pickPhoto} onRemove={removePhoto} />
 
-        <Field label="Name">
-          <TextInput
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Nudelauflauf"
-            autoFocus={!id}
+        {/* Das Mikrofon steht bewusst außerhalb von <Field>: Dessen <label>
+            umschließt seine Kinder, und ein Knopf darin würde beim Vorlesen
+            Teil des Feldnamens („Name Name diktieren"). */}
+        <div className="flex items-end gap-2">
+          <Field label="Name" className="min-w-0 flex-1">
+            <TextInput
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Nudelauflauf"
+              autoFocus={!id}
+            />
+          </Field>
+          <MicButton
+            label="Name"
+            hint="Wie heißt das Gericht?"
+            onChunk={(text) => setName(text)}
+            className="mb-1"
           />
-        </Field>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Portionen" hint="Für so viele gelten die Mengen unten.">
@@ -385,13 +399,43 @@ function IngredientEditor({
     )
   }
 
+  /**
+   * Ein diktierter Abschnitt wird eine Zutatenzeile. Ist die letzte Zeile noch
+   * leer — beim neuen Rezept steht immer eine da —, wird sie befüllt statt eine
+   * weitere anzuhängen; sonst bliebe oben eine Leerzeile stehen.
+   */
+  function addSpoken(text: string) {
+    const spoken = parseSpokenIngredient(text)
+    if (!spoken.name) return
+
+    const last = items.at(-1)
+    const lastIsEmpty = last && !last.name.trim() && !last.amount.trim()
+
+    const filled: ItemDraft = {
+      key: lastIsEmpty ? last.key : newId(),
+      name: spoken.name,
+      amount: spoken.amount,
+      unit: spoken.unit,
+      note: '',
+    }
+
+    onChange(lastIsEmpty ? [...items.slice(0, -1), filled] : [...items, filled])
+  }
+
   return (
     <section>
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-ink-600">Zutaten</h2>
-        <span className="text-xs text-ink-400">
-          Menge leer lassen = „nach Gefühl"
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-ink-400">
+            Menge leer lassen = „nach Gefühl"
+          </span>
+          <MicButton
+            label="Zutaten"
+            hint={'Eine Zutat nach der anderen, z. B. „500 Gramm Mehl".'}
+            onChunk={addSpoken}
+          />
+        </div>
       </div>
 
       <datalist id={listId}>
