@@ -172,8 +172,8 @@ export default function PlanPage() {
   return (
     <>
       <PageHeader
+        brand
         title="Essensplan"
-        subtitle="Drei Tage zurück, acht voraus"
         actions={
           <Button
             variant="secondary"

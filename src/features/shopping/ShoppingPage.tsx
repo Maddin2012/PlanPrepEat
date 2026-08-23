@@ -202,6 +202,7 @@ export default function ShoppingPage() {
   return (
     <>
       <PageHeader
+        brand
         title="Einkaufsliste"
         subtitle={formatRange(from, to)}
         actions={

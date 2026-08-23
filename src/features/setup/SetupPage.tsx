@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useSession } from '../../data/RepositoryContext.tsx'
 import { normalizeHouseholdCode } from '../../data/ids.ts'
 import { Button, Field, TextInput } from '../../components/ui.tsx'
-import { BookIcon, UsersIcon } from '../../components/Icons.tsx'
+import { UsersIcon } from '../../components/Icons.tsx'
+import { APP_NAME, Mark } from '../../components/Logo.tsx'
 
 type Mode = 'start' | 'create' | 'join'
 
@@ -33,13 +34,11 @@ export default function SetupPage() {
     <div className="mx-auto flex h-full max-w-md flex-col justify-center px-6 py-10">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-accent-soft text-accent-text">
-          <BookIcon className="size-8" />
+          <Mark className="h-9 w-auto" />
         </div>
-        <h1 className="text-2xl font-semibold text-ink-900">
-          Rezeptbuch &amp; Essensplan
-        </h1>
+        <h1 className="text-2xl font-semibold text-ink-900">{APP_NAME}</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-500">
-          Rezepte sammeln, anderthalb Wochen vorausplanen und die Einkaufsliste
+          Rezepte sammeln, die nächsten Tage vorausplanen und die Einkaufsliste
           bekommt ihr geschenkt.
         </p>
       </div>

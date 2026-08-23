@@ -7,28 +7,33 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"
     />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#1d2125" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Rezeptbuch" />
-    <title>Rezeptbuch &amp; Essensplan</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PlanPrepEat" />
+    <title>PlanPrepEat</title>
 
     <!--
       Muss vor dem ersten Zeichnen laufen, nicht erst wenn React übernimmt:
-      sonst leuchtet beim Öffnen für einen Moment die helle Fassung auf.
+      sonst leuchtet beim Öffnen für einen Moment die falsche Fassung auf.
       Deshalb hier direkt im Kopf und absichtlich nicht als Modul.
-      Die Werte spiegeln src/lib/theme.ts — beides muss zusammen geändert werden.
+
+      Dunkel ist der Grundzustand — im CSS wie hier. Umgestellt wird nur, wenn
+      genau "light" gespeichert ist. Damit bleibt es auch dann dunkel, wenn der
+      Speicherzugriff scheitert oder dieses Skript gar nicht läuft.
+
+      Die Werte spiegeln src/lib/theme.ts; beides muss zusammen geändert werden.
     -->
     <script>
       try {
-        if (localStorage.getItem('rezeptbuch.theme') === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark')
+        if (localStorage.getItem('rezeptbuch.theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light')
           document
             .querySelector('meta[name="theme-color"]')
-            .setAttribute('content', '#1d2125')
+            .setAttribute('content', '#ffffff')
         }
       } catch (error) {
-        // Kein Speicherzugriff — dann bleibt es hell.
+        // Kein Speicherzugriff — dann bleibt es dunkel.
       }
     </script>
   </head>

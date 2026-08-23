@@ -49,14 +49,15 @@ export default defineConfig({
         'icon-maskable.png',
       ],
       manifest: {
-        name: 'Rezeptbuch & Essensplan',
-        short_name: 'Rezeptbuch',
+        name: 'PlanPrepEat',
+        short_name: 'PlanPrepEat',
         description: 'Rezepte, Essensplan und Einkaufsliste für zwei.',
         lang: 'de',
-        // Passend zur hellen Fassung: Kopfzeile ist `surface`, Grund `canvas`.
-        // Im Dunkelmodus setzt src/lib/theme.ts die Leiste zur Laufzeit um.
-        theme_color: '#ffffff',
-        background_color: '#f6f4f0',
+        // Passend zur dunklen Fassung, dem Grundzustand: Kopfzeile ist
+        // `surface`, Grund `canvas`. Wer auf hell stellt, bekommt die Leiste
+        // von src/lib/theme.ts zur Laufzeit umgesetzt.
+        theme_color: '#1d2125',
+        background_color: '#15181b',
         display: 'standalone',
         orientation: 'portrait',
         start_url: base,

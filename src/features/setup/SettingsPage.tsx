@@ -29,8 +29,8 @@ export default function SettingsPage() {
   async function share() {
     if (!code) return
     const result = await shareText({
-      title: 'Rezeptbuch',
-      text: `Tritt unserem Rezeptbuch bei. Code: ${code}`,
+      title: 'PlanPrepEat',
+      text: `Tritt unserem Haushalt bei PlanPrepEat bei. Code: ${code}`,
     })
     if (result === 'copied') flashCopied()
   }

@@ -32,26 +32,45 @@ export const CREME = '#f4efe6'
  *
  * Der kleine gleichfarbige Rand (`stroke` in der Füllfarbe, runde Ecken) rundet
  * sämtliche Kanten ab — das spart Dutzende Kurvenbefehle im Pfad.
+ *
+ * **Er darf nicht breiter werden, um das Zeichen kräftiger zu machen.** Der Rand
+ * wächst nach außen, also verliert jede Lücke zwischen zwei Zinken seine volle
+ * Breite. Bei 9 statt 7 war die Gabel ein Pfannenwender. Kräftiger wird das
+ * Zeichen über Maßstab, Griffbreite und Kopfbreite — nicht hierüber.
  */
 function weich(farbe) {
   return `fill="${farbe}" stroke="${farbe}" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"`
 }
 
+/**
+ * Die Pfaddaten stehen als eigene Konstanten da, weil `src/components/Logo.tsx`
+ * dieselben Formen zeichnet und `src/components/Logo.test.tsx` beide
+ * gegeneinander hält. Wer hier etwas ändert, muss dort mitziehen — sonst wird
+ * der Test rot.
+ */
+export const MESSER_KLINGE =
+  'M 0 -180 C -8 -158 -15 -140 -15 -118 L -15 26 L 19 26 L 19 -50 C 19 -108 11 -154 0 -180 Z'
+
+// Absichtlich als eine lange Zeile ohne Verkettung: Der Test in
+// src/components/Logo.test.tsx sucht diesen String wörtlich in dieser Datei.
+export const GABEL_KOPF =
+  'M -45 -96 L -45 -176 L -33 -176 L -33 -106 L -19 -106 L -19 -176 L -7 -176 L -7 -106 L 7 -106 L 7 -176 L 19 -176 L 19 -106 L 33 -106 L 33 -176 L 45 -176 L 45 -96 C 45 -68 31 -50 17 -42 L 17 26 L -17 26 L -17 -42 C -31 -50 -45 -68 -45 -96 Z'
+
 function messer(körper, gold) {
   return `
     <g ${weich(körper)}>
-      <path d="M 0 -180 C -8 -158 -14 -140 -14 -118 L -14 26 L 18 26 L 18 -50 C 18 -102 10 -152 0 -180 Z"/>
-      <rect x="-17" y="18" width="37" height="20" rx="6"/>
-      <rect x="-15" y="32" width="32" height="146" rx="16"/>
+      <path d="${MESSER_KLINGE}"/>
+      <rect x="-20" y="18" width="42" height="20" rx="7"/>
+      <rect x="-18" y="32" width="38" height="146" rx="19"/>
     </g>
     ${
       gold
         ? `<g>
-      <path d="M -7 -128 L -7 16" fill="none" stroke="${gold}" stroke-width="5" stroke-linecap="round"/>
-      <rect x="-15" y="36" width="32" height="8" rx="4" fill="${gold}"/>
-      <circle cx="1" cy="82" r="5.5" fill="${gold}"/>
-      <circle cx="1" cy="114" r="5.5" fill="${gold}"/>
-      <circle cx="1" cy="146" r="5.5" fill="${gold}"/>
+      <path d="M -8 -128 L -8 16" fill="none" stroke="${gold}" stroke-width="6" stroke-linecap="round"/>
+      <rect x="-18" y="36" width="38" height="9" rx="4.5" fill="${gold}"/>
+      <circle cx="1" cy="82" r="6" fill="${gold}"/>
+      <circle cx="1" cy="114" r="6" fill="${gold}"/>
+      <circle cx="1" cy="146" r="6" fill="${gold}"/>
     </g>`
         : ''
     }`
@@ -60,22 +79,18 @@ function messer(körper, gold) {
 function gabel(körper, gold) {
   return `
     <g ${weich(körper)}>
-      <path d="M -41 -96 L -41 -176 L -28 -176 L -28 -106 L -18 -106 L -18 -176
-               L -5 -176 L -5 -106 L 5 -106 L 5 -176 L 18 -176 L 18 -106
-               L 28 -106 L 28 -176 L 41 -176 L 41 -96
-               C 41 -68 29 -50 14 -42 L 14 26 L -14 26 L -14 -42
-               C -29 -50 -41 -68 -41 -96 Z"/>
-      <rect x="-17" y="18" width="34" height="20" rx="6"/>
-      <rect x="-16" y="32" width="32" height="146" rx="16"/>
+      <path d="${GABEL_KOPF}"/>
+      <rect x="-21" y="18" width="42" height="20" rx="7"/>
+      <rect x="-19" y="32" width="38" height="146" rx="19"/>
     </g>
     ${
       gold
         ? `<g>
-      <path d="M 0 -78 L 0 16" fill="none" stroke="${gold}" stroke-width="5" stroke-linecap="round"/>
-      <rect x="-16" y="36" width="32" height="8" rx="4" fill="${gold}"/>
-      <circle cx="0" cy="82" r="5.5" fill="${gold}"/>
-      <circle cx="0" cy="114" r="5.5" fill="${gold}"/>
-      <circle cx="0" cy="146" r="5.5" fill="${gold}"/>
+      <path d="M 0 -78 L 0 16" fill="none" stroke="${gold}" stroke-width="6" stroke-linecap="round"/>
+      <rect x="-19" y="36" width="38" height="9" rx="4.5" fill="${gold}"/>
+      <circle cx="0" cy="82" r="6" fill="${gold}"/>
+      <circle cx="0" cy="114" r="6" fill="${gold}"/>
+      <circle cx="0" cy="146" r="6" fill="${gold}"/>
     </g>`
         : ''
     }`
@@ -91,18 +106,18 @@ function gabel(körper, gold) {
  */
 export function zeichen(körper, { einfach = false, skalierung = 1 } = {}) {
   const inhalt = einfach
-    ? `<g transform="translate(0 6) rotate(-24) scale(0.92)">${gabel(körper, null)}</g>
-       <g transform="translate(0 6) rotate(24) scale(0.92)">${messer(körper, null)}</g>
-       <g transform="translate(0 6) rotate(-24) scale(0.92)">
-         <rect x="-16" y="36" width="32" height="10" rx="5" fill="${GOLD}"/>
+    ? `<g transform="translate(0 6) rotate(-24) scale(1.12)">${gabel(körper, null)}</g>
+       <g transform="translate(0 6) rotate(24) scale(1.12)">${messer(körper, null)}</g>
+       <g transform="translate(0 6) rotate(-24) scale(1.12)">
+         <rect x="-19" y="36" width="38" height="13" rx="6.5" fill="${GOLD}"/>
        </g>
-       <g transform="translate(0 6) rotate(24) scale(0.92)">
-         <rect x="-15" y="36" width="32" height="10" rx="5" fill="${GOLD}"/>
+       <g transform="translate(0 6) rotate(24) scale(1.12)">
+         <rect x="-18" y="36" width="38" height="13" rx="6.5" fill="${GOLD}"/>
        </g>`
-    : `<g transform="translate(-146 0) scale(-0.60 0.60)">${messer(körper, GOLD)}</g>
-       <g transform="translate(146 0) scale(0.60 0.60)">${messer(körper, GOLD)}</g>
-       <g transform="translate(0 2) rotate(-21) scale(0.74)">${gabel(körper, GOLD)}</g>
-       <g transform="translate(0 2) rotate(21) scale(0.74)">${messer(körper, GOLD)}</g>`
+    : `<g transform="translate(-152 0) scale(-0.64 0.64)">${messer(körper, GOLD)}</g>
+       <g transform="translate(152 0) scale(0.64 0.64)">${messer(körper, GOLD)}</g>
+       <g transform="translate(0 2) rotate(-21) scale(0.80)">${gabel(körper, GOLD)}</g>
+       <g transform="translate(0 2) rotate(21) scale(0.80)">${messer(körper, GOLD)}</g>`
 
   return `<g transform="translate(256 256) scale(${skalierung})">${inhalt}</g>`
 }
@@ -115,12 +130,17 @@ export function zeichen(körper, { einfach = false, skalierung = 1 } = {}) {
  * Quadrat mit runden Ecken. Was außerhalb des mittleren Kreises mit 80 % des
  * Durchmessers liegt, kann abgeschnitten werden.
  */
+// Gemessen, nicht geschätzt: Bei diesem Faktor reicht das Zeichen 193 Pixel vom
+// Mittelpunkt weg, der Sicherheitskreis erlaubt 205. Wer ihn erhöht, muss neu
+// messen — ab etwa 0,97 schneidet der Kreis die Griffe an.
+export const MASKE_SKALIERUNG = 0.92
+
 export function kachel({ dunkel = true, einfach = false, maskierbar = false } = {}) {
   const grund = dunkel ? SCHIEFER : CREME
   const körper = dunkel ? CREME : SCHIEFER
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Meal Master">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="PlanPrepEat">
   <rect width="512" height="512" rx="${maskierbar ? 0 : 112}" fill="${grund}"/>
-  ${zeichen(körper, { einfach, skalierung: maskierbar ? 0.78 : 1 })}
+  ${zeichen(körper, { einfach, skalierung: maskierbar ? MASKE_SKALIERUNG : 1 })}
 </svg>
 `
 }

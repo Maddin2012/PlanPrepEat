@@ -30,6 +30,7 @@ export default function RecipeListPage() {
   return (
     <>
       <PageHeader
+        brand
         title="Rezeptbuch"
         subtitle={
           recipes.length > 0

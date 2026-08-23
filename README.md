@@ -1,4 +1,4 @@
-# Rezeptbuch & Essensplan
+# PlanPrepEat
 
 Eine App für zwei: Rezepte sammeln, die nächsten Tage vorausplanen — und die
 Einkaufsliste entsteht dabei von selbst. Gebaut als **PWA**, also als Web-App,
@@ -86,13 +86,19 @@ sobald wieder Empfang da ist.
 
 ## Hell oder dunkel
 
-Unter *Einstellungen → Darstellung* lässt sich zwischen heller und dunkler
-Fassung umschalten. Die Wahl gilt **nur für dieses Gerät** — der eine kann hell
-haben, während die andere dunkel hat.
+**Dunkel ist die Hauptfassung**, hell die Option. Umgeschaltet wird unter
+*Einstellungen → Darstellung*; die Wahl gilt **nur für dieses Gerät** — der eine
+kann hell haben, während die andere dunkel hat.
 
 Bewusst folgt die App **nicht** der Systemeinstellung: Wer das Handy abends
 automatisch dunkel schaltet, will deswegen nicht zwingend eine dunkle
 Einkaufsliste.
+
+Für Entwickler zwei Stellen, die zusammengehören: Dunkel ist auch im CSS der
+Grundzustand (`src/index.css`), hell steht unter `:root[data-theme='light']`.
+Das ist Absicht — schlägt der Speicherzugriff fehl oder läuft das kurze Skript
+im Kopf von `index.html` nicht, gilt der Grundzustand, und dann soll es dunkel
+bleiben statt hell aufzublitzen.
 
 ---
 
