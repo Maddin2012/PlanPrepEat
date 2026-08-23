@@ -17,6 +17,7 @@ import {
 import {
   CameraIcon,
   CloseIcon,
+  ImageIcon,
   PlusIcon,
   TrashIcon,
 } from '../../components/Icons.tsx'
@@ -282,21 +283,38 @@ function PhotoPicker({
   onPick: (file: File) => void
   onRemove: () => void
 }) {
-  const inputId = useId()
+  const cameraId = useId()
+  const galleryId = useId()
+
+  function receive(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (file) onPick(file)
+    // Zurücksetzen, damit dieselbe Datei erneut gewählt werden kann.
+    event.target.value = ''
+  }
 
   return (
     <div>
+      {/*
+        Zwei Felder statt einem: `capture` schickt den Tipp direkt in die
+        Kamera-App, nimmt dabei aber die Galerie-Auswahl weg. Ein Feld kann also
+        entweder das eine oder das andere — für beides braucht es beide.
+        Am Rechner wird `capture` ignoriert, dort öffnen beide denselben Dialog.
+      */}
       <input
-        id={inputId}
+        id={cameraId}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={receive}
+      />
+      <input
+        id={galleryId}
         type="file"
         accept="image/*"
         className="sr-only"
-        onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) onPick(file)
-          // Zurücksetzen, damit dieselbe Datei erneut gewählt werden kann.
-          event.target.value = ''
-        }}
+        onChange={receive}
       />
 
       {preview ? (
@@ -304,34 +322,51 @@ function PhotoPicker({
           <img src={preview} alt="" className="h-44 w-full object-cover" />
           <div className="absolute top-2 right-2 flex gap-2">
             <label
-              htmlFor={inputId}
-              className="flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur"
-              aria-label="Anderes Bild wählen"
+              htmlFor={cameraId}
+              className={ROUND_BUTTON}
+              aria-label="Neues Foto aufnehmen"
             >
               <CameraIcon className="size-4.5" />
+            </label>
+            <label
+              htmlFor={galleryId}
+              className={ROUND_BUTTON}
+              aria-label="Anderes Bild aus der Galerie"
+            >
+              <ImageIcon className="size-4.5" />
             </label>
             <button
               type="button"
               onClick={onRemove}
               aria-label="Bild entfernen"
-              className="flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur"
+              className={ROUND_BUTTON}
             >
               <CloseIcon className="size-4.5" />
             </button>
           </div>
         </div>
       ) : (
-        <label
-          htmlFor={inputId}
-          className="flex h-28 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-clay-200 bg-surface text-ink-400 transition-colors active:bg-clay-50"
-        >
-          <CameraIcon className="size-6" />
-          <span className="text-sm font-medium">Foto hinzufügen</span>
-        </label>
+        <div className="flex h-28 overflow-hidden rounded-2xl border-2 border-dashed border-clay-200 bg-surface">
+          <label htmlFor={cameraId} className={PICK_AREA}>
+            <CameraIcon className="size-6" />
+            <span className="text-sm font-medium">Foto aufnehmen</span>
+          </label>
+          <span className="my-3 w-px shrink-0 bg-clay-200" />
+          <label htmlFor={galleryId} className={PICK_AREA}>
+            <ImageIcon className="size-6" />
+            <span className="text-sm font-medium">Aus der Galerie</span>
+          </label>
+        </div>
       )}
     </div>
   )
 }
+
+const ROUND_BUTTON =
+  'flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur'
+
+const PICK_AREA =
+  'flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 text-ink-400 transition-colors active:bg-clay-50'
 
 function IngredientEditor({
   items,

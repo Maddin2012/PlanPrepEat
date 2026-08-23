@@ -82,6 +82,16 @@ export const CameraIcon = (props: IconProps) => (
   </Icon>
 )
 
+/** Ein gerahmtes Bild mit Sonne und Horizont — steht für die Galerie. */
+export const ImageIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="8.5" cy="10" r="1.5" />
+    <path d="m4 17 4.5-4.5a1.6 1.6 0 0 1 2.2 0L15 17" />
+    <path d="m13.5 15.5 2-2a1.6 1.6 0 0 1 2.2 0L20 15.8" />
+  </Icon>
+)
+
 export const ShareIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 3v13M12 3l-4 4M12 3l4 4" />

@@ -12,6 +12,10 @@ Zubereitungszeit und Zubereitungsschritten. Jedes Rezept gilt für eine bestimmt
 Portionszahl; in der Rezeptansicht könnt ihr hoch- und runterrechnen, ohne das
 Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zutaten.
 
+Das Foto könnt ihr **direkt aufnehmen** oder **aus der Galerie** wählen — beides
+steht als eigener Knopf im Formular. Die App rechnet das Bild danach klein, und
+hochkant aufgenommene Fotos stehen richtig herum.
+
 **Essensplan.** Ein fortlaufender Kalender, je Tag eine Spalte für Mittagessen
 und eine für Abendbrot. Im Blick sind 12 Tage: heute, die drei Tage davor und
 acht voraus. Die vergangenen Tage sind mit Absicht dabei — lief ein Tag anders
