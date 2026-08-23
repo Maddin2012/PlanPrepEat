@@ -113,7 +113,7 @@ export default function SlotSheet({
                       className="size-10 shrink-0 rounded-lg object-cover"
                     />
                   ) : (
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-leaf-50 text-leaf-300">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-clay-300">
                       <BookIcon className="size-5" />
                     </span>
                   )}

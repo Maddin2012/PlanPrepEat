@@ -32,7 +32,7 @@ export default function SetupPage() {
   return (
     <div className="mx-auto flex h-full max-w-md flex-col justify-center px-6 py-10">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-leaf-100 text-leaf-600">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-accent-soft text-accent-text">
           <BookIcon className="size-8" />
         </div>
         <h1 className="text-2xl font-semibold text-ink-900">
@@ -51,7 +51,7 @@ export default function SetupPage() {
           </strong>{' '}
           Die App läuft deshalb nur auf diesem Gerät. Wie ihr den Abgleich
           zwischen zwei Handys einrichtet, steht in der{' '}
-          <code className="rounded bg-white px-1 py-0.5 text-xs">README.md</code>.
+          <code className="rounded bg-surface px-1 py-0.5 text-xs">README.md</code>.
         </div>
       )}
 

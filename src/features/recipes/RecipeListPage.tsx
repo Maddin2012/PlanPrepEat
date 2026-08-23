@@ -46,7 +46,7 @@ export default function RecipeListPage() {
             <Link to="/rezepte/neu">
               <IconButton
                 label="Rezept hinzufügen"
-                className="bg-leaf-600 text-white active:bg-leaf-700"
+                className="bg-accent text-on-accent active:bg-accent-strong"
               >
                 <PlusIcon className="size-5" />
               </IconButton>
@@ -142,7 +142,7 @@ function Thumb({ recipe }: { recipe: Recipe }) {
     )
   }
   return (
-    <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-leaf-50 text-leaf-300 ring-1 ring-clay-200">
+    <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-clay-300 ring-1 ring-clay-200">
       <BookIcon className="size-6" />
     </div>
   )

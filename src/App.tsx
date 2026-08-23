@@ -76,7 +76,7 @@ function TabBar() {
               className={({ isActive }) =>
                 cx(
                   'flex h-16 flex-col items-center justify-center gap-1 transition-colors',
-                  isActive ? 'text-leaf-600' : 'text-ink-400',
+                  isActive ? 'text-accent-text' : 'text-ink-400',
                 )
               }
             >
@@ -97,7 +97,7 @@ function TabBar() {
 function Splash() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 bg-canvas">
-      <span className="size-8 animate-spin rounded-full border-[3px] border-clay-200 border-t-leaf-500" />
+      <span className="size-8 animate-spin rounded-full border-[3px] border-clay-200 border-t-accent" />
       <p className="text-sm text-ink-500">Einen Moment …</p>
     </div>
   )

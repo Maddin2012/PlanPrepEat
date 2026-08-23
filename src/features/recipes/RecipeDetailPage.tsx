@@ -70,7 +70,7 @@ export default function RecipeDetailPage() {
         actions={
           <Link
             to={`/rezepte/${recipe.id}/bearbeiten`}
-            className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-leaf-600 transition-colors active:bg-clay-100"
+            className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-accent-text transition-colors active:bg-clay-100"
           >
             Bearbeiten
           </Link>
@@ -150,7 +150,7 @@ export default function RecipeDetailPage() {
                   key={index}
                   className="flex gap-3 rounded-2xl bg-surface p-4 ring-1 ring-clay-200"
                 >
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-xs font-semibold text-leaf-700">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
                     {index + 1}
                   </span>
                   <p className="min-w-0 flex-1 leading-relaxed text-ink-900">
@@ -186,7 +186,7 @@ export function Stepper({
         aria-label={`${label} verringern`}
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="flex size-9 items-center justify-center rounded-full bg-white text-lg leading-none font-medium text-ink-700 ring-1 ring-clay-200 disabled:text-ink-400 disabled:opacity-50"
+        className="flex size-9 items-center justify-center rounded-full bg-surface text-lg leading-none font-medium text-ink-700 ring-1 ring-clay-200 disabled:text-ink-400 disabled:opacity-50"
       >
         −
       </button>
@@ -201,7 +201,7 @@ export function Stepper({
         aria-label={`${label} erhöhen`}
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="flex size-9 items-center justify-center rounded-full bg-white text-lg leading-none font-medium text-ink-700 ring-1 ring-clay-200 disabled:text-ink-400 disabled:opacity-50"
+        className="flex size-9 items-center justify-center rounded-full bg-surface text-lg leading-none font-medium text-ink-700 ring-1 ring-clay-200 disabled:text-ink-400 disabled:opacity-50"
       >
         +
       </button>

@@ -16,9 +16,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
   primary:
-    'bg-leaf-600 text-white active:bg-leaf-700 disabled:bg-leaf-300 shadow-sm',
+    'bg-accent text-on-accent active:bg-accent-strong disabled:bg-accent-muted shadow-sm',
   secondary:
-    'bg-white text-ink-700 ring-1 ring-clay-200 active:bg-clay-50 disabled:text-ink-400',
+    'bg-surface text-ink-700 ring-1 ring-clay-200 active:bg-clay-50 disabled:text-ink-400',
   ghost: 'text-ink-600 active:bg-clay-100 disabled:text-ink-400',
   danger: 'bg-red-600 text-white active:bg-red-700 disabled:bg-red-300',
 }
@@ -102,9 +102,9 @@ export function Field({
 }
 
 const CONTROL =
-  'w-full rounded-xl bg-white px-3 py-2.5 text-ink-900 ring-1 ring-clay-200 ' +
+  'w-full rounded-xl bg-surface px-3 py-2.5 text-ink-900 ring-1 ring-clay-200 ' +
   'outline-none transition-shadow placeholder:text-ink-400 ' +
-  'focus:ring-2 focus:ring-leaf-500'
+  'focus:ring-2 focus:ring-accent'
 
 export function TextInput({
   className,
@@ -128,7 +128,7 @@ export function TextArea({
  * darauf zu tippen.
  */
 const CHEVRON =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b716a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 9l7 7 7-7'/%3E%3C/svg%3E\")"
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8f89' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 9l7 7 7-7'/%3E%3C/svg%3E\")"
 
 export function Select({
   className,
@@ -190,7 +190,7 @@ export function Sheet({
       <button
         type="button"
         aria-label="Schließen"
-        className="absolute inset-0 bg-ink-900/40"
+        className="absolute inset-0 bg-scrim"
         onClick={onClose}
       />
       <div
@@ -255,7 +255,7 @@ export function EmptyState({
 export function Spinner({ label = 'Lädt …' }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-sm text-ink-500">
-      <span className="size-4 animate-spin rounded-full border-2 border-clay-200 border-t-leaf-500" />
+      <span className="size-4 animate-spin rounded-full border-2 border-clay-200 border-t-accent" />
       {label}
     </div>
   )

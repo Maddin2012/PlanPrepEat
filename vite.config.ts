@@ -42,23 +42,35 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
+      includeAssets: [
+        'favicon.svg',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-maskable.png',
+      ],
       manifest: {
         name: 'Rezeptbuch & Essensplan',
         short_name: 'Rezeptbuch',
         description: 'Rezepte, Essensplan und Einkaufsliste für zwei.',
         lang: 'de',
-        theme_color: '#15803d',
-        background_color: '#f8faf7',
+        // Passend zur hellen Fassung: Kopfzeile ist `surface`, Grund `canvas`.
+        // Im Dunkelmodus setzt src/lib/theme.ts die Leiste zur Laufzeit um.
+        theme_color: '#ffffff',
+        background_color: '#f6f4f0',
         display: 'standalone',
         orientation: 'portrait',
         start_url: base,
         scope: base,
         icons: [
+          // 192 trägt die vereinfachte Zeichnung: In dieser Größe laufen die
+          // feinen Goldlinien und die drei Klingen sonst ineinander.
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          // Eigene Datei fürs maskierbare Symbol: Android legt eine beliebige
+          // Form darüber, deshalb randlos und mit kleinerem Zeichen. Das
+          // 512er-Symbol hier zu wiederholen würde die Klingen anschneiden.
           {
-            src: 'icon-512.png',
+            src: 'icon-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

@@ -377,7 +377,7 @@ function PhotoPicker({
 }
 
 const ROUND_BUTTON =
-  'flex size-9 items-center justify-center rounded-full bg-ink-900/60 text-white backdrop-blur'
+  'flex size-9 items-center justify-center rounded-full bg-scrim-strong text-white backdrop-blur'
 
 const PICK_AREA =
   'flex flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 text-ink-400 transition-colors active:bg-clay-50'

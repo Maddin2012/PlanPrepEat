@@ -141,7 +141,7 @@ export function StepsEditor({
             key={index}
             className="flex items-start gap-2 rounded-xl bg-surface p-2 ring-1 ring-clay-200"
           >
-            <span className="mt-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-xs font-semibold text-leaf-700">
+            <span className="mt-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
               {index + 1}
             </span>
 
@@ -232,7 +232,7 @@ function StepField({
       onChange={(event) => onChange(event.target.value)}
       onKeyDown={onKeyDown}
       onPaste={onPaste}
-      className="min-w-0 flex-1 resize-none overflow-hidden rounded-lg bg-transparent px-2 py-2 leading-relaxed text-ink-900 outline-none placeholder:text-ink-400 focus:bg-leaf-50/60"
+      className="min-w-0 flex-1 resize-none overflow-hidden rounded-lg bg-transparent px-2 py-2 leading-relaxed text-ink-900 outline-none placeholder:text-ink-400 focus:bg-accent-soft"
     />
   )
 }

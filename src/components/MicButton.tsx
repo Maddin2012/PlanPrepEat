@@ -121,14 +121,14 @@ export function MicButton({
         // Über allem und mit großer Fläche zum Beenden: Beim Diktieren hat man
         // das Gerät nicht vor der Nase, da muss der Stopp-Knopf blind treffbar
         // sein.
-        <div className="fixed inset-x-3 bottom-3 z-50 rounded-2xl bg-ink-900 p-3 text-white shadow-2xl">
+        <div className="fixed inset-x-3 bottom-3 z-50 rounded-2xl bg-overlay p-3 text-on-overlay shadow-2xl">
           <div className="flex items-center gap-3">
             <span className="flex size-9 shrink-0 animate-pulse items-center justify-center rounded-full bg-red-600">
               <MicIcon className="size-4.5" />
             </span>
             <p className="min-w-0 flex-1 text-sm leading-snug">
               {interim || (
-                <span className="text-white/60">
+                <span className="text-on-overlay/60">
                   {hint ?? `${label} — sprich einfach los.`}
                 </span>
               )}
@@ -136,7 +136,7 @@ export function MicButton({
             <button
               type="button"
               onClick={stop}
-              className="shrink-0 rounded-xl bg-white/15 px-4 py-2 text-sm font-medium active:bg-white/25"
+              className="shrink-0 rounded-xl bg-on-overlay/15 px-4 py-2 text-sm font-medium active:bg-on-overlay/25"
             >
               Fertig
             </button>

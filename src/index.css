@@ -1,17 +1,41 @@
 @import 'tailwindcss';
 
+/*
+ * Die Farben der App.
+ *
+ * Zwei Ebenen, und die Trennung ist wichtig:
+ *
+ * 1. **Paletten** (`brand-*`, `gold-*`, `clay-*`, `ink-*`) — feste Werte, die
+ *    beschreiben, *welche* Farbe gemeint ist.
+ * 2. **Rollen** (`accent`, `surface`, `canvas`, `scrim`, `overlay`) —
+ *    beschreiben, *wofür* eine Farbe da ist. Nur diese Ebene dreht sich im
+ *    Dunkelmodus um.
+ *
+ * Wer im Bauteil `bg-brand-600` schreibt statt `bg-accent`, hängt sich an die
+ * helle Fassung und bleibt im Dunkelmodus stehen. Deshalb: in der Oberfläche
+ * immer die Rolle benutzen.
+ */
 @theme {
-  --color-leaf-50: #f2f8f2;
-  --color-leaf-100: #dcedde;
-  --color-leaf-200: #bcdcc0;
-  --color-leaf-300: #8ec296;
-  --color-leaf-400: #5aa267;
-  --color-leaf-500: #3a8547;
-  --color-leaf-600: #2a6a37;
-  --color-leaf-700: #23552e;
-  --color-leaf-800: #1e4426;
-  --color-leaf-900: #193821;
+  /* Anthrazit — das Schiefergrau aus dem Logo. */
+  --color-brand-50: #f4f5f6;
+  --color-brand-100: #e4e6e8;
+  --color-brand-200: #c8ccd0;
+  --color-brand-300: #9aa1a8;
+  --color-brand-400: #6f777e;
+  --color-brand-500: #4c545b;
+  --color-brand-600: #2b3034;
+  --color-brand-700: #1f2427;
+  --color-brand-800: #171b1e;
+  --color-brand-900: #101315;
 
+  /* Gold — Zierde, keine Bedienfarbe. Weiße Schrift trägt darauf nicht. */
+  --color-gold-300: #e0cb92;
+  --color-gold-400: #d9bd72;
+  --color-gold-500: #c8a34a;
+  --color-gold-600: #a8862f;
+  --color-gold-700: #7f631b;
+
+  /* Warme Grautöne für Ränder, Trennlinien und ruhige Flächen. */
   --color-clay-50: #faf7f2;
   --color-clay-100: #f2ebe0;
   --color-clay-200: #e4d8c6;
@@ -19,18 +43,80 @@
   --color-clay-400: #b2966e;
   --color-clay-500: #9a7b52;
 
-  --color-ink-400: #8a8f89;
-  --color-ink-500: #6b716a;
-  --color-ink-600: #4d534c;
+  /*
+   * Schrift, von blass nach kräftig. Auch die blasseste Stufe muss auf dem
+   * Grund noch 4,5:1 erreichen — sie trägt die Reiterbeschriftung und die
+   * abgehakten Posten, und das ist Text, kein Zierrat.
+   */
+  --color-ink-400: #6b716a;
+  --color-ink-500: #585e57;
+  --color-ink-600: #454a44;
   --color-ink-700: #343a34;
   --color-ink-900: #1a1f1a;
 
+  /* --- Rollen: helle Fassung --- */
   --color-surface: #ffffff;
-  --color-canvas: #f7f9f6;
+  --color-canvas: #f6f4f0;
+
+  /* Was man drückt: Anthrazit. Weiß darauf kommt auf 13:1. */
+  --color-accent: #2b3034;
+  --color-accent-strong: #1f2427;
+  --color-accent-muted: #9aa1a8;
+  --color-on-accent: #ffffff;
+  /* Getönte Fläche und die Schrift darauf — für Zierkästen und Schrittnummern. */
+  --color-accent-soft: #faf6ec;
+  --color-accent-text: #7f631b;
+
+  /*
+   * Diese drei drehen sich bewusst **nicht** um: Der Schleier liegt über der
+   * Seite, die Meldebalken sollen sich in beiden Fassungen absetzen. Würden sie
+   * mitwandern, wäre der Balken im Dunkelmodus weiß auf Weiß.
+   */
+  --color-scrim: rgb(16 19 21 / 0.45);
+  --color-scrim-strong: rgb(16 19 21 / 0.6);
+  --color-overlay: #20242a;
+  --color-on-overlay: #f4efe6;
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
+}
+
+/*
+ * Dunkle Fassung. Wird über einen Schalter in den Einstellungen gesetzt
+ * (`src/lib/theme.ts`), **nicht** über die Systemeinstellung — so gewollt.
+ *
+ * Die `ink-*`-Reihe dreht sich um: aus dunkler Schrift auf hellem Grund wird
+ * helle auf dunklem. Deshalb ist `ink-900` hier fast weiß.
+ *
+ * Der Akzent wechselt von Anthrazit zu Gold. Anthrazit auf dunklem Grund wäre
+ * unsichtbar; Gold ist die andere Farbe des Logos und kommt auf 7:1.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-surface: #1d2125;
+  --color-canvas: #15181b;
+
+  --color-clay-50: #22262a;
+  --color-clay-100: #282d31;
+  --color-clay-200: #343a3f;
+  --color-clay-300: #4a5158;
+  --color-clay-400: #5f676e;
+  --color-clay-500: #79818a;
+
+  --color-ink-400: #7c848c;
+  --color-ink-500: #98a0a8;
+  --color-ink-600: #b9c0c6;
+  --color-ink-700: #d5dade;
+  --color-ink-900: #f0f2f4;
+
+  --color-accent: #c8a34a;
+  --color-accent-strong: #b08f38;
+  --color-accent-muted: #5c5027;
+  --color-on-accent: #17191c;
+  --color-accent-soft: #2b2721;
+  --color-accent-text: #d9bd72;
 }
 
 :root {

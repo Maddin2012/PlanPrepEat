@@ -207,7 +207,7 @@ export default function ShoppingPage() {
         actions={
           <IconButton
             label="Liste exportieren"
-            className="bg-leaf-600 text-white active:bg-leaf-700"
+            className="bg-accent text-on-accent active:bg-accent-strong"
             onClick={() => void exportList()}
           >
             <ShareIcon className="size-5" />
@@ -224,7 +224,7 @@ export default function ShoppingPage() {
               <button
                 type="button"
                 onClick={() => setHideDone(!hideDone)}
-                className="text-xs font-medium text-leaf-600"
+                className="text-xs font-medium text-accent-text"
               >
                 {hideDone ? 'Erledigte einblenden' : 'Erledigte ausblenden'}
               </button>
@@ -341,7 +341,7 @@ export default function ShoppingPage() {
       )}
 
       {toast && (
-        <div className="pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto max-w-sm rounded-xl bg-ink-900 px-4 py-3 text-center text-sm text-white shadow-lg">
+        <div className="pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto max-w-sm rounded-xl bg-overlay px-4 py-3 text-center text-sm text-on-overlay shadow-lg">
           {toast}
         </div>
       )}
@@ -463,7 +463,7 @@ function ItemRow({
           className={cx(
             'flex size-6 shrink-0 items-center justify-center rounded-md border-2 transition-colors',
             item.checked
-              ? 'border-leaf-600 bg-leaf-600 text-white'
+              ? 'border-accent bg-accent text-on-accent'
               : 'border-clay-300',
           )}
         >
@@ -500,7 +500,7 @@ function ItemRow({
         {item.edited && (
           <span
             title="Menge von Hand geändert"
-            className="size-1.5 rounded-full bg-leaf-500"
+            className="size-1.5 rounded-full bg-accent"
           />
         )}
       </button>
@@ -594,7 +594,7 @@ function SortableRow({
         'bg-surface',
         // Die gezogene Zeile über die anderen legen, sonst verschwindet sie
         // beim Vorbeiziehen unter der Nachbarzeile.
-        isDragging && 'relative z-10 shadow-lg ring-1 ring-leaf-300',
+        isDragging && 'relative z-10 shadow-lg ring-1 ring-accent',
       )}
     >
       <ItemRow

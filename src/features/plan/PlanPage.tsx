@@ -281,7 +281,7 @@ function DayRow({
         ref={registerRow}
         className={cx(
           'flex flex-col items-center justify-center rounded-lg py-2',
-          day.isToday && 'bg-leaf-600 text-white',
+          day.isToday && 'bg-accent text-on-accent',
           !day.isToday && day.isPast && 'text-ink-400',
           !day.isToday && !day.isPast && day.isWeekend && 'bg-clay-100 text-ink-600',
           !day.isToday && !day.isPast && !day.isWeekend && 'text-ink-500',

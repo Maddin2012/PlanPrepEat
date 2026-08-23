@@ -84,6 +84,16 @@ Die App funktioniert offline weiter — im Supermarkt der entscheidende Teil.
 Abgehakte Posten werden lokal gespeichert und übertragen sich automatisch,
 sobald wieder Empfang da ist.
 
+## Hell oder dunkel
+
+Unter *Einstellungen → Darstellung* lässt sich zwischen heller und dunkler
+Fassung umschalten. Die Wahl gilt **nur für dieses Gerät** — der eine kann hell
+haben, während die andere dunkel hat.
+
+Bewusst folgt die App **nicht** der Systemeinstellung: Wer das Handy abends
+automatisch dunkel schaltet, will deswegen nicht zwingend eine dunkle
+Einkaufsliste.
+
 ---
 
 ## Einrichtung
@@ -204,7 +214,9 @@ src/
   data/       Repository-Schnittstelle plus zwei Adapter (Firestore, Speicher)
   features/   Die Reiter: recipes, plan, shopping, setup
   components/ Gemeinsame Bausteine
-  lib/        Bildverkleinerung, Teilen
+  lib/        Bildverkleinerung, Teilen, Spracherkennung, Hell/Dunkel
+scripts/
+  icons.mjs   Zeichnet das App-Symbol und rendert public/icon-*.png
 ```
 
 Zwei Entscheidungen, die beim Weiterbauen wichtig sind:
@@ -213,6 +225,19 @@ Zwei Entscheidungen, die beim Weiterbauen wichtig sind:
 mit zwei Umsetzungen: Firestore für den echten Betrieb, eine Speicher-Ablage für
 Entwicklung und Probemodus. Ein Umzug auf einen eigenen Server — Raspberry Pi
 etwa — wäre ein dritter Adapter und keine Operation am offenen Herzen.
+
+**Farben laufen über Rollen, nicht über Paletten** (`src/index.css`). In den
+Bauteilen steht `bg-accent` oder `bg-surface` — nie `bg-brand-600` oder
+`bg-white`. Nur die Rollen werden unter `:root[data-theme='dark']` umdefiniert;
+wer sich direkt an einen Palettenwert hängt, bleibt im Dunkelmodus stehen. Drei
+Rollen drehen sich absichtlich nicht um (`scrim`, `overlay`, `on-overlay`) —
+Meldebalken sollen in beiden Fassungen dunkel bleiben.
+
+**Das App-Symbol ist erzeugt, nicht gemalt.** Die Quelle liegt in
+`scripts/icons.mjs`; `node scripts/icons.mjs` schreibt `favicon.svg`,
+`icon-192.png`, `icon-512.png` und `icon-maskable.png` nach `public/`. Mit
+`--hell` entsteht die helle Kachel statt der dunklen. Playwright ist dafür nötig,
+aber absichtlich keine deklarierte Abhängigkeit — bauen und testen geht ohne.
 
 **Fotos liegen in Firestore, nicht in Firebase Storage.** Storage verlangt bei
 neu angelegten Projekten ein Abrechnungskonto mit Kreditkarte, Firestore nicht.
