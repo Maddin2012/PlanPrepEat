@@ -1,7 +1,6 @@
 import type {
   ISODate,
   Ingredient,
-  Plan,
   PlanEntry,
   PlanSlot,
   Recipe,
@@ -30,9 +29,8 @@ export class MemoryRepository implements Repository {
   private ingredients = new Map<string, Ingredient>()
   private recipes = new Map<string, Recipe>()
   private photos = new Map<string, string>()
-  private plans = new Map<string, Plan>()
-  private slots = new Map<string, Map<string, PlanEntry[]>>()
-  private shopping = new Map<string, ShoppingState>()
+  private slots = new Map<string, PlanEntry[]>()
+  private shopping: ShoppingState | null = null
 
   private listeners = new Set<() => void>()
   private storageKey: string | null
@@ -122,79 +120,45 @@ export class MemoryRepository implements Repository {
     else this.photos.set(recipeId, photo)
   }
 
-  // ------------------------------------------------------------------ Pläne
-
-  subscribePlans(listener: (plans: Plan[]) => void): Unsubscribe {
-    return this.watch(() =>
-      listener(
-        [...this.plans.values()].sort((a, b) =>
-          b.startDate.localeCompare(a.startDate),
-        ),
-      ),
-    )
-  }
-
-  async createPlan(startDate: ISODate): Promise<string> {
-    const existing = [...this.plans.values()].find(
-      (plan) => plan.startDate === startDate,
-    )
-    if (existing) return existing.id
-
-    const id = newId()
-    this.plans.set(id, { id, startDate, createdAt: Date.now() })
-    this.commit()
-    return id
-  }
-
-  async deletePlan(id: string): Promise<void> {
-    this.plans.delete(id)
-    this.slots.delete(id)
-    this.shopping.delete(id)
-    this.commit()
-  }
+  // --------------------------------------------------------- Essensplan
 
   subscribeSlots(
-    planId: string,
+    from: ISODate,
+    to: ISODate,
     listener: (slots: PlanSlot[]) => void,
   ): Unsubscribe {
     return this.watch(() => {
-      const map = this.slots.get(planId) ?? new Map<string, PlanEntry[]>()
+      // Die Schlüssel beginnen mit dem Datum, ein Textvergleich reicht also
+      // für die Bereichsprüfung — dieselbe Eigenschaft nutzt der
+      // Firestore-Adapter für seine Abfrage.
       listener(
-        [...map.entries()]
-          .map(([key, entries]) => ({ key, entries: entries.map((e) => ({ ...e })) }))
+        [...this.slots.entries()]
+          .filter(([key]) => key >= `${from}_` && key <= `${to}_￿`)
+          .map(([key, entries]) => ({
+            key,
+            entries: entries.map((entry) => ({ ...entry })),
+          }))
           .sort((a, b) => a.key.localeCompare(b.key)),
       )
     })
   }
 
-  async setSlot(
-    planId: string,
-    key: string,
-    entries: PlanEntry[],
-  ): Promise<void> {
-    const map = this.slots.get(planId) ?? new Map<string, PlanEntry[]>()
-    if (entries.length === 0) map.delete(key)
-    else map.set(key, entries.map((entry) => ({ ...entry })))
-    this.slots.set(planId, map)
+  async setSlot(key: string, entries: PlanEntry[]): Promise<void> {
+    if (entries.length === 0) this.slots.delete(key)
+    else this.slots.set(key, entries.map((entry) => ({ ...entry })))
     this.commit()
   }
 
   // ----------------------------------------------------------- Einkaufsliste
 
   subscribeShoppingState(
-    planId: string,
     listener: (state: ShoppingState) => void,
   ): Unsubscribe {
-    return this.watch(() =>
-      listener(this.shopping.get(planId) ?? emptyShoppingState()),
-    )
+    return this.watch(() => listener(this.shopping ?? emptyShoppingState()))
   }
 
-  async saveShoppingState(
-    planId: string,
-    state: ShoppingState,
-  ): Promise<void> {
-    this.shopping.set(planId, structuredClone(state))
+  async saveShoppingState(state: ShoppingState): Promise<void> {
+    this.shopping = structuredClone(state)
     this.commit()
   }
 
@@ -222,12 +186,8 @@ export class MemoryRepository implements Repository {
           ingredients: [...this.ingredients.values()],
           recipes: [...this.recipes.values()],
           photos: [...this.photos.entries()],
-          plans: [...this.plans.values()],
-          slots: [...this.slots.entries()].map(([planId, map]) => [
-            planId,
-            [...map.entries()],
-          ]),
-          shopping: [...this.shopping.entries()],
+          slots: [...this.slots.entries()],
+          shopping: this.shopping,
         }),
       )
     } catch {
@@ -245,13 +205,10 @@ export class MemoryRepository implements Repository {
       for (const item of data.ingredients ?? []) this.ingredients.set(item.id, item)
       for (const item of data.recipes ?? []) this.recipes.set(item.id, item)
       for (const [id, photo] of data.photos ?? []) this.photos.set(id, photo)
-      for (const item of data.plans ?? []) this.plans.set(item.id, item)
-      for (const [planId, entries] of data.slots ?? []) {
-        this.slots.set(planId, new Map(entries))
+      for (const [key, entries] of data.slots ?? []) {
+        this.slots.set(key, entries)
       }
-      for (const [planId, state] of data.shopping ?? []) {
-        this.shopping.set(planId, state)
-      }
+      this.shopping = data.shopping ?? null
     } catch {
       // Beschädigter Stand: lieber leer starten als gar nicht starten.
     }

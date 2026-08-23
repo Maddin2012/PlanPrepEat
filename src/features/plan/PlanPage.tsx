@@ -1,109 +1,151 @@
-import { useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useRecipeMap, useRecipes, useSlots } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
-import type { Meal, PlanEntry } from '../../domain/types.ts'
+import type { ISODate, Meal, PlanEntry } from '../../domain/types.ts'
 import {
   MEALS,
   MEAL_LABELS,
-  formatPlanRange,
-  isWednesday,
-  mostRecentWednesday,
-  planDays,
+  PAGE_DAYS,
+  addDays,
+  calendarDays,
+  formatMonth,
   slotKey,
-  suggestNextStart,
   todayISO,
+  windowEnd,
+  windowStart,
+  type CalendarDay,
 } from '../../domain/planWindow.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
-import {
-  Button,
-  EmptyState,
-  Field,
-  IconButton,
-  Sheet,
-  Spinner,
-  TextInput,
-  cx,
-} from '../../components/ui.tsx'
-import {
-  CalendarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-} from '../../components/Icons.tsx'
+import { Button, cx } from '../../components/ui.tsx'
+import { PlusIcon } from '../../components/Icons.tsx'
 import SlotSheet from './SlotSheet.tsx'
-import { useSelectedPlan } from './selectedPlan.ts'
 
 export default function PlanPage() {
   const repository = useRepository()
-  const { plans, plan, loading, select } = useSelectedPlan()
   const { data: recipes } = useRecipes()
   const recipesById = useRecipeMap()
-  const { data: slots } = useSlots(plan?.id ?? null)
 
-  const [editing, setEditing] = useState<{ date: string; meal: Meal } | null>(
+  // Der geladene Ausschnitt. Er startet beim Fenster um heute herum und
+  // wächst beim Scrollen an beiden Enden.
+  const [range, setRange] = useState(() => ({
+    from: windowStart(),
+    to: windowEnd(),
+  }))
+  const { data: slots } = useSlots(range.from, range.to)
+
+  const [editing, setEditing] = useState<{ date: ISODate; meal: Meal } | null>(
     null,
   )
-  const [creating, setCreating] = useState(false)
 
+  const today = todayISO()
+  const days = useMemo(
+    () => calendarDays(range.from, range.to),
+    [range.from, range.to],
+  )
   const entriesByKey = useMemo(
     () => new Map(slots.map((slot) => [slot.key, slot.entries])),
     [slots],
   )
 
-  const days = useMemo(
-    () => (plan ? planDays(plan.startDate) : []),
-    [plan],
+  const gridRef = useRef<HTMLDivElement | null>(null)
+  const todayRef = useRef<HTMLDivElement | null>(null)
+  /** Höhe des Scrollbereichs vor dem Anhängen oben, zum Nachziehen danach. */
+  const pendingScrollFix = useRef<number | null>(null)
+  /** Sperrt weiteres Nachladen, bis die neuen Tage gezeichnet sind. */
+  const loading = useRef(false)
+  /** Erst scharf, wenn der Anfangssprung zu heute vorbei ist. */
+  const [armed, setArmed] = useState(false)
+
+  const scroller = useCallback(
+    () => gridRef.current?.closest('main') ?? null,
+    [],
   )
 
-  // Die Liste kommt neueste zuerst — für „vorheriger/nächster" ist die
-  // Reihenfolge auf dem Kalender die richtige.
-  const ordered = useMemo(
-    () => [...plans].sort((a, b) => a.startDate.localeCompare(b.startDate)),
-    [plans],
-  )
-  const position = plan ? ordered.findIndex((entry) => entry.id === plan.id) : -1
+  const scrollToToday = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    todayRef.current?.scrollIntoView({ behavior, block: 'center' })
+  }, [])
 
-  async function saveSlot(date: string, meal: Meal, entries: PlanEntry[]) {
-    if (!plan) return
-    await repository.setSlot(plan.id, slotKey(date, meal), entries)
-  }
+  // Beim Öffnen direkt bei heute stehen, nicht drei Tage davor. Erst danach
+  // darf nachgeladen werden — sonst feuern beide Marken schon beim ersten
+  // Zeichnen und es stünden auf Anhieb Wochen statt zwölf Tage da.
+  useEffect(() => {
+    scrollToToday('auto')
+    const timer = setTimeout(() => setArmed(true), 250)
+    return () => clearTimeout(timer)
+    // Nur beim ersten Rendern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  async function createPlan(startDate: string) {
-    const created = await repository.createPlan(startDate)
-    select(created)
-    setCreating(false)
-  }
+  /**
+   * Nachladen beim Scrollen an die Ränder.
+   *
+   * Bewusst über den Scrollabstand und nicht über einen IntersectionObserver:
+   * Bei zwölf Tagen sind beide Enden zwangsläufig im Blick, ein Beobachter
+   * würde also sofort nachfüllen, bis der Bildschirm voll ist. Gewollt sind
+   * aber zwölf Tage, bis jemand tatsächlich scrollt.
+   */
+  useEffect(() => {
+    if (!armed) return
+    const root = scroller()
+    if (!root) return
 
-  if (loading) return <Spinner label="Essensplan wird geladen …" />
+    const NEAR_EDGE = 300
 
-  if (!plan) {
-    const suggestion = mostRecentWednesday(todayISO())
-    return (
-      <>
-        <PageHeader title="Essensplan" />
-        <EmptyState
-          icon={<CalendarIcon className="size-12" />}
-          title="Noch kein Zeitraum angelegt"
-          description={`Ein Zeitraum läuft von Mittwoch bis zum Sonntag der Folgewoche. Vorschlag: ${formatPlanRange(suggestion)}.`}
-          action={
-            <div className="flex flex-col gap-2">
-              <Button onClick={() => void createPlan(suggestion)}>
-                Zeitraum anlegen
-              </Button>
-              <Button variant="ghost" onClick={() => setCreating(true)}>
-                Anderes Startdatum
-              </Button>
-            </div>
-          }
-        />
-        <NewPlanSheet
-          open={creating}
-          onClose={() => setCreating(false)}
-          onCreate={createPlan}
-          lastStart={null}
-        />
-      </>
-    )
+    const onScroll = () => {
+      if (loading.current) return
+
+      if (root.scrollTop < NEAR_EDGE) {
+        loading.current = true
+        // Neue Tage über dem Sichtfeld schieben den Inhalt nach unten.
+        // Die Höhe vorher merken, um danach exakt gegenzusteuern.
+        pendingScrollFix.current = root.scrollHeight
+        setRange((current) => ({
+          ...current,
+          from: addDays(current.from, -PAGE_DAYS),
+        }))
+        return
+      }
+
+      const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight
+      if (fromBottom < NEAR_EDGE) {
+        loading.current = true
+        setRange((current) => ({
+          ...current,
+          to: addDays(current.to, PAGE_DAYS),
+        }))
+      }
+    }
+
+    root.addEventListener('scroll', onScroll, { passive: true })
+    return () => root.removeEventListener('scroll', onScroll)
+  }, [scroller, armed])
+
+  /**
+   * Nach dem Anhängen oben die Scrollposition um die gewachsene Höhe
+   * nachziehen — sonst rutscht der Tag unter dem Finger weg. Erst danach
+   * ist der nächste Nachschub freigegeben.
+   */
+  useLayoutEffect(() => {
+    const root = scroller()
+    const before = pendingScrollFix.current
+
+    if (before !== null && root) {
+      pendingScrollFix.current = null
+      root.scrollTop += root.scrollHeight - before
+    }
+
+    loading.current = false
+  }, [days, scroller])
+
+  async function saveSlot(date: ISODate, meal: Meal, entries: PlanEntry[]) {
+    await repository.setSlot(slotKey(date, meal), entries)
   }
 
   const editingEntries = editing
@@ -114,42 +156,19 @@ export default function PlanPage() {
     <>
       <PageHeader
         title="Essensplan"
-        subtitle={formatPlanRange(plan.startDate)}
+        subtitle="Drei Tage zurück, acht voraus"
         actions={
-          <IconButton label="Neuer Zeitraum" onClick={() => setCreating(true)}>
-            <PlusIcon className="size-5" />
-          </IconButton>
-        }
-        below={
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="secondary"
-              className="px-3"
-              disabled={position <= 0}
-              onClick={() => select(ordered[position - 1].id)}
-            >
-              <ChevronLeftIcon className="size-5" />
-              <span className="sr-only">Vorheriger Zeitraum</span>
-            </Button>
-
-            <span className="text-xs text-ink-400">
-              Zeitraum {position + 1} von {ordered.length}
-            </span>
-
-            <Button
-              variant="secondary"
-              className="px-3"
-              disabled={position < 0 || position >= ordered.length - 1}
-              onClick={() => select(ordered[position + 1].id)}
-            >
-              <span className="sr-only">Nächster Zeitraum</span>
-              <ChevronRightIcon className="size-5" />
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            className="px-3 text-sm"
+            onClick={() => scrollToToday()}
+          >
+            Heute
+          </Button>
         }
       />
 
-      <div className="p-3">
+      <div className="p-3" ref={gridRef}>
         <div className="grid grid-cols-[3rem_1fr_1fr] gap-1.5">
           <div />
           {MEALS.map((meal) => (
@@ -165,6 +184,7 @@ export default function PlanPage() {
             <DayRow
               key={day.date}
               day={day}
+              todayRef={day.date === today ? todayRef : undefined}
               entriesByKey={entriesByKey}
               recipeName={(id) => recipesById.get(id)?.name}
               onOpen={(meal) => setEditing({ date: day.date, meal })}
@@ -172,10 +192,10 @@ export default function PlanPage() {
           ))}
         </div>
 
-        <p className="mt-4 text-center text-xs leading-relaxed text-ink-400">
+        <p className="py-6 text-center text-xs leading-relaxed text-ink-400">
           Tippe auf ein Feld, um ein Rezept einzuplanen.
           <br />
-          Die Einkaufsliste aktualisiert sich dabei von selbst.
+          Der Kalender läuft in beide Richtungen weiter.
         </p>
       </div>
 
@@ -192,24 +212,19 @@ export default function PlanPage() {
           }
         />
       )}
-
-      <NewPlanSheet
-        open={creating}
-        onClose={() => setCreating(false)}
-        onCreate={createPlan}
-        lastStart={ordered.at(-1)?.startDate ?? null}
-      />
     </>
   )
 }
 
 function DayRow({
   day,
+  todayRef,
   entriesByKey,
   recipeName,
   onOpen,
 }: {
-  day: ReturnType<typeof planDays>[number]
+  day: CalendarDay
+  todayRef?: React.RefObject<HTMLDivElement | null>
   entriesByKey: Map<string, PlanEntry[]>
   recipeName: (id: string) => string | undefined
   onOpen: (meal: Meal) => void
@@ -217,13 +232,15 @@ function DayRow({
   return (
     <>
       <div
+        ref={todayRef}
         className={cx(
-          // Die Trennlinie markiert den Übergang in die zweite Woche.
           'flex flex-col items-center justify-center rounded-lg py-2',
           day.isToday && 'bg-leaf-600 text-white',
-          !day.isToday && day.isWeekend && 'bg-clay-100 text-ink-600',
-          !day.isToday && !day.isWeekend && 'text-ink-500',
-          day.startsSecondWeek && 'mt-3',
+          !day.isToday && day.isPast && 'text-ink-400',
+          !day.isToday && !day.isPast && day.isWeekend && 'bg-clay-100 text-ink-600',
+          !day.isToday && !day.isPast && !day.isWeekend && 'text-ink-500',
+          // Der Monatserste bekommt etwas Luft davor.
+          day.startsMonth && 'mt-4',
         )}
       >
         <span className="text-[0.65rem] font-semibold tracking-wide uppercase">
@@ -232,6 +249,11 @@ function DayRow({
         <span className="text-xs tabular-nums">
           {day.dayLabel.replace(/\.$/, '')}
         </span>
+        {day.startsMonth && (
+          <span className="mt-0.5 text-[0.55rem] text-ink-400">
+            {formatMonth(day.date).split(' ')[0].slice(0, 3)}
+          </span>
+        )}
       </div>
 
       {MEALS.map((meal) => {
@@ -247,7 +269,9 @@ function DayRow({
               entries.length > 0
                 ? 'bg-surface ring-1 ring-clay-200 active:bg-clay-50'
                 : 'border border-dashed border-clay-200 text-ink-400 active:bg-clay-50',
-              day.startsSecondWeek && 'mt-3',
+              // Vergangene Tage treten zurück, ohne unbenutzbar zu werden.
+              day.isPast && 'opacity-55',
+              day.startsMonth && 'mt-4',
             )}
           >
             {entries.length === 0 ? (
@@ -271,70 +295,5 @@ function DayRow({
         )
       })}
     </>
-  )
-}
-
-/**
- * Neuen Zeitraum anlegen. Vorgeschlagen wird der Mittwoch eine Woche nach dem
- * letzten Plan; ein anderes Datum ist möglich, muss aber ein Mittwoch sein.
- */
-function NewPlanSheet({
-  open,
-  onClose,
-  onCreate,
-  lastStart,
-}: {
-  open: boolean
-  onClose: () => void
-  onCreate: (startDate: string) => void | Promise<void>
-  lastStart: string | null
-}) {
-  const suggestion = suggestNextStart(lastStart)
-  const [value, setValue] = useState(suggestion)
-
-  const valid = isWednesday(value)
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title="Neuer Zeitraum"
-      footer={
-        <Button block disabled={!valid} onClick={() => void onCreate(value)}>
-          Anlegen
-        </Button>
-      }
-    >
-      <p className="mb-4 text-sm leading-relaxed text-ink-600">
-        Ein Zeitraum umfasst 12 Tage: Mittwoch bis Sonntag und weiter bis zum
-        Sonntag der Folgewoche.
-      </p>
-
-      <Field
-        label="Startdatum"
-        hint={
-          valid
-            ? formatPlanRange(value)
-            : 'Der Zeitraum muss an einem Mittwoch beginnen.'
-        }
-      >
-        <TextInput
-          type="date"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-      </Field>
-
-      {!valid && (
-        <Button
-          variant="ghost"
-          block
-          className="mt-3"
-          onClick={() => setValue(mostRecentWednesday(value))}
-        >
-          Auf den Mittwoch davor setzen
-        </Button>
-      )}
-    </Sheet>
   )
 }

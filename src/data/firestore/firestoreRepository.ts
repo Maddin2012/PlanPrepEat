@@ -2,11 +2,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
+  endAt,
   getDoc,
-  getDocs,
   onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
+  startAt,
   writeBatch,
   type CollectionReference,
   type DocumentReference,
@@ -15,7 +19,6 @@ import {
 import type {
   ISODate,
   Ingredient,
-  Plan,
   PlanEntry,
   PlanSlot,
   Recipe,
@@ -139,70 +142,38 @@ export class FirestoreRepository implements Repository {
     else batch.set(this.photoRef(recipeId), { dataUrl: photo })
   }
 
-  // ------------------------------------------------------------------ Pläne
+  // --------------------------------------------------------- Essensplan
 
-  subscribePlans(listener: (plans: Plan[]) => void): Unsubscribe {
-    return onSnapshot(this.col('plans'), (snapshot) => {
-      const plans = snapshot.docs.map((entry) => ({
-        id: entry.id,
-        startDate: entry.data().startDate as ISODate,
-        createdAt: (entry.data().createdAt as number) ?? 0,
+  subscribeSlots(
+    from: ISODate,
+    to: ISODate,
+    listener: (slots: PlanSlot[]) => void,
+  ): Unsubscribe {
+    // Die Schlüssel beginnen mit dem Datum („2026-08-21_lunch"), also ordnet
+    // Firestore sie von sich aus chronologisch. Das \uf8ff am Ende steht hinter
+    // jedem normalen Zeichen und fängt damit beide Mahlzeiten des letzten Tages
+    // noch mit ein — ohne das bliebe „…_dinner" außen vor.
+    const range = query(
+      this.col('slots'),
+      orderBy(documentId()),
+      startAt(`${from}_`),
+      endAt(`${to}_\uf8ff`),
+    )
+
+    return onSnapshot(range, (snapshot) => {
+      const slots = snapshot.docs.map((entry) => ({
+        key: entry.id,
+        entries: ((entry.data().entries as PlanEntry[]) ?? []).map((item) => ({
+          recipeId: item.recipeId,
+          servings: item.servings,
+        })),
       }))
-      // Neueste Zeiträume zuerst — man plant fast immer den aktuellen.
-      listener(plans.sort((a, b) => b.startDate.localeCompare(a.startDate)))
+      listener(slots.sort((a, b) => a.key.localeCompare(b.key)))
     })
   }
 
-  async createPlan(startDate: ISODate): Promise<string> {
-    // Das Startdatum ist zugleich die Dokument-ID. Legen beide Personen
-    // gleichzeitig denselben Zeitraum an, entsteht dadurch nur ein Plan
-    // statt zweier konkurrierender.
-    await setDoc(
-      doc(this.col('plans'), startDate),
-      { startDate, createdAt: Date.now() },
-      { merge: true },
-    )
-    return startDate
-  }
-
-  async deletePlan(id: string): Promise<void> {
-    const planRef = doc(this.col('plans'), id)
-    // Firestore löscht Unterordner nicht mit — Plätze und Einkaufszustand
-    // müssen einzeln weg, sonst bleiben Waisen liegen.
-    const slots = await getDocs(collection(planRef, 'slots'))
-    const shopping = await getDocs(collection(planRef, 'shopping'))
-
-    const batch = writeBatch(this.db)
-    for (const entry of [...slots.docs, ...shopping.docs]) batch.delete(entry.ref)
-    batch.delete(planRef)
-    await batch.commit()
-  }
-
-  subscribeSlots(
-    planId: string,
-    listener: (slots: PlanSlot[]) => void,
-  ): Unsubscribe {
-    return onSnapshot(
-      collection(this.col('plans'), planId, 'slots'),
-      (snapshot) => {
-        const slots = snapshot.docs.map((entry) => ({
-          key: entry.id,
-          entries: ((entry.data().entries as PlanEntry[]) ?? []).map((item) => ({
-            recipeId: item.recipeId,
-            servings: item.servings,
-          })),
-        }))
-        listener(slots.sort((a, b) => a.key.localeCompare(b.key)))
-      },
-    )
-  }
-
-  async setSlot(
-    planId: string,
-    key: string,
-    entries: PlanEntry[],
-  ): Promise<void> {
-    const ref = doc(this.col('plans'), planId, 'slots', key)
+  async setSlot(key: string, entries: PlanEntry[]): Promise<void> {
+    const ref = doc(this.col('slots'), key)
     if (entries.length === 0) await deleteDoc(ref)
     else await setDoc(ref, { entries, updatedAt: serverTimestamp() })
   }
@@ -210,23 +181,21 @@ export class FirestoreRepository implements Repository {
   // ----------------------------------------------------------- Einkaufsliste
 
   subscribeShoppingState(
-    planId: string,
     listener: (state: ShoppingState) => void,
   ): Unsubscribe {
-    return onSnapshot(this.shoppingRef(planId), (snapshot) => {
-      listener(snapshot.exists() ? toShoppingState(snapshot.data()) : emptyShoppingState())
+    return onSnapshot(this.shoppingRef(), (snapshot) => {
+      listener(
+        snapshot.exists() ? toShoppingState(snapshot.data()) : emptyShoppingState(),
+      )
     })
   }
 
-  async saveShoppingState(
-    planId: string,
-    state: ShoppingState,
-  ): Promise<void> {
-    await setDoc(this.shoppingRef(planId), state)
+  async saveShoppingState(state: ShoppingState): Promise<void> {
+    await setDoc(this.shoppingRef(), state)
   }
 
-  private shoppingRef(planId: string): DocumentReference {
-    return doc(this.col('plans'), planId, 'shopping', 'state')
+  private shoppingRef(): DocumentReference {
+    return doc(this.col('shopping'), 'state')
   }
 }
 

@@ -1,6 +1,6 @@
 # Rezeptbuch & Essensplan
 
-Eine App für zwei: Rezepte sammeln, anderthalb Wochen im Voraus planen — und die
+Eine App für zwei: Rezepte sammeln, die nächsten Tage vorausplanen — und die
 Einkaufsliste entsteht dabei von selbst. Gebaut als **PWA**, also als Web-App,
 die ihr euch auf den Startbildschirm legt und die sich danach wie eine normale
 App verhält: eigenes Icon, Vollbild, funktioniert auch ohne Netz.
@@ -12,17 +12,25 @@ Zubereitungszeit und Zubereitungsschritten. Jedes Rezept gilt für eine bestimmt
 Portionszahl; in der Rezeptansicht könnt ihr hoch- und runterrechnen, ohne das
 Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zutaten.
 
-**Essensplan.** Ein Zeitraum läuft immer von Mittwoch bis zum Sonntag der
-Folgewoche — 12 Tage, je Tag eine Spalte für Mittagessen und eine für Abendbrot.
+**Essensplan.** Ein fortlaufender Kalender, je Tag eine Spalte für Mittagessen
+und eine für Abendbrot. Im Blick sind 12 Tage: heute, die drei Tage davor und
+acht voraus. Die vergangenen Tage sind mit Absicht dabei — lief ein Tag anders
+als gedacht, schiebt ihr das Gericht von dort einfach weiter. Gescrollt wird in
+beide Richtungen endlos, der Knopf „Heute" holt euch zurück.
 Ein Tippen auf ein Feld öffnet die Rezeptauswahl, danach stellt ihr die Portionen
 ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.
-Neue Zeiträume legt ihr über das Plus oben an; alte bleiben als Archiv erhalten.
 
-**Einkaufsliste.** Ergibt sich automatisch aus den eingeplanten Rezepten,
-zusammengefasst und alphabetisch sortiert. Zweimal 200 g Zwiebeln
+**Einkaufsliste.** Ergibt sich automatisch aus den Rezepten der 12 Tage um heute
+herum, zusammengefasst und zunächst alphabetisch sortiert. Zweimal 200 g Zwiebeln
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.
 Ihr könnt abhaken, Mengen korrigieren, Posten streichen („hab ich noch da") und
-eigene Sachen wie Klopapier ergänzen.
+eigene Sachen wie Klopapier ergänzen. Am Griff rechts lassen sich die Posten in
+eure Ladenreihenfolge ziehen — die merkt sich die App dann dauerhaft. Abgehaktes
+rutscht durchgestrichen unter „Erledigt".
+
+Die Liste hängt fest an heute: Sie folgt dem Kalender nicht, wenn ihr dort weit
+vorblättert. Wer im Supermarkt steht, will nicht plötzlich die Zutaten vom
+nächsten Monat vor sich haben.
 
 **Wichtig dabei:** Ändert ihr den Essensplan, wächst die Liste einfach mit.
 Gesetzte Häkchen, korrigierte Mengen und eigene Posten bleiben dabei erhalten —
@@ -124,7 +132,7 @@ Safari → Teilen → *Zum Home-Bildschirm*.
 
 ## Export nach Google Notizen
 
-Auf der Einkaufsliste gibt es den Knopf **„An Google Notizen senden"**. Er öffnet
+Oben rechts auf der Einkaufsliste sitzt das **Teilen-Symbol**. Es öffnet
 den Teilen-Dialog von Android; dort **Keep** antippen, und die Liste liegt als
 Notiz im Konto.
 
@@ -138,7 +146,7 @@ Anmeldung zuverlässig funktioniert.
 das Dreipunkt-Menü mit **„In Liste umwandeln"** in eine Checkliste verwandeln.
 
 Auf dem Rechner, wo es keinen Teilen-Dialog gibt, landet die Liste stattdessen in
-der Zwischenablage. Dafür gibt es zusätzlich den Knopf **„Als Text kopieren"**.
+der Zwischenablage — derselbe Knopf, er merkt das von selbst.
 
 ---
 
@@ -160,7 +168,7 @@ src/
   data/       Repository-Schnittstelle plus zwei Adapter (Firestore, Speicher)
   features/   Die Reiter: recipes, plan, shopping, setup
   components/ Gemeinsame Bausteine
-  lib/        Bildverkleinerung, Teilen, Wake Lock
+  lib/        Bildverkleinerung, Teilen
 ```
 
 Zwei Entscheidungen, die beim Weiterbauen wichtig sind:
@@ -183,7 +191,6 @@ households/{id}                      { name, members: { uid: true } }
   ingredients/{id}                   Zutatenkatalog für Vorschläge und Zusammenfassen
   recipes/{id}                       Rezept inkl. Vorschaubild
     media/photo                      Vollbild, wird nachgeladen
-  plans/{startdatum}                 Ein 12-Tage-Zeitraum
-    slots/{datum_lunch|dinner}       Was an dem Tag gekocht wird
-    shopping/state                   Häkchen, korrigierte Mengen, eigene Posten
+  slots/{datum_lunch|dinner}         Was an dem Tag gekocht wird
+  shopping/state                     Häkchen, Mengen, eigene Posten, Reihenfolge
 ```

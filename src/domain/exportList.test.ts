@@ -24,9 +24,9 @@ const items: ShoppingItem[] = [
 
 describe('formatShoppingListText', () => {
   it('schreibt eine durchgehende Liste und lässt Abgehaktes weg', () => {
-    expect(formatShoppingListText(items, { startDate: '2026-08-26' })).toBe(
+    expect(formatShoppingListText(items, { from: '2026-08-18', to: '2026-08-29' })).toBe(
       [
-        'Einkaufsliste Mi, 26.08. – So, 06.09.2026',
+        'Einkaufsliste 18.08. – 29.08.2026',
         '',
         '- Milch, 1 l',
         '- Salz',

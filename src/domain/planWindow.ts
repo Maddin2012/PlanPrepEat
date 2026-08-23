@@ -1,13 +1,19 @@
 import type { ISODate, Meal } from './types.ts'
 
 /**
- * Ein Planungszeitraum läuft von Mittwoch bis zum Sonntag der Folgewoche:
- * Mi Do Fr Sa So + Mo Di Mi Do Fr Sa So = 12 Tage.
+ * Der Essensplan ist ein fortlaufender Kalender ohne feste Zeiträume.
+ *
+ * Gezeigt werden zunächst 12 Tage, beginnend **drei Tage vor heute**. Die
+ * vergangenen Tage sind bewusst dabei: Wenn ein Tag anders lief als gedacht,
+ * lässt sich das Gericht von dort noch auf einen späteren Tag schieben.
  */
-export const PLAN_LENGTH_DAYS = 12
+export const DAYS_BEFORE_TODAY = 3
 
-/** Date#getDay(): Sonntag = 0, Mittwoch = 3. */
-const WEDNESDAY = 3
+/** Anzahl der Tage, die beim Öffnen im Blick sind. */
+export const WINDOW_DAYS = 12
+
+/** Wie viele Tage beim Scrollen jeweils nachgeladen werden. */
+export const PAGE_DAYS = 7
 
 export const WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] as const
 export const WEEKDAY_LONG = [
@@ -56,37 +62,25 @@ export function todayISO(now: Date = new Date()): ISODate {
   return toISODate(now)
 }
 
-/** Der Mittwoch am oder vor dem übergebenen Datum. */
-export function mostRecentWednesday(iso: ISODate): ISODate {
-  const back = (fromISODate(iso).getDay() - WEDNESDAY + 7) % 7
-  return addDays(iso, -back)
+/** Der erste Tag des Fensters: drei Tage vor heute. */
+export function windowStart(now: Date = new Date()): ISODate {
+  return addDays(todayISO(now), -DAYS_BEFORE_TODAY)
 }
 
-/** Der nächste Mittwoch *nach* dem übergebenen Datum (nie derselbe Tag). */
-export function nextWednesday(iso: ISODate): ISODate {
-  const forward = (WEDNESDAY - fromISODate(iso).getDay() + 7) % 7
-  return addDays(iso, forward === 0 ? 7 : forward)
+/** Der letzte Tag des Fensters. */
+export function windowEnd(now: Date = new Date()): ISODate {
+  return addDays(windowStart(now), WINDOW_DAYS - 1)
 }
 
-export function isWednesday(iso: ISODate): boolean {
-  return fromISODate(iso).getDay() === WEDNESDAY
+/** Anzahl der Tage von `from` bis `to`, beide eingeschlossen. */
+export function daysBetween(from: ISODate, to: ISODate): number {
+  const ms = fromISODate(to).getTime() - fromISODate(from).getTime()
+  // Über eine Zeitumstellung hinweg hat ein Tag 23 oder 25 Stunden. Runden
+  // fängt das ab, ohne dass wir Tag für Tag hochzählen müssen.
+  return Math.round(ms / 86_400_000) + 1
 }
 
-/**
- * Der Startvorschlag für einen neuen Zeitraum: eine Woche nach dem letzten
- * Plan. Die Zeiträume überlappen sich damit um fünf Tage — das ist so gewollt,
- * weil jeden Mittwoch neu eingekauft wird und die zweite Wochenhälfte beim
- * Einkauf am Folgemittwoch ohnehin noch einmal auf den Tisch kommt.
- */
-export function suggestNextStart(
-  lastStart: ISODate | null,
-  now: Date = new Date(),
-): ISODate {
-  if (!lastStart) return mostRecentWednesday(todayISO(now))
-  return addDays(lastStart, 7)
-}
-
-export interface PlanDay {
+export interface CalendarDay {
   date: ISODate
   /** 0 = Sonntag … 6 = Samstag */
   weekday: number
@@ -95,20 +89,27 @@ export interface PlanDay {
   /** „26.08." */
   dayLabel: string
   isToday: boolean
+  /** Liegt hinter uns — wird gedämpft dargestellt. */
+  isPast: boolean
   isWeekend: boolean
-  /** true ab dem zweiten Kalendermittwoch, für die Trennlinie im Raster. */
-  startsSecondWeek: boolean
+  /** true am ersten Tag eines Monats, für eine Trennlinie im Raster. */
+  startsMonth: boolean
 }
 
-/** Die 12 Tage eines Zeitraums, fertig aufbereitet für die Anzeige. */
-export function planDays(
-  startDate: ISODate,
+/** Die Tage von `from` bis `to`, fertig aufbereitet für die Anzeige. */
+export function calendarDays(
+  from: ISODate,
+  to: ISODate,
   now: Date = new Date(),
-): PlanDay[] {
+): CalendarDay[] {
   const today = todayISO(now)
-  return Array.from({ length: PLAN_LENGTH_DAYS }, (_, offset) => {
-    const date = addDays(startDate, offset)
-    const weekday = fromISODate(date).getDay()
+  const count = Math.max(0, daysBetween(from, to))
+
+  return Array.from({ length: count }, (_, offset) => {
+    const date = addDays(from, offset)
+    const parsed = fromISODate(date)
+    const weekday = parsed.getDay()
+
     return {
       date,
       weekday,
@@ -116,20 +117,11 @@ export function planDays(
       weekdayLong: WEEKDAY_LONG[weekday],
       dayLabel: formatDayShort(date),
       isToday: date === today,
+      isPast: date < today,
       isWeekend: weekday === 0 || weekday === 6,
-      startsSecondWeek: offset === 5,
+      startsMonth: parsed.getDate() === 1,
     }
   })
-}
-
-/** Der letzte Tag eines Zeitraums (der Sonntag). */
-export function planEndDate(startDate: ISODate): ISODate {
-  return addDays(startDate, PLAN_LENGTH_DAYS - 1)
-}
-
-/** Liegt `date` innerhalb des Zeitraums? */
-export function isWithinPlan(startDate: ISODate, date: ISODate): boolean {
-  return date >= startDate && date <= planEndDate(startDate)
 }
 
 /** „26.08." */
@@ -140,14 +132,19 @@ export function formatDayShort(iso: ISODate): string {
   ).padStart(2, '0')}.`
 }
 
-/** „Mi, 26.08. – So, 06.09.2026" */
-export function formatPlanRange(startDate: ISODate): string {
-  const end = planEndDate(startDate)
-  const startDay = fromISODate(startDate)
-  const endDay = fromISODate(end)
-  return `${WEEKDAY_SHORT[startDay.getDay()]}, ${formatDayShort(startDate)} – ${
-    WEEKDAY_SHORT[endDay.getDay()]
-  }, ${formatDayShort(end)}${endDay.getFullYear()}`
+/** „26.08. – 06.09.2026", für die Kopfzeile der Einkaufsliste. */
+export function formatRange(from: ISODate, to: ISODate): string {
+  return `${formatDayShort(from)} – ${formatDayShort(to)}${fromISODate(
+    to,
+  ).getFullYear()}`
+}
+
+/** „August 2026", als Trennlinie zwischen zwei Monaten im Kalender. */
+export function formatMonth(iso: ISODate): string {
+  return fromISODate(iso).toLocaleDateString('de-DE', {
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 /** Schlüssel eines Mahlzeiten-Platzes, zugleich die Firestore-Dokument-ID. */

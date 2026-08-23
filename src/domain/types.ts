@@ -74,13 +74,6 @@ export interface PlanSlot {
   entries: PlanEntry[]
 }
 
-/** Ein Planungszeitraum von 12 Tagen, beginnend an einem Mittwoch. */
-export interface Plan {
-  id: string
-  startDate: ISODate
-  createdAt: number
-}
-
 /** Ein selbst hinzugefügter Posten auf der Einkaufsliste, z.B. „Klopapier". */
 export interface ManualItem {
   id: string

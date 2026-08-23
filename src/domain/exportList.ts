@@ -1,10 +1,11 @@
 import type { ShoppingItem } from './types.ts'
 import { formatAmount } from './units.ts'
-import { formatPlanRange } from './planWindow.ts'
+import { formatRange } from './planWindow.ts'
 
 export interface ExportOptions {
-  /** Startdatum des Zeitraums, kommt als Überschrift in die Notiz. */
-  startDate?: string
+  /** Zeitraum der Liste, kommt als Überschrift in die Notiz. */
+  from?: string
+  to?: string
   /** Bereits Abgehaktes mitschicken? Standard: nein. */
   includeChecked?: boolean
 }
@@ -25,9 +26,10 @@ export function formatShoppingListText(
     ? items
     : items.filter((item) => !item.checked)
 
-  const heading = options.startDate
-    ? `Einkaufsliste ${formatPlanRange(options.startDate)}`
-    : 'Einkaufsliste'
+  const heading =
+    options.from && options.to
+      ? `Einkaufsliste ${formatRange(options.from, options.to)}`
+      : 'Einkaufsliste'
 
   if (visible.length === 0) {
     return `${heading}\n\n(nichts offen)`

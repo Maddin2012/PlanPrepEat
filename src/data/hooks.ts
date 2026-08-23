@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
+  ISODate,
   Ingredient,
-  Plan,
   PlanSlot,
   Recipe,
   ShoppingState,
@@ -67,22 +67,8 @@ export function useRecipeMap(): Map<string, Recipe> {
   return useMemo(() => new Map(data.map((recipe) => [recipe.id, recipe])), [data])
 }
 
-export function usePlans(): Loaded<Plan[]> {
-  const repository = useRepository()
-  const [state, setState] = useState<Loaded<Plan[]>>({
-    data: [],
-    loading: true,
-  })
-
-  useEffect(() => {
-    setState((current) => ({ ...current, loading: true }))
-    return repository.subscribePlans((data) => setState({ data, loading: false }))
-  }, [repository])
-
-  return state
-}
-
-export function useSlots(planId: string | null): Loaded<PlanSlot[]> {
+/** Die Mahlzeiten-Plätze eines Datumsbereichs, beide Enden eingeschlossen. */
+export function useSlots(from: ISODate, to: ISODate): Loaded<PlanSlot[]> {
   const repository = useRepository()
   const [state, setState] = useState<Loaded<PlanSlot[]>>({
     data: [],
@@ -90,20 +76,17 @@ export function useSlots(planId: string | null): Loaded<PlanSlot[]> {
   })
 
   useEffect(() => {
-    if (!planId) {
-      setState({ data: [], loading: false })
-      return
-    }
-    setState((current) => ({ ...current, loading: true }))
-    return repository.subscribeSlots(planId, (data) =>
+    // Beim Nachladen im Kalender nicht auf „lädt" zurückfallen — sonst
+    // flackert das halbe Raster weg, obwohl das meiste schon dasteht.
+    return repository.subscribeSlots(from, to, (data) =>
       setState({ data, loading: false }),
     )
-  }, [repository, planId])
+  }, [repository, from, to])
 
   return state
 }
 
-export function useShoppingState(planId: string | null): Loaded<ShoppingState> {
+export function useShoppingState(): Loaded<ShoppingState> {
   const repository = useRepository()
   const [state, setState] = useState<Loaded<ShoppingState>>({
     data: emptyShoppingState(),
@@ -111,15 +94,10 @@ export function useShoppingState(planId: string | null): Loaded<ShoppingState> {
   })
 
   useEffect(() => {
-    if (!planId) {
-      setState({ data: emptyShoppingState(), loading: false })
-      return
-    }
-    setState((current) => ({ ...current, loading: true }))
-    return repository.subscribeShoppingState(planId, (data) =>
+    return repository.subscribeShoppingState((data) =>
       setState({ data, loading: false }),
     )
-  }, [repository, planId])
+  }, [repository])
 
   return state
 }

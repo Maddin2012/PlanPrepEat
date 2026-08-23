@@ -1,7 +1,6 @@
 import type {
   ISODate,
   Ingredient,
-  Plan,
   PlanEntry,
   PlanSlot,
   Recipe,
@@ -51,20 +50,23 @@ export interface Repository {
   ): Promise<void>
   deleteRecipe(id: string): Promise<void>
 
-  subscribePlans(listener: (plans: Plan[]) => void): Unsubscribe
-  createPlan(startDate: ISODate): Promise<string>
-  deletePlan(id: string): Promise<void>
-
+  /**
+   * Die Mahlzeiten-Plätze eines Datumsbereichs, beide Enden eingeschlossen.
+   *
+   * Der Kalender läuft endlos, deshalb wird immer nur der gerade geladene
+   * Ausschnitt abonniert — sonst zöge die App mit den Jahren jeden je
+   * geplanten Tag mit sich herum.
+   */
   subscribeSlots(
-    planId: string,
+    from: ISODate,
+    to: ISODate,
     listener: (slots: PlanSlot[]) => void,
   ): Unsubscribe
   /** Leere `entries` löschen den Platz, statt ein leeres Dokument zu hinterlassen. */
-  setSlot(planId: string, key: string, entries: PlanEntry[]): Promise<void>
+  setSlot(key: string, entries: PlanEntry[]): Promise<void>
 
   subscribeShoppingState(
-    planId: string,
     listener: (state: ShoppingState) => void,
   ): Unsubscribe
-  saveShoppingState(planId: string, state: ShoppingState): Promise<void>
+  saveShoppingState(state: ShoppingState): Promise<void>
 }
