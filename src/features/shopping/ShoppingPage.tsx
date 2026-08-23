@@ -41,7 +41,11 @@ import {
 } from '../../domain/aggregate.ts'
 import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
 import { formatShoppingListText } from '../../domain/exportList.ts'
-import { formatPlanRange } from '../../domain/planWindow.ts'
+import {
+  formatRange,
+  windowEnd,
+  windowStart,
+} from '../../domain/planWindow.ts'
 import { newId } from '../../data/ids.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import {
@@ -56,26 +60,28 @@ import {
   cx,
 } from '../../components/ui.tsx'
 import {
-  CalendarIcon,
   CartIcon,
   CheckIcon,
-  CopyIcon,
   GripIcon,
   PlusIcon,
   ShareIcon,
   TrashIcon,
 } from '../../components/Icons.tsx'
-import { canShare, copyText, shareText } from '../../lib/share.ts'
-import { useSelectedPlan } from '../plan/selectedPlan.ts'
+import { shareText } from '../../lib/share.ts'
 import { parseAmount } from '../recipes/ingredientDraft.ts'
 
 export default function ShoppingPage() {
   const repository = useRepository()
-  const { plan, loading: plansLoading } = useSelectedPlan()
-  const { data: slots } = useSlots(plan?.id ?? null)
+
+  // Die Liste hängt fest an heute — sie folgt dem Kalender nicht, wenn dort
+  // weit vorgeblättert wird. Wer im Supermarkt steht, will nicht plötzlich die
+  // Zutaten vom nächsten Monat vor sich haben.
+  const [from, to] = useMemo(() => [windowStart(), windowEnd()], [])
+
+  const { data: slots } = useSlots(from, to)
   const recipesById = useRecipeMap()
   const ingredients = useIngredientMap()
-  const { data: state, loading: stateLoading } = useShoppingState(plan?.id ?? null)
+  const { data: state, loading: stateLoading } = useShoppingState()
 
   const [hideDone, setHideDone] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
@@ -99,12 +105,11 @@ export default function ShoppingPage() {
    */
   const update = useCallback(
     (change: (current: ShoppingState) => ShoppingState) => {
-      if (!plan) return
       const next = change(state)
       const live = liveShoppingKeys(planned)
-      void repository.saveShoppingState(plan.id, pruneShoppingState(next, live))
+      void repository.saveShoppingState(pruneShoppingState(next, live))
     },
-    [plan, state, planned, repository],
+    [state, planned, repository],
   )
 
   const toggle = useCallback(
@@ -146,56 +151,40 @@ export default function ShoppingPage() {
     setTimeout(() => setToast(null), 2600)
   }
 
-  async function exportToKeep() {
-    const text = formatShoppingListText(items, { startDate: plan?.startDate })
+  /**
+   * Ein Symbol für beides: `shareText` weicht auf die Zwischenablage aus, wenn
+   * das Gerät keinen Teilen-Dialog hat. Auf dem Handy öffnet sich also Android,
+   * am Rechner wird kopiert.
+   */
+  async function exportList() {
+    const text = formatShoppingListText(items, { from, to })
     const result = await shareText({ title: 'Einkaufsliste', text })
-    if (result === 'copied') {
-      flash('Kein Teilen möglich — Liste in die Zwischenablage kopiert.')
-    } else if (result === 'failed') {
-      flash('Das hat leider nicht geklappt.')
-    }
+    if (result === 'copied') flash('Liste in die Zwischenablage kopiert.')
+    else if (result === 'failed') flash('Das hat leider nicht geklappt.')
   }
 
-  async function copy() {
-    const text = formatShoppingListText(items, { startDate: plan?.startDate })
-    flash(
-      (await copyText(text))
-        ? 'Liste kopiert.'
-        : 'Kopieren hat nicht geklappt.',
-    )
-  }
-
-  if (plansLoading || (plan && stateLoading)) {
+  if (stateLoading) {
     return <Spinner label="Einkaufsliste wird geladen …" />
-  }
-
-  if (!plan) {
-    return (
-      <>
-        <PageHeader title="Einkaufsliste" />
-        <EmptyState
-          icon={<CalendarIcon className="size-12" />}
-          title="Noch kein Zeitraum"
-          description="Die Einkaufsliste entsteht aus dem Essensplan. Leg dort einen Zeitraum an."
-          action={
-            <Link to="/plan">
-              <Button>Zum Essensplan</Button>
-            </Link>
-          }
-        />
-      </>
-    )
   }
 
   return (
     <>
       <PageHeader
         title="Einkaufsliste"
-        subtitle={formatPlanRange(plan.startDate)}
+        subtitle={formatRange(from, to)}
         actions={
-          <IconButton label="Eigenen Posten hinzufügen" onClick={() => setAdding(true)}>
-            <PlusIcon className="size-5" />
-          </IconButton>
+          <>
+            <IconButton label="Eigenen Posten hinzufügen" onClick={() => setAdding(true)}>
+              <PlusIcon className="size-5" />
+            </IconButton>
+            <IconButton
+              label="Liste exportieren"
+              className="bg-leaf-600 text-white active:bg-leaf-700"
+              onClick={() => void exportList()}
+            >
+              <ShareIcon className="size-5" />
+            </IconButton>
+          </>
         }
         below={
           items.length > 0 ? (
@@ -256,21 +245,6 @@ export default function ShoppingPage() {
             </section>
           )}
 
-          <div className="space-y-2 pt-2">
-            <Button block onClick={() => void exportToKeep()}>
-              <ShareIcon className="size-5" />
-              An Google Notizen senden
-            </Button>
-            <Button variant="secondary" block onClick={() => void copy()}>
-              <CopyIcon className="size-5" />
-              Als Text kopieren
-            </Button>
-            <p className="px-2 pt-1 text-center text-xs leading-relaxed text-ink-400">
-              {canShare()
-                ? 'Es öffnet sich der Teilen-Dialog — dort „Keep" antippen, und die Liste liegt als Notiz im Konto.'
-                : 'Auf diesem Gerät gibt es keinen Teilen-Dialog. Die Liste wird stattdessen kopiert.'}
-            </p>
-          </div>
         </div>
       )}
 
