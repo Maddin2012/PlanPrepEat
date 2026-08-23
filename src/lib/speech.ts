@@ -97,25 +97,81 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
   let stopped = false
   let restarts = 0
 
+  /**
+   * Was als „endgültig" gemeldet wurde, aber noch nicht abgegeben ist.
+   *
+   * Der Grund, warum das überhaupt liegen bleibt: **Chrome auf Android markiert
+   * Zwischenergebnisse fälschlich als endgültig** und liefert sie wachsend
+   * nach — erst „500", dann „500 ml", dann „500 ml Wasser", und so fort. Wer
+   * jedes davon durchreicht, bekommt aus einem Satz ein Dutzend Einträge, jeder
+   * ein längeres Stück des vorigen. Genau das ist passiert.
+   *
+   * Deshalb wird je Ergebnis-Nummer nur der zuletzt gehörte Stand gemerkt und
+   * erst abgegeben, wenn er sich als fertig erwiesen hat.
+   */
+  const pending = new Map<number, string>()
+  const timers = new Map<number, number>()
+
+  /** So lange muss ein Ergebnis unverändert bleiben, um als fertig zu gelten. */
+  const SETTLE_MS = 900
+
+  function commit(index: number) {
+    const timer = timers.get(index)
+    if (timer !== undefined) window.clearTimeout(timer)
+    timers.delete(index)
+
+    const text = (pending.get(index) ?? '').trim()
+    pending.delete(index)
+    if (text) options.onChunk(text)
+  }
+
+  /** Alles Liegengebliebene abgeben — bei Sprechpause und beim Stoppen. */
+  function flush() {
+    for (const index of [...pending.keys()].sort((a, b) => a - b)) commit(index)
+  }
+
+  function showInterim(interim: string) {
+    const offen = [...pending.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, text]) => text)
+      .join(' ')
+    options.onInterim?.(`${offen} ${interim}`.trim())
+  }
+
   function finish() {
     if (stopped) return
     stopped = true
+    flush()
     options.onStopped?.()
   }
 
   recognition.onresult = (event) => {
     let interim = ''
+
     for (let index = event.resultIndex; index < event.results.length; index++) {
       const result = event.results[index]
       const text = result[0]?.transcript ?? ''
-      if (result.isFinal) {
-        const trimmed = text.trim()
-        if (trimmed) options.onChunk(trimmed)
-      } else {
+
+      if (!result.isFinal) {
         interim += text
+        continue
       }
+
+      // Eine höhere Nummer heißt: Alles davor ist wirklich abgeschlossen.
+      for (const older of [...pending.keys()]) {
+        if (older < index) commit(older)
+      }
+
+      pending.set(index, text)
+      const previous = timers.get(index)
+      if (previous !== undefined) window.clearTimeout(previous)
+      timers.set(
+        index,
+        window.setTimeout(() => commit(index), SETTLE_MS),
+      )
     }
-    options.onInterim?.(interim.trim())
+
+    showInterim(interim)
   }
 
   recognition.onerror = (event) => {
@@ -137,6 +193,13 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
 
   recognition.onend = () => {
     if (stopped) return
+
+    // Ein Ende heißt: Die Sprechpause ist da, der Satz ist fertig. Alles
+    // Liegengebliebene kann jetzt raus — auf Android ist das der Punkt, an dem
+    // ein Abschnitt zuverlässig abgeschlossen ist. Danach fängt die Zählung der
+    // Ergebnisse wieder bei null an, deshalb muss die Ablage leer sein.
+    flush()
+
     // Zu viele Neustarts hintereinander heißt: Es kommt nichts mehr: lieber
     // aufhören als in einer Schleife zu stehen.
     if (restarts >= 60) {
@@ -164,6 +227,9 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
     stop() {
       if (stopped) return
       stopped = true
+      // Erst abgeben, dann beenden: Der zuletzt gesprochene Satz wartet sonst
+      // noch auf seine Ruhefrist und ginge beim Stoppen verloren.
+      flush()
       try {
         recognition.stop()
       } catch {
