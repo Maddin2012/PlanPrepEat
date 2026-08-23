@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CALENDAR_FUTURE_DAYS,
+  CALENDAR_PAST_DAYS,
   DAYS_BEFORE_TODAY,
   WINDOW_DAYS,
   addDays,
   calendarDays,
+  calendarRange,
   daysBetween,
   formatDayShort,
   formatRange,
@@ -79,6 +82,29 @@ describe('windowStart / windowEnd', () => {
   it('rutscht mit dem Datum mit', () => {
     const morgen = new Date(2026, 7, 22, 10, 0)
     expect(windowStart(morgen)).toBe('2026-08-19')
+  })
+})
+
+describe('calendarRange', () => {
+  it('reicht 30 Tage zurück und 120 voraus', () => {
+    const { from, to } = calendarRange(NOW)
+    expect(from).toBe('2026-07-22')
+    expect(to).toBe('2026-12-19')
+    expect(daysBetween(from, to)).toBe(
+      CALENDAR_PAST_DAYS + CALENDAR_FUTURE_DAYS + 1,
+    )
+  })
+
+  it('umschließt den Tag, auf den „Heute" springt', () => {
+    // Ohne diese Zusicherung gäbe es die Zeile gar nicht, die der Knopf oben
+    // ins Bild setzt — und er täte wieder nichts.
+    const { from, to } = calendarRange(NOW)
+    expect(from <= windowStart(NOW)).toBe(true)
+    expect(windowEnd(NOW) <= to).toBe(true)
+  })
+
+  it('rutscht mit dem Datum mit', () => {
+    expect(calendarRange(new Date(2026, 7, 22, 10, 0)).from).toBe('2026-07-23')
   })
 })
 

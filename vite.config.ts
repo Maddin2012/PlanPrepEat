@@ -7,8 +7,19 @@ import { VitePWA } from 'vite-plugin-pwa'
 // BASE_PATH wird im Deploy-Workflow gesetzt.
 const base = process.env.BASE_PATH ?? '/'
 
+// Damit man auf dem Gerät ablesen kann, welcher Bau dort läuft — nach einem
+// Update behält die installierte App sonst stumm den alten Stand, und man rätselt,
+// ob eine Änderung überhaupt angekommen ist. GITHUB_SHA setzt Actions von selbst.
+const buildStamp = [
+  new Date().toISOString().slice(0, 10),
+  (process.env.GITHUB_SHA ?? 'lokal').slice(0, 7),
+].join(' · ')
+
 export default defineConfig({
   base,
+  define: {
+    __BUILD_STAMP__: JSON.stringify(buildStamp),
+  },
   build: {
     // Das Firebase-Bündel liegt naturgemäß über der Standardschwelle von 500 kB.
     // Es wird einmal geladen und bleibt dann im Cache — das ist in Ordnung.

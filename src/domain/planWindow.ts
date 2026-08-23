@@ -12,8 +12,20 @@ export const DAYS_BEFORE_TODAY = 3
 /** Anzahl der Tage, die beim Öffnen im Blick sind. */
 export const WINDOW_DAYS = 12
 
-/** Wie viele Tage beim Scrollen jeweils nachgeladen werden. */
-export const PAGE_DAYS = 7
+/**
+ * Wie weit der Kalender geladen wird — bewusst weit über das Sichtbare hinaus.
+ *
+ * Früher wurden beim Scrollen laufend Tage angehängt. Das ist auf dem Handy
+ * nicht zu beherrschen: Ein Wisch schleudert weiter, nachdem der Finger weg ist,
+ * und wer in diese Bewegung hinein den Inhalt oberhalb des Sichtfelds verändert,
+ * verschiebt dem Benutzer die Ansicht unter der Hand. Ein großer fester Bereich
+ * kostet ein paar hundert schlichte Zellen und macht das Problem gegenstandslos.
+ */
+export const CALENDAR_PAST_DAYS = 30
+export const CALENDAR_FUTURE_DAYS = 120
+
+/** Wie viele Tage ein Tipp auf „früher"/„später" am Rand anhängt. */
+export const EXTEND_DAYS = 30
 
 export const WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] as const
 export const WEEKDAY_LONG = [
@@ -70,6 +82,23 @@ export function windowStart(now: Date = new Date()): ISODate {
 /** Der letzte Tag des Fensters. */
 export function windowEnd(now: Date = new Date()): ISODate {
   return addDays(windowStart(now), WINDOW_DAYS - 1)
+}
+
+/**
+ * Der Datumsbereich, den der Kalender beim Öffnen lädt.
+ *
+ * Er umschließt `windowStart()`, also den Tag, der oben im Bild stehen soll —
+ * darauf verlässt sich das Anspringen von „heute".
+ */
+export function calendarRange(now: Date = new Date()): {
+  from: ISODate
+  to: ISODate
+} {
+  const today = todayISO(now)
+  return {
+    from: addDays(today, -CALENDAR_PAST_DAYS),
+    to: addDays(today, CALENDAR_FUTURE_DAYS),
+  }
 }
 
 /** Anzahl der Tage von `from` bis `to`, beide eingeschlossen. */

@@ -96,6 +96,7 @@ export default function SettingsPage() {
                   : 'an'
               }
             />
+            <Row label="Stand" value={__BUILD_STAMP__} />
           </dl>
           {!online && (
             <p className="mt-3 rounded-xl bg-clay-100 p-3 text-xs leading-relaxed text-ink-600">

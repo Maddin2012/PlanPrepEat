@@ -16,7 +16,9 @@ Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zuta
 und eine für Abendbrot. Im Blick sind 12 Tage: heute, die drei Tage davor und
 acht voraus. Die vergangenen Tage sind mit Absicht dabei — lief ein Tag anders
 als gedacht, schiebt ihr das Gericht von dort einfach weiter. Gescrollt wird in
-beide Richtungen endlos, der Knopf „Heute" holt euch zurück.
+beide Richtungen — geladen sind ein Monat zurück und vier voraus, und wer noch
+weiter will, tippt am Ende auf „30 Tage früher" bzw. „30 Tage später". Der Knopf
+„Heute" oben rechts holt euch jederzeit zurück.
 Ein Tippen auf ein Feld öffnet die Rezeptauswahl, danach stellt ihr die Portionen
 ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.
 
@@ -127,6 +129,12 @@ Adresse steht anschließend im Actions-Durchlauf.
 Die Adresse in **Chrome** öffnen → Menü (⋮) → **Zum Startbildschirm hinzufügen**.
 Danach startet die App im Vollbild mit eigenem Icon. Auf dem iPhone geht es über
 Safari → Teilen → *Zum Home-Bildschirm*.
+
+**Nach einer Änderung:** Die installierte App behält ihren letzten Stand, bis sie
+einmal ganz geschlossen (aus der App-Übersicht wischen) und neu geöffnet wird.
+Welcher Bau gerade läuft, steht in den **Einstellungen** unter *Verbindung* in der
+Zeile **Stand** — Baudatum und Commit-Kürzel. Damit lässt sich ohne Raten klären,
+ob eine Änderung überhaupt auf dem Gerät angekommen ist.
 
 ---
 
