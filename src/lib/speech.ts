@@ -98,50 +98,64 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
   let restarts = 0
 
   /**
-   * Was als „endgültig" gemeldet wurde, aber noch nicht abgegeben ist.
+   * Die Äußerung, die gerade gesprochen wird.
    *
-   * Der Grund, warum das überhaupt liegen bleibt: **Chrome auf Android markiert
-   * Zwischenergebnisse fälschlich als endgültig** und liefert sie wachsend
-   * nach — erst „500", dann „500 ml", dann „500 ml Wasser", und so fort. Wer
-   * jedes davon durchreicht, bekommt aus einem Satz ein Dutzend Einträge, jeder
-   * ein längeres Stück des vorigen. Genau das ist passiert.
+   * **Chrome auf Android markiert Zwischenstände fälschlich als endgültig** und
+   * liefert sie wachsend nach — erst „500", dann „500 g", dann „500 g Hack".
+   * Wer jedes davon durchreicht, bekommt aus einer Zutat drei.
    *
-   * Deshalb wird je Ergebnis-Nummer nur der zuletzt gehörte Stand gemerkt und
-   * erst abgegeben, wenn er sich als fertig erwiesen hat.
+   * Ob dabei die Ergebnis-Nummer hochgezählt wird oder zwischen den Teilstücken
+   * die Sitzung endet, ist von Gerät zu Gerät verschieden — und ein erster
+   * Anlauf, der sich auf beides verlassen hat, ging genau deshalb schief.
+   * Verlässlich ist nur der Text selbst: Ist eine Fassung der Anfang der
+   * anderen, ist es dieselbe Äußerung.
    */
-  const pending = new Map<number, string>()
-  const timers = new Map<number, number>()
+  let buffer = ''
+  let timer: number | undefined
 
-  /** So lange muss ein Ergebnis unverändert bleiben, um als fertig zu gelten. */
-  const SETTLE_MS = 900
+  /** So lange muss der Text unverändert bleiben, um als fertig zu gelten. */
+  const SILENCE_MS = 1200
 
-  function commit(index: number) {
-    const timer = timers.get(index)
+  /**
+   * Zwei Fassungen derselben Äußerung? Auch die kürzere zählt: Nach einem
+   * Neustart meldet Android den Satz mitunter wieder verkürzt, und ohne diese
+   * Richtung entstünde daraus ein zusätzlicher Eintrag.
+   */
+  function sameUtterance(a: string, b: string): boolean {
+    const one = a.trim().toLocaleLowerCase('de')
+    const two = b.trim().toLocaleLowerCase('de')
+    return one.startsWith(two) || two.startsWith(one)
+  }
+
+  function commit() {
     if (timer !== undefined) window.clearTimeout(timer)
-    timers.delete(index)
-
-    const text = (pending.get(index) ?? '').trim()
-    pending.delete(index)
+    timer = undefined
+    const text = buffer.trim()
+    buffer = ''
     if (text) options.onChunk(text)
   }
 
-  /** Alles Liegengebliebene abgeben — bei Sprechpause und beim Stoppen. */
-  function flush() {
-    for (const index of [...pending.keys()].sort((a, b) => a - b)) commit(index)
-  }
+  function absorb(text: string) {
+    const next = text.trim()
+    if (!next) return
 
-  function showInterim(interim: string) {
-    const offen = [...pending.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([, text]) => text)
-      .join(' ')
-    options.onInterim?.(`${offen} ${interim}`.trim())
+    // Nicht verwandt heißt: Die vorige Äußerung war fertig.
+    if (buffer && !sameUtterance(buffer, next)) commit()
+
+    // Dieselbe Äußerung, nur kürzer gemeldet — der längere Stand bleibt stehen.
+    if (next.length <= buffer.trim().length) return
+
+    buffer = next
+    // Die Uhr nur bei einer echten Änderung neu stellen: Wird derselbe Text
+    // wiederholt gemeldet, liefe sie sonst endlos weiter.
+    if (timer !== undefined) window.clearTimeout(timer)
+    timer = window.setTimeout(commit, SILENCE_MS)
   }
 
   function finish() {
     if (stopped) return
     stopped = true
-    flush()
+    commit()
     options.onStopped?.()
   }
 
@@ -151,27 +165,11 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
     for (let index = event.resultIndex; index < event.results.length; index++) {
       const result = event.results[index]
       const text = result[0]?.transcript ?? ''
-
-      if (!result.isFinal) {
-        interim += text
-        continue
-      }
-
-      // Eine höhere Nummer heißt: Alles davor ist wirklich abgeschlossen.
-      for (const older of [...pending.keys()]) {
-        if (older < index) commit(older)
-      }
-
-      pending.set(index, text)
-      const previous = timers.get(index)
-      if (previous !== undefined) window.clearTimeout(previous)
-      timers.set(
-        index,
-        window.setTimeout(() => commit(index), SETTLE_MS),
-      )
+      if (result.isFinal) absorb(text)
+      else interim += text
     }
 
-    showInterim(interim)
+    options.onInterim?.(`${buffer} ${interim}`.trim())
   }
 
   recognition.onerror = (event) => {
@@ -194,11 +192,10 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
   recognition.onend = () => {
     if (stopped) return
 
-    // Ein Ende heißt: Die Sprechpause ist da, der Satz ist fertig. Alles
-    // Liegengebliebene kann jetzt raus — auf Android ist das der Punkt, an dem
-    // ein Abschnitt zuverlässig abgeschlossen ist. Danach fängt die Zählung der
-    // Ergebnisse wieder bei null an, deshalb muss die Ablage leer sein.
-    flush()
+    // Hier wird bewusst **nichts** abgegeben. Auf Android endet die Sitzung
+    // mitten in der Äußerung, nicht dahinter — wer hier abgibt, zerlegt genau
+    // die Sätze, die er zusammenhalten soll. Der Puffer überlebt den Neustart,
+    // und die Fortsetzung wird über den Text wiedererkannt.
 
     // Zu viele Neustarts hintereinander heißt: Es kommt nichts mehr: lieber
     // aufhören als in einer Schleife zu stehen.
@@ -229,7 +226,7 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
       stopped = true
       // Erst abgeben, dann beenden: Der zuletzt gesprochene Satz wartet sonst
       // noch auf seine Ruhefrist und ginge beim Stoppen verloren.
-      flush()
+      commit()
       try {
         recognition.stop()
       } catch {
