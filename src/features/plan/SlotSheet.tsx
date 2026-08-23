@@ -75,8 +75,10 @@ export default function SlotSheet({
       <Sheet open={open} onClose={close} title="Rezept auswählen">
         <div className="relative mb-3">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-ink-400" />
+          {/* Kein Autofokus: Sonst klappt sofort die Tastatur auf und deckt die
+              Rezeptliste bis auf eine Zeile zu. Zuerst soll man sehen, was da
+              ist — gesucht wird erst, wenn das Rezeptbuch dafür groß genug ist. */}
           <TextInput
-            autoFocus
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}

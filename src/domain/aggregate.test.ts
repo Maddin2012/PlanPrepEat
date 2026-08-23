@@ -4,6 +4,7 @@ import {
   collectPlanned,
   liveShoppingKeys,
   manualKey,
+  parseManualKey,
   pruneShoppingState,
   shoppingKey,
 } from './aggregate.ts'
@@ -44,6 +45,20 @@ const catalog = new Map<string, Ingredient>([
   ['pasta', ingredient('pasta', 'Nudeln')],
   ['salt', ingredient('salt', 'Salz')],
 ])
+
+describe('manualKey / parseManualKey', () => {
+  it('führt hin und wieder zurück', () => {
+    expect(parseManualKey(manualKey('abc123'))).toBe('abc123')
+  })
+
+  it('lässt einen abgeleiteten Schlüssel in Ruhe', () => {
+    // Daran hängt, wohin eine Änderung geschrieben wird: in den eigenen Posten
+    // oder in die Mengen-Korrektur. Eine Verwechslung ginge still schief.
+    expect(parseManualKey(shoppingKey('zutat-1', 'g'))).toBeNull()
+    expect(parseManualKey('manual|')).toBeNull()
+    expect(parseManualKey('')).toBeNull()
+  })
+})
 
 describe('buildShoppingList', () => {
   it('addiert dieselbe Zutat aus mehreren Rezepten', () => {

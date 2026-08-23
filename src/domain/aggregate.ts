@@ -23,6 +23,18 @@ export function manualKey(id: string): string {
   return `manual|${id}`
 }
 
+/**
+ * Der Rückweg: die Kennung aus einem Schlüssel wie `manual|abc123`.
+ *
+ * Ein Posten in der Liste kennt nur seinen Schlüssel; zum Zurückschreiben in
+ * `state.manual` wird die Kennung wieder gebraucht. Für alles andere — etwa den
+ * Schlüssel eines abgeleiteten Postens — kommt `null` heraus.
+ */
+export function parseManualKey(key: string): string | null {
+  const id = key.startsWith('manual|') ? key.slice('manual|'.length) : ''
+  return id === '' ? null : id
+}
+
 export interface PlannedRecipe {
   recipe: Recipe
   servings: number

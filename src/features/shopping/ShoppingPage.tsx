@@ -37,6 +37,7 @@ import {
   collectPlanned,
   liveShoppingKeys,
   manualKey,
+  parseManualKey,
   pruneShoppingState,
 } from '../../domain/aggregate.ts'
 import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
@@ -62,6 +63,7 @@ import {
 import {
   CartIcon,
   CheckIcon,
+  CloseIcon,
   GripIcon,
   PlusIcon,
   ShareIcon,
@@ -85,7 +87,6 @@ export default function ShoppingPage() {
 
   const [hideDone, setHideDone] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
-  const [adding, setAdding] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   const planned = useMemo(
@@ -146,6 +147,37 @@ export default function ShoppingPage() {
     [open, done, update],
   )
 
+  /**
+   * Einen eigenen Posten anlegen — nur der Name, wie in Google Notizen. Menge
+   * und Einheit kommen bei Bedarf hinterher über das Antippen der Zeile.
+   *
+   * Er soll unten in der offenen Liste stehen, wo man ihn hingeschrieben hat.
+   * Dafür wird — wie beim ersten Verschieben auch — die aktuelle Reihenfolge
+   * festgeschrieben und der neue Schlüssel ans Ende der offenen Posten gehängt.
+   * Ab dann ist die Liste von Hand sortiert statt alphabetisch.
+   */
+  const addManual = useCallback(
+    (name: string) => {
+      const entry: ManualItem = {
+        id: newId(),
+        name,
+        amount: null,
+        unit: null,
+      }
+      const order = [
+        ...open.map((item) => item.key),
+        manualKey(entry.id),
+        ...done.map((item) => item.key),
+      ]
+      update((current) => ({
+        ...current,
+        manual: [...current.manual, entry],
+        order,
+      }))
+    },
+    [open, done, update],
+  )
+
   function flash(message: string) {
     setToast(message)
     setTimeout(() => setToast(null), 2600)
@@ -173,18 +205,13 @@ export default function ShoppingPage() {
         title="Einkaufsliste"
         subtitle={formatRange(from, to)}
         actions={
-          <>
-            <IconButton label="Eigenen Posten hinzufügen" onClick={() => setAdding(true)}>
-              <PlusIcon className="size-5" />
-            </IconButton>
-            <IconButton
-              label="Liste exportieren"
-              className="bg-leaf-600 text-white active:bg-leaf-700"
-              onClick={() => void exportList()}
-            >
-              <ShareIcon className="size-5" />
-            </IconButton>
-          </>
+          <IconButton
+            label="Liste exportieren"
+            className="bg-leaf-600 text-white active:bg-leaf-700"
+            onClick={() => void exportList()}
+          >
+            <ShareIcon className="size-5" />
+          </IconButton>
         }
         below={
           items.length > 0 ? (
@@ -206,7 +233,7 @@ export default function ShoppingPage() {
         }
       />
 
-      {items.length === 0 ? (
+      {items.length === 0 && (
         <EmptyState
           icon={<CartIcon className="size-12" />}
           title="Die Liste ist noch leer"
@@ -217,47 +244,75 @@ export default function ShoppingPage() {
             </Link>
           }
         />
-      ) : (
-        <div className="space-y-5 p-4">
+      )}
+
+      {/* Die Eingabezeile steht auch bei leerer Liste da: Sonst käme man ohne
+          eingeplante Rezepte gar nicht an einen eigenen Posten heran. */}
+      <div className="space-y-5 px-4 pt-4 pb-6">
+        <div className="space-y-2">
           <SortableList
             items={open}
             onMove={move}
             onToggle={toggle}
             onEdit={setEditing}
           />
-
-          {!hideDone && done.length > 0 && (
-            <section>
-              <h2 className="mb-1.5 px-1 text-xs font-semibold tracking-wide text-ink-400 uppercase">
-                Erledigt ({done.length})
-              </h2>
-              <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
-                {done.map((item) => (
-                  <li key={item.key}>
-                    <ItemRow
-                      item={item}
-                      onToggle={() => toggle(item)}
-                      onEdit={() => setEditing(item)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
+          <AddItemRow onAdd={addManual} />
         </div>
-      )}
+
+        {!hideDone && done.length > 0 && (
+          <section>
+            <h2 className="mb-1.5 px-1 text-xs font-semibold tracking-wide text-ink-400 uppercase">
+              Erledigt ({done.length})
+            </h2>
+            <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
+              {done.map((item) => (
+                <li key={item.key}>
+                  <ItemRow
+                    item={item}
+                    onToggle={() => toggle(item)}
+                    onEdit={() => setEditing(item)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
 
       {editing && (
         <EditItemSheet
           item={editing}
           onClose={() => setEditing(null)}
-          onSave={(amount) => {
-            const key = editing.key
-            update((current) => ({
-              ...current,
-              overrides: { ...current.overrides, [key]: amount },
-            }))
+          onSave={(values) => {
+            const item = editing
+            const id = parseManualKey(item.key)
+
+            update((current) =>
+              // Bei einem eigenen Posten wird der Posten selbst geändert, bei
+              // einem aus dem Rezept berechneten nur die Menge überschrieben.
+              id
+                ? {
+                    ...current,
+                    manual: current.manual.map((entry) =>
+                      entry.id === id
+                        ? {
+                            ...entry,
+                            name: values.name ?? entry.name,
+                            amount: values.amount,
+                            // Eine Einheit ohne Menge sagt nichts aus.
+                            unit: values.amount === null ? null : values.unit,
+                          }
+                        : entry,
+                    ),
+                  }
+                : {
+                    ...current,
+                    overrides: {
+                      ...current.overrides,
+                      [item.key]: values.amount ?? 0,
+                    },
+                  },
+            )
             setEditing(null)
           }}
           onReset={() => {
@@ -285,21 +340,102 @@ export default function ShoppingPage() {
         />
       )}
 
-      <AddItemSheet
-        open={adding}
-        onClose={() => setAdding(false)}
-        onAdd={(entry) => {
-          update((current) => ({ ...current, manual: [...current.manual, entry] }))
-          setAdding(false)
-        }}
-      />
-
       {toast && (
         <div className="pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto max-w-sm rounded-xl bg-ink-900 px-4 py-3 text-center text-sm text-white shadow-lg">
           {toast}
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * Die Zeile zum Anlegen eigener Posten, nach dem Vorbild von Google Notizen.
+ *
+ * Ruhend steht dort nur „+ Listeneintrag". Ein Tipp macht daraus eine Zeile im
+ * Zuschnitt der Liste mit Textfeld und einem X zum Verwerfen — kein Formular,
+ * kein Blatt, das sich über die Liste legt. Enter legt den Posten an und öffnet
+ * gleich die nächste Zeile, damit man mehrere hintereinander schreiben kann.
+ */
+function AddItemRow({ onAdd }: { onAdd: (name: string) => void }) {
+  const [writing, setWriting] = useState(false)
+  const [name, setName] = useState('')
+
+  function open() {
+    setName('')
+    setWriting(true)
+  }
+
+  function discard() {
+    setName('')
+    setWriting(false)
+  }
+
+  /** Legt den Posten an, sofern etwas dasteht. Meldet, ob es dazu kam. */
+  function commit(): boolean {
+    const trimmed = name.trim()
+    if (!trimmed) return false
+    onAdd(trimmed)
+    setName('')
+    return true
+  }
+
+  if (!writing) {
+    return (
+      <button
+        type="button"
+        onClick={open}
+        className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-ink-400 transition-colors active:bg-clay-100"
+      >
+        <PlusIcon className="size-5 shrink-0" />
+        <span className="text-sm">Listeneintrag</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex items-stretch overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
+      <span className="flex items-center pl-3">
+        <span className="size-6 shrink-0 rounded-md border-2 border-clay-300" />
+      </span>
+
+      <input
+        autoFocus
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        placeholder="Listeneintrag"
+        aria-label="Neuer Listeneintrag"
+        className="min-w-0 flex-1 bg-transparent px-3 py-3 text-ink-900 outline-none placeholder:text-ink-400"
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            // Nach dem Anlegen bleibt der Fokus stehen, die Zeile ist wieder
+            // leer — so schreibt man mehrere Posten hintereinander.
+            if (!commit()) discard()
+          } else if (event.key === 'Escape') {
+            discard()
+          }
+        }}
+        onBlur={() => {
+          // Wegtippen zählt als Übernehmen, wenn etwas dasteht — sonst wäre das
+          // Getippte weg, obwohl man es sichtbar hingeschrieben hat.
+          commit()
+          setWriting(false)
+        }}
+      />
+
+      <button
+        type="button"
+        aria-label="Eintrag verwerfen"
+        // Vor dem Verlassen des Feldes zuschlagen: onBlur würde sonst zuerst
+        // laufen und den Posten anlegen, den dieser Knopf gerade wegwerfen soll.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={discard}
+        className="flex shrink-0 items-center px-3 text-ink-400 transition-colors active:text-ink-600"
+      >
+        <CloseIcon className="size-5" />
+      </button>
+    </div>
   )
 }
 
@@ -484,6 +620,24 @@ function SortableRow({
   )
 }
 
+/** Was das Blatt zurückmeldet. Wohin es gehört, entscheidet die Seite. */
+interface ItemEdit {
+  /** Nur bei eigenen Posten — abgeleitete tragen den Namen der Zutat. */
+  name?: string
+  /** null heißt „ohne Mengenangabe". */
+  amount: number | null
+  unit: UnitCode | null
+}
+
+/**
+ * Einen Posten bearbeiten.
+ *
+ * Bei einem eigenen Posten steht hier alles, was er hat — Name, Menge, Einheit.
+ * Das ist seit dem Wegfall des Hinzufügen-Blattes die einzige Stelle dafür: Die
+ * Zeile unter der Liste legt bewusst nur den Namen an, wie in Google Notizen.
+ * Bei einem aus dem Rezept berechneten Posten geht es nur um die Menge; Name
+ * und Einheit kommen aus der Zutat und wären hier fehl am Platz.
+ */
 function EditItemSheet({
   item,
   onClose,
@@ -493,13 +647,24 @@ function EditItemSheet({
 }: {
   item: ShoppingItem
   onClose: () => void
-  onSave: (amount: number) => void
+  onSave: (values: ItemEdit) => void
   onReset: () => void
   onRemove: () => void
 }) {
+  const [name, setName] = useState(item.name)
   const [value, setValue] = useState(
     item.amount === null ? '' : String(item.amount).replace('.', ','),
   )
+  const [unit, setUnit] = useState<UnitCode>(item.unit ?? 'stk')
+
+  function submit() {
+    const parsed = parseAmount(value)
+    onSave({
+      name: item.manual ? name.trim() || item.name : undefined,
+      amount: parsed > 0 ? parsed : null,
+      unit,
+    })
+  }
 
   return (
     <Sheet
@@ -511,30 +676,63 @@ function EditItemSheet({
           <Button variant="secondary" className="flex-1" onClick={onClose}>
             Abbrechen
           </Button>
-          <Button
-            className="flex-[2]"
-            onClick={() => onSave(parseAmount(value))}
-          >
+          <Button className="flex-[2]" onClick={submit}>
             Übernehmen
           </Button>
         </div>
       }
     >
-      <Field
-        label="Menge"
-        hint={
-          item.unit
-            ? `In ${UNIT_LABELS[item.unit]}. Gilt nur für diese Einkaufsliste, das Rezept bleibt unverändert.`
-            : 'Gilt nur für diese Einkaufsliste.'
-        }
-      >
-        <TextInput
-          autoFocus
-          inputMode="decimal"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-      </Field>
+      <div className="space-y-4">
+        {item.manual && (
+          <Field label="Name">
+            <TextInput
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </Field>
+        )}
+
+        {item.manual ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Menge" hint="Optional.">
+              <TextInput
+                inputMode="decimal"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                placeholder="1"
+              />
+            </Field>
+            <Field label="Einheit">
+              <Select
+                value={unit}
+                onChange={(event) => setUnit(event.target.value as UnitCode)}
+              >
+                {UNIT_ORDER.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {UNIT_LABELS[entry]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        ) : (
+          <Field
+            label="Menge"
+            hint={
+              item.unit
+                ? `In ${UNIT_LABELS[item.unit]}. Gilt nur für diese Einkaufsliste, das Rezept bleibt unverändert.`
+                : 'Gilt nur für diese Einkaufsliste.'
+            }
+          >
+            <TextInput
+              autoFocus
+              inputMode="decimal"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </Field>
+        )}
+      </div>
 
       {item.sources.length > 0 && (
         <p className="mt-4 text-xs leading-relaxed text-ink-400">
@@ -553,85 +751,6 @@ function EditItemSheet({
           {item.manual ? 'Posten löschen' : 'Brauche ich nicht'}
         </Button>
       </div>
-    </Sheet>
-  )
-}
-
-function AddItemSheet({
-  open,
-  onClose,
-  onAdd,
-}: {
-  open: boolean
-  onClose: () => void
-  onAdd: (item: ManualItem) => void
-}) {
-  const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
-  const [unit, setUnit] = useState<UnitCode>('stk')
-
-  function submit() {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    const parsed = parseAmount(amount)
-    onAdd({
-      id: newId(),
-      name: trimmed,
-      amount: parsed > 0 ? parsed : null,
-      unit: parsed > 0 ? unit : null,
-    })
-    setName('')
-    setAmount('')
-  }
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title="Eigener Posten"
-      footer={
-        <Button block disabled={!name.trim()} onClick={submit}>
-          Hinzufügen
-        </Button>
-      }
-    >
-      <div className="space-y-4">
-        <Field label="Was fehlt?">
-          <TextInput
-            autoFocus
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Klopapier"
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Menge" hint="Optional.">
-            <TextInput
-              inputMode="decimal"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="1"
-            />
-          </Field>
-          <Field label="Einheit">
-            <Select
-              value={unit}
-              onChange={(event) => setUnit(event.target.value as UnitCode)}
-            >
-              {UNIT_ORDER.map((entry) => (
-                <option key={entry} value={entry}>
-                  {UNIT_LABELS[entry]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-      </div>
-
-      <p className="mt-4 text-xs leading-relaxed text-ink-400">
-        Eigene Posten bleiben stehen, auch wenn ihr den Essensplan noch ändert.
-      </p>
     </Sheet>
   )
 }
