@@ -131,3 +131,59 @@ export const emptyShoppingState = (): ShoppingState => ({
   manual: [],
   order: [],
 })
+
+/**
+ * Bringt einen gelesenen Wert auf die Form von `ShoppingState`.
+ *
+ * Alles, was aus einer Ablage kommt, ist erst einmal nur „irgendetwas": ein
+ * Stand aus einer älteren Fassung der App, ein halb geschriebenes Dokument,
+ * beschädigtes localStorage. Fehlt darin nur ein Feld, läuft die Berechnung der
+ * Einkaufsliste in einen Fehler und der Reiter bleibt weiß — deshalb wird hier
+ * jedes Feld einzeln geprüft und im Zweifel auf den leeren Wert gesetzt.
+ */
+export function normalizeShoppingState(value: unknown): ShoppingState {
+  const empty = emptyShoppingState()
+  // Ein Array ist die alte Form „Liste von [Zeitraum, Zustand]-Paaren".
+  if (!isRecord(value)) return empty
+
+  return {
+    checked: isRecord(value.checked)
+      ? pickBy(value.checked, (entry) => entry === true)
+      : empty.checked,
+    overrides: isRecord(value.overrides)
+      ? pickBy(value.overrides, (entry) => typeof entry === 'number')
+      : empty.overrides,
+    removed: onlyStrings(value.removed),
+    manual: Array.isArray(value.manual)
+      ? value.manual.filter(isManualItem)
+      : empty.manual,
+    order: onlyStrings(value.order),
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function onlyStrings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((e) => typeof e === 'string') : []
+}
+
+function pickBy<T>(
+  source: Record<string, unknown>,
+  keep: (value: unknown) => boolean,
+): Record<string, T> {
+  const result: Record<string, T> = {}
+  for (const [key, entry] of Object.entries(source)) {
+    if (keep(entry)) result[key] = entry as T
+  }
+  return result
+}
+
+function isManualItem(value: unknown): value is ManualItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string'
+  )
+}

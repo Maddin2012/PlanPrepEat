@@ -24,7 +24,7 @@ import type {
   Recipe,
   ShoppingState,
 } from '../../domain/types.ts'
-import { emptyShoppingState } from '../../domain/types.ts'
+import { normalizeShoppingState } from '../../domain/types.ts'
 import type {
   PhotoUpdate,
   RecipeDraft,
@@ -185,7 +185,7 @@ export class FirestoreRepository implements Repository {
   ): Unsubscribe {
     return onSnapshot(this.shoppingRef(), (snapshot) => {
       listener(
-        snapshot.exists() ? toShoppingState(snapshot.data()) : emptyShoppingState(),
+        normalizeShoppingState(snapshot.exists() ? snapshot.data() : null),
       )
     })
   }
@@ -228,17 +228,5 @@ function toRecipe(id: string, data: Record<string, unknown>): Recipe {
     hasPhoto: (data.hasPhoto as boolean) ?? false,
     createdAt: (data.createdAt as number) ?? 0,
     updatedAt: (data.updatedAt as number) ?? 0,
-  }
-}
-
-function toShoppingState(data: Record<string, unknown>): ShoppingState {
-  return {
-    checked: (data.checked as ShoppingState['checked']) ?? {},
-    overrides: (data.overrides as ShoppingState['overrides']) ?? {},
-    removed: (data.removed as string[]) ?? [],
-    manual: (data.manual as ShoppingState['manual']) ?? [],
-    // Listen aus der Zeit vor der freien Sortierung haben kein `order` — die
-    // bleiben damit einfach alphabetisch, bis zum ersten Verschieben.
-    order: (data.order as string[]) ?? [],
   }
 }

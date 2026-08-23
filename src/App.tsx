@@ -2,6 +2,7 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useSession } from './data/RepositoryContext.tsx'
 import { BookIcon, CalendarIcon, CartIcon } from './components/Icons.tsx'
 import { cx } from './components/ui.tsx'
+import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import SetupPage from './features/setup/SetupPage.tsx'
 import RecipeListPage from './features/recipes/RecipeListPage.tsx'
 import RecipeDetailPage from './features/recipes/RecipeDetailPage.tsx'
@@ -37,17 +38,21 @@ function Shell() {
         className="flex-1 overflow-y-auto overscroll-contain"
         style={{ paddingBottom: fullscreen ? 0 : 'var(--tabbar-height)' }}
       >
-        <Routes>
-          <Route path="/" element={<Navigate to="/rezepte" replace />} />
-          <Route path="/rezepte" element={<RecipeListPage />} />
-          <Route path="/rezepte/neu" element={<RecipeEditPage />} />
-          <Route path="/rezepte/:id" element={<RecipeDetailPage />} />
-          <Route path="/rezepte/:id/bearbeiten" element={<RecipeEditPage />} />
-          <Route path="/plan" element={<PlanPage />} />
-          <Route path="/einkaufsliste" element={<ShoppingPage />} />
-          <Route path="/einstellungen" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/rezepte" replace />} />
-        </Routes>
+        {/* Innerhalb von <main>, damit die Reiterleiste stehen bleibt: Wer auf
+            einer kaputten Seite landet, kommt so wenigstens wieder weg. */}
+        <ErrorBoundary resetKey={pathname}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/rezepte" replace />} />
+            <Route path="/rezepte" element={<RecipeListPage />} />
+            <Route path="/rezepte/neu" element={<RecipeEditPage />} />
+            <Route path="/rezepte/:id" element={<RecipeDetailPage />} />
+            <Route path="/rezepte/:id/bearbeiten" element={<RecipeEditPage />} />
+            <Route path="/plan" element={<PlanPage />} />
+            <Route path="/einkaufsliste" element={<ShoppingPage />} />
+            <Route path="/einstellungen" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/rezepte" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       {!fullscreen && <TabBar />}

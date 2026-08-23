@@ -6,7 +6,10 @@ import type {
   Recipe,
   ShoppingState,
 } from '../../domain/types.ts'
-import { emptyShoppingState } from '../../domain/types.ts'
+import {
+  emptyShoppingState,
+  normalizeShoppingState,
+} from '../../domain/types.ts'
 import type {
   PhotoUpdate,
   RecipeDraft,
@@ -196,21 +199,63 @@ export class MemoryRepository implements Repository {
     }
   }
 
+  /**
+   * Liest den gespeicherten Stand ein.
+   *
+   * Was hier ankommt, kann aus einer älteren Fassung der App stammen — vor dem
+   * fortlaufenden Kalender lagen die Plätze nach Zeitraum gruppiert und der
+   * Einkaufszustand als Liste von Paaren vor. Solche Einträge passen nicht mehr
+   * und werden verworfen, statt später beim Rendern zu explodieren. Rezepte,
+   * Zutaten und Fotos haben ihr Format nie geändert und bleiben erhalten.
+   */
   private restore(): void {
     if (!this.storageKey || typeof localStorage === 'undefined') return
     const raw = localStorage.getItem(this.storageKey)
     if (!raw) return
+
     try {
       const data = JSON.parse(raw)
-      for (const item of data.ingredients ?? []) this.ingredients.set(item.id, item)
-      for (const item of data.recipes ?? []) this.recipes.set(item.id, item)
-      for (const [id, photo] of data.photos ?? []) this.photos.set(id, photo)
-      for (const [key, entries] of data.slots ?? []) {
-        this.slots.set(key, entries)
+
+      for (const item of asArray(data.ingredients)) {
+        if (item?.id) this.ingredients.set(item.id, item)
       }
-      this.shopping = data.shopping ?? null
+      for (const item of asArray(data.recipes)) {
+        if (item?.id) this.recipes.set(item.id, item)
+      }
+      for (const pair of asArray(data.photos)) {
+        if (Array.isArray(pair) && typeof pair[0] === 'string') {
+          this.photos.set(pair[0], pair[1])
+        }
+      }
+
+      for (const pair of asArray(data.slots)) {
+        if (!Array.isArray(pair) || !isSlotKey(pair[0])) continue
+        const entries = asArray(pair[1]).filter(isPlanEntry)
+        if (entries.length > 0) this.slots.set(pair[0], entries)
+      }
+
+      this.shopping = data.shopping
+        ? normalizeShoppingState(data.shopping)
+        : null
     } catch {
       // Beschädigter Stand: lieber leer starten als gar nicht starten.
     }
   }
+}
+
+function asArray(value: unknown): any[] {
+  return Array.isArray(value) ? value : []
+}
+
+function isSlotKey(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}_(lunch|dinner)$/.test(value)
+}
+
+function isPlanEntry(value: unknown): value is PlanEntry {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as PlanEntry).recipeId === 'string' &&
+    typeof (value as PlanEntry).servings === 'number'
+  )
 }
