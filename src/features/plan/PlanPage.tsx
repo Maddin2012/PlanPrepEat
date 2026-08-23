@@ -17,7 +17,6 @@ import {
   calendarDays,
   formatMonth,
   slotKey,
-  todayISO,
   windowEnd,
   windowStart,
   type CalendarDay,
@@ -32,11 +31,18 @@ export default function PlanPage() {
   const { data: recipes } = useRecipes()
   const recipesById = useRecipeMap()
 
-  // Der geladene Ausschnitt. Er startet beim Fenster um heute herum und
-  // wächst beim Scrollen an beiden Enden.
+  /**
+   * Der geladene Ausschnitt — bewusst deutlich größer als das, was man sieht.
+   *
+   * Läge er genau auf den zwölf sichtbaren Tagen, stünde der Kalender beim
+   * Öffnen ganz oben am Anschlag und hätte kaum Scrollweg. Jede Bewegung wäre
+   * dann gleichzeitig „nah am oberen Rand", und es würde nach oben nachgeladen,
+   * obwohl nach unten gewischt wurde. Mit Vorrat an beiden Enden greift das
+   * Nachladen erst, wenn man wirklich dort ankommt.
+   */
   const [range, setRange] = useState(() => ({
-    from: windowStart(),
-    to: windowEnd(),
+    from: addDays(windowStart(), -PAGE_DAYS * 2),
+    to: addDays(windowEnd(), PAGE_DAYS * 2),
   }))
   const { data: slots } = useSlots(range.from, range.to)
 
@@ -44,7 +50,9 @@ export default function PlanPage() {
     null,
   )
 
-  const today = todayISO()
+  /** Der Tag, der beim Öffnen ganz oben stehen soll: drei Tage vor heute. */
+  const startOfView = useMemo(() => windowStart(), [])
+
   const days = useMemo(
     () => calendarDays(range.from, range.to),
     [range.from, range.to],
@@ -55,12 +63,16 @@ export default function PlanPage() {
   )
 
   const gridRef = useRef<HTMLDivElement | null>(null)
-  const todayRef = useRef<HTMLDivElement | null>(null)
+  const startRef = useRef<HTMLDivElement | null>(null)
   /** Höhe des Scrollbereichs vor dem Anhängen oben, zum Nachziehen danach. */
   const pendingScrollFix = useRef<number | null>(null)
   /** Sperrt weiteres Nachladen, bis die neuen Tage gezeichnet sind. */
   const loading = useRef(false)
-  /** Erst scharf, wenn der Anfangssprung zu heute vorbei ist. */
+  /** Sperrt das Nachladen, solange die App selbst scrollt („Heute"). */
+  const selfScrolling = useRef(false)
+  /** Letzte Scrollposition, um die Richtung zu erkennen. */
+  const lastTop = useRef(0)
+  /** Erst scharf, wenn der Anfangssprung vorbei ist. */
   const [armed, setArmed] = useState(false)
 
   const scroller = useCallback(
@@ -68,40 +80,65 @@ export default function PlanPage() {
     [],
   )
 
-  const scrollToToday = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    todayRef.current?.scrollIntoView({ behavior, block: 'center' })
-  }, [])
+  /**
+   * Zur gewohnten Ansicht springen: drei Tage vor heute ganz oben, heute als
+   * vierte Zeile. Auch der „Heute"-Knopf landet hier — er soll denselben
+   * Ausschnitt herstellen wie das Öffnen des Reiters.
+   *
+   * Während der Bewegung ist das Nachladen gesperrt. Sonst löst die weiche
+   * Bewegung unterwegs ein Nachladen aus, und die Ausgleichs-Korrektur bricht
+   * die laufende Animation ab — der Knopf sähe dann aus, als täte er nichts.
+   */
+  const scrollToStart = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      const row = startRef.current
+      if (!row) return
 
-  // Beim Öffnen direkt bei heute stehen, nicht drei Tage davor. Erst danach
-  // darf nachgeladen werden — sonst feuern beide Marken schon beim ersten
-  // Zeichnen und es stünden auf Anhieb Wochen statt zwölf Tage da.
+      selfScrolling.current = true
+      row.scrollIntoView({ behavior, block: 'start' })
+
+      window.setTimeout(
+        () => {
+          selfScrolling.current = false
+          const root = gridRef.current?.closest('main')
+          if (root) lastTop.current = root.scrollTop
+        },
+        behavior === 'smooth' ? 800 : 100,
+      )
+    },
+    [],
+  )
+
+  // Beim Öffnen an die gewohnte Stelle springen, erst danach scharf schalten.
   useEffect(() => {
-    scrollToToday('auto')
-    const timer = setTimeout(() => setArmed(true), 250)
+    scrollToStart('auto')
+    const timer = setTimeout(() => setArmed(true), 300)
     return () => clearTimeout(timer)
     // Nur beim ersten Rendern.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /**
-   * Nachladen beim Scrollen an die Ränder.
-   *
-   * Bewusst über den Scrollabstand und nicht über einen IntersectionObserver:
-   * Bei zwölf Tagen sind beide Enden zwangsläufig im Blick, ein Beobachter
-   * würde also sofort nachfüllen, bis der Bildschirm voll ist. Gewollt sind
-   * aber zwölf Tage, bis jemand tatsächlich scrollt.
+   * Nachladen beim Scrollen an die Ränder — und zwar nur in der Richtung, in
+   * die tatsächlich gewischt wird. Ohne diese Prüfung lädt ein Wisch nach unten
+   * auch oben nach, solange man noch in der Nähe des oberen Randes ist.
    */
   useEffect(() => {
     if (!armed) return
     const root = scroller()
     if (!root) return
 
-    const NEAR_EDGE = 300
+    const NEAR_EDGE = 400
 
     const onScroll = () => {
-      if (loading.current) return
+      const top = root.scrollTop
+      const goingUp = top < lastTop.current
+      // Auch bei gesperrtem Nachladen mitschreiben, sonst stimmt die Richtung
+      // beim nächsten Ereignis nicht mehr.
+      lastTop.current = top
+      if (selfScrolling.current || loading.current) return
 
-      if (root.scrollTop < NEAR_EDGE) {
+      if (goingUp && top < NEAR_EDGE) {
         loading.current = true
         // Neue Tage über dem Sichtfeld schieben den Inhalt nach unten.
         // Die Höhe vorher merken, um danach exakt gegenzusteuern.
@@ -113,8 +150,8 @@ export default function PlanPage() {
         return
       }
 
-      const fromBottom = root.scrollHeight - root.scrollTop - root.clientHeight
-      if (fromBottom < NEAR_EDGE) {
+      const fromBottom = root.scrollHeight - top - root.clientHeight
+      if (!goingUp && fromBottom < NEAR_EDGE) {
         loading.current = true
         setRange((current) => ({
           ...current,
@@ -139,6 +176,9 @@ export default function PlanPage() {
     if (before !== null && root) {
       pendingScrollFix.current = null
       root.scrollTop += root.scrollHeight - before
+      // Die Korrektur ist kein Wischen — sonst gälte der nächste Wisch nach
+      // oben fälschlich als Bewegung nach unten.
+      lastTop.current = root.scrollTop
     }
 
     loading.current = false
@@ -161,7 +201,7 @@ export default function PlanPage() {
           <Button
             variant="secondary"
             className="px-3 text-sm"
-            onClick={() => scrollToToday()}
+            onClick={() => scrollToStart()}
           >
             Heute
           </Button>
@@ -184,7 +224,7 @@ export default function PlanPage() {
             <DayRow
               key={day.date}
               day={day}
-              todayRef={day.date === today ? todayRef : undefined}
+              startRef={day.date === startOfView ? startRef : undefined}
               entriesByKey={entriesByKey}
               recipeName={(id) => recipesById.get(id)?.name}
               onOpen={(meal) => setEditing({ date: day.date, meal })}
@@ -218,13 +258,14 @@ export default function PlanPage() {
 
 function DayRow({
   day,
-  todayRef,
+  startRef,
   entriesByKey,
   recipeName,
   onOpen,
 }: {
   day: CalendarDay
-  todayRef?: React.RefObject<HTMLDivElement | null>
+  /** Nur an der Zeile gesetzt, auf die beim Öffnen gesprungen wird. */
+  startRef?: React.RefObject<HTMLDivElement | null>
   entriesByKey: Map<string, PlanEntry[]>
   recipeName: (id: string) => string | undefined
   onOpen: (meal: Meal) => void
@@ -232,9 +273,12 @@ function DayRow({
   return (
     <>
       <div
-        ref={todayRef}
+        ref={startRef}
         className={cx(
           'flex flex-col items-center justify-center rounded-lg py-2',
+          // Abstand für die klebende Kopfzeile: Ohne das landet die Zeile beim
+          // Anspringen darunter und ist halb verdeckt.
+          'scroll-mt-28',
           day.isToday && 'bg-leaf-600 text-white',
           !day.isToday && day.isPast && 'text-ink-400',
           !day.isToday && !day.isPast && day.isWeekend && 'bg-clay-100 text-ink-600',
