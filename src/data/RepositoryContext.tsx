@@ -218,7 +218,18 @@ export function useRepository(): Repository {
   return repository
 }
 
-function describeError(cause: unknown): string {
+/**
+ * Firebase-Fehler in Sätze übersetzen, die sagen, was zu tun ist.
+ *
+ * Die drei hier abgefangenen Fälle sind genau die drei Schritte, die beim
+ * Einrichten übersprungen werden können. Ein durchgereichtes
+ * „FirebaseError: auth/configuration-not-found" schickt einen dagegen ins
+ * Suchfeld statt in die richtige Einstellung.
+ *
+ * Exportiert, damit die Übersetzung prüfbar ist — sie ist das Einzige, was der
+ * Benutzer beim Einrichten zu sehen bekommt.
+ */
+export function describeError(cause: unknown): string {
   if (cause instanceof Error) {
     if (cause.name === 'HouseholdNotFoundError') return cause.message
     if (cause.message.includes('permission-denied')) {
@@ -226,6 +237,14 @@ function describeError(cause: unknown): string {
     }
     if (cause.message.includes('auth/configuration-not-found')) {
       return 'Die anonyme Anmeldung ist im Firebase-Projekt noch nicht aktiviert.'
+    }
+    // Falscher, abgeschnittener oder zum Projekt nicht passender Schlüssel.
+    if (
+      cause.message.includes('auth/invalid-api-key') ||
+      cause.message.includes('auth/api-key-not-valid') ||
+      cause.message.includes('auth/invalid-credential')
+    ) {
+      return 'Die Firebase-Zugangsdaten stimmen nicht. Sind alle Secrets richtig eingetragen und ist der Bau danach neu gelaufen?'
     }
     return cause.message
   }

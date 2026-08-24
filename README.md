@@ -162,6 +162,25 @@ gesamten Inhalt der Datei hineinkopieren → **Veröffentlichen**.
 **Zum lokalen Ausprobieren:** `.env.example` nach `.env.local` kopieren und die
 Werte dort eintragen.
 
+> **Secrets allein bewirken nichts.** Die Werte werden beim *Bauen* ins
+> JavaScript eingesetzt. Solange kein neuer Durchlauf gelaufen ist, läuft die
+> veröffentlichte App unverändert ohne Zugangsdaten weiter — und man sucht den
+> Fehler im Firebase-Projekt, wo keiner ist. Also nach dem Anlegen der Secrets:
+> *Actions* → **Bauen und veröffentlichen** → **Run workflow**.
+
+### Wo hängt es? Die Zeile *Abgleich* sagt es
+
+In der App unter *Einstellungen → Verbindung*:
+
+| Abgleich zeigt | heißt |
+| --- | --- |
+| `nicht eingerichtet` | Zugangsdaten fehlen in diesem Bau. Darunter steht, welche Secrets fehlen — und ob nur der neue Durchlauf aussteht. |
+| `aus (nur dieses Gerät)` | Zugangsdaten sind da, aber du bist im Probemodus. Abmelden und einen Haushalt anlegen oder beitreten. |
+| `an` | Verbunden, es wird abgeglichen. |
+
+Darüber steht die Zeile **Stand** mit Baudatum und Commit-Kürzel — daran siehst
+du, ob die installierte App den neuen Bau überhaupt schon geladen hat.
+
 ### 7. Veröffentlichen
 
 Im Repository unter *Settings* → *Pages* als Quelle **GitHub Actions** wählen.

@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Sicherheitsregeln für Rezeptbuch & Essensplan.
+// Sicherheitsregeln für PlanPrepEat.
 //
 // Modell: Alle Daten hängen unter households/{hid}. Die Kennung des Haushalts
 // ist ein 16-stelliges Zufallswort und zugleich der Einladungscode. Wer ihn

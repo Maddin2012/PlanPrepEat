@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button } from '../../components/ui.tsx'
 import { CopyIcon, ShareIcon } from '../../components/Icons.tsx'
 import { copyText, shareText } from '../../lib/share.ts'
+import { missingConfig } from '../../data/firebase.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
 import { useOnline } from '../../data/hooks.ts'
@@ -135,6 +136,9 @@ export default function SettingsPage() {
             />
             <Row label="Stand" value={__BUILD_STAMP__} />
           </dl>
+
+          {isDemo && !canSync && <MissingConfig />}
+
           {!online && (
             <p className="mt-3 rounded-xl bg-clay-100 p-3 text-xs leading-relaxed text-ink-600">
               Ohne Netz kannst du weiterarbeiten. Sobald du wieder online bist,
@@ -179,6 +183,41 @@ export default function SettingsPage() {
         </section>
       </div>
     </>
+  )
+}
+
+/**
+ * Was beim Einrichten von Firebase noch fehlt.
+ *
+ * „Nicht eingerichtet" allein lässt einen raten, ob man ein Secret vergessen
+ * hat oder ob nur der Bau noch nicht neu gelaufen ist. Deshalb steht hier, was
+ * genau fehlt — **nur die Namen der Secrets, nie deren Inhalt.**
+ *
+ * Stehen hier alle vier, gibt es zwei Gründe, und der zweite ist der häufigere:
+ * Die Secrets sind noch gar nicht angelegt — oder sie sind es, aber der Bau lief
+ * davor. Deshalb steht der Hinweis auf den neuen Durchlauf mit dabei.
+ *
+ * Wird nur aufgerufen, wenn die Zugangsdaten fehlen; die Liste ist dann
+ * zwangsläufig nicht leer.
+ */
+function MissingConfig() {
+  const fehlend = missingConfig()
+
+  return (
+    <div className="mt-3 rounded-xl bg-clay-100 p-3 text-xs leading-relaxed text-ink-600">
+      <p>
+        Es fehlen noch {fehlend.length === 1 ? 'dieser Wert' : 'diese Werte'} als
+        Secret im GitHub-Repository:
+      </p>
+      <ul className="mt-1.5 space-y-0.5 font-mono">
+        {fehlend.map((name) => (
+          <li key={name}>{name}</li>
+        ))}
+      </ul>
+      <p className="mt-2">
+        Danach muss der Bau einmal neu laufen — Secrets allein wirken nicht.
+      </p>
+    </div>
   )
 }
 
