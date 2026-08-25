@@ -33,36 +33,33 @@ jobs:
       - name: Tests
         run: npm test
 
-      # Vorübergehend, solange die Firebase-Einrichtung hakt: Was kommt beim
-      # Bauen tatsächlich an? Ins Protokoll gehen nur Namen und Längen — die
-      # Werte werden an Python gereicht, das sie nie ausgibt, und GitHub
-      # maskiert Secret-Werte in Logs ohnehin von sich aus.
+      # Vorübergehend, solange die Firebase-Einrichtung hakt: Kommt beim Bauen
+      # überhaupt etwas an? Ins Protokoll gehen nur Namen und Längen — nie ein
+      # Wert. GitHub maskiert Secret-Werte in Logs zusätzlich von sich aus.
       #
-      # Findet beide üblichen Fehler: Secrets unter einem Environment abgelegt
-      # (dieser Job hat keins, also kämen sie leer an) und Tippfehler im Namen.
+      # Die Werte werden einzeln durchgereicht, genau wie im Bau-Schritt.
+      # `toJSON(secrets)` wäre bequemer gewesen, ließ GitHub den Lauf aber zur
+      # Freigabe anhalten — verständlich, es reicht das ganze Bund durch.
       - name: Zugangsdaten prüfen
         env:
-          ALLE_SECRETS: ${{ toJSON(secrets) }}
+          VITE_FB_API_KEY: ${{ secrets.VITE_FB_API_KEY }}
+          VITE_FB_AUTH_DOMAIN: ${{ secrets.VITE_FB_AUTH_DOMAIN }}
+          VITE_FB_PROJECT_ID: ${{ secrets.VITE_FB_PROJECT_ID }}
+          VITE_FB_APP_ID: ${{ secrets.VITE_FB_APP_ID }}
+          VITE_FB_MESSAGING_SENDER_ID: ${{ secrets.VITE_FB_MESSAGING_SENDER_ID }}
         run: |
           python3 - <<'ENDE'
-          import json, os
+          import os
 
-          alle = json.loads(os.environ['ALLE_SECRETS'])
-          print('Im Repository hinterlegte Secrets:')
-          for name in sorted(alle):
-              print(f'  - {name}')
-
-          erwartet = [
+          print('Was beim Bauen ankommt:')
+          for name in [
               'VITE_FB_API_KEY',
               'VITE_FB_AUTH_DOMAIN',
               'VITE_FB_PROJECT_ID',
               'VITE_FB_APP_ID',
               'VITE_FB_MESSAGING_SENDER_ID',
-          ]
-          print()
-          print('Was davon beim Bauen ankommt:')
-          for name in erwartet:
-              wert = alle.get(name) or ''
+          ]:
+              wert = os.environ.get(name, '')
               if wert.strip():
                   print(f'  {name}: gesetzt ({len(wert)} Zeichen)')
               elif wert:
