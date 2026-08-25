@@ -8,7 +8,8 @@ App verhält: eigenes Icon, Vollbild, funktioniert auch ohne Netz.
 ## Die drei Reiter
 
 **Rezeptbuch.** Rezepte mit Zutaten (Gramm, Milliliter, Stück, EL, TL …), Foto,
-Zubereitungszeit und Zubereitungsschritten. Jedes Rezept gilt für eine bestimmte
+Zubereitungszeit und Zubereitungsschritten. Die Schritte lassen sich am
+Anfasser links untereinander verschieben, wenn die Reihenfolge nicht stimmt. Jedes Rezept gilt für eine bestimmte
 Portionszahl; in der Rezeptansicht könnt ihr hoch- und runterrechnen, ohne das
 Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zutaten.
 

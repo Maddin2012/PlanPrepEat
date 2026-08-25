@@ -25,7 +25,13 @@ import { MicButton } from '../../components/MicButton.tsx'
 import { parseSpokenIngredient } from '../../domain/dictation.ts'
 import { newId } from '../../data/ids.ts'
 import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
-import { StepsEditor, stepsFromText, stepsToText } from './StepsEditor.tsx'
+import {
+  StepsEditor,
+  emptyStep,
+  stepsFromText,
+  stepsToText,
+  type StepDraft,
+} from './StepsEditor.tsx'
 import {
   emptyItemDraft,
   itemDraftFrom,
@@ -52,7 +58,7 @@ export default function RecipeEditPage() {
   const [name, setName] = useState('')
   const [servings, setServings] = useState('2')
   const [minutes, setMinutes] = useState('')
-  const [steps, setSteps] = useState<string[]>([''])
+  const [steps, setSteps] = useState<StepDraft[]>(() => [emptyStep()])
   const [items, setItems] = useState<ItemDraft[]>([emptyItemDraft()])
   const [photo, setPhoto] = useState<PhotoState>({ kind: 'keep' })
   const [preview, setPreview] = useState<string | null>(null)

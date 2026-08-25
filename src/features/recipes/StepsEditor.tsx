@@ -1,8 +1,47 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Button, IconButton } from '../../components/ui.tsx'
-import { CloseIcon, PlusIcon } from '../../components/Icons.tsx'
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Button, IconButton, cx } from '../../components/ui.tsx'
+import { CloseIcon, GripIcon, PlusIcon } from '../../components/Icons.tsx'
 import { MicButton } from '../../components/MicButton.tsx'
 import { splitSpokenSteps } from '../../domain/dictation.ts'
+import { newId } from '../../data/ids.ts'
+
+/**
+ * Ein Schritt im Formular.
+ *
+ * Der Schlüssel ist reine Formularsache — gespeichert wird weiterhin nur Text
+ * mit Zeilenumbrüchen. Er wird gebraucht, damit React und `dnd-kit` einen
+ * Schritt über das Verschieben hinweg wiedererkennen. Mit der Position als
+ * Kennung hinge der Cursor beim Umsortieren am falschen Feld — dasselbe Muster
+ * wie bei den Zutatenzeilen in `ingredientDraft.ts`.
+ */
+export interface StepDraft {
+  key: string
+  text: string
+}
+
+export function emptyStep(text = ''): StepDraft {
+  return { key: newId(), text }
+}
 
 /**
  * Die Zubereitung als nummerierte Schrittliste.
@@ -18,20 +57,27 @@ export function StepsEditor({
   steps,
   onChange,
 }: {
-  steps: string[]
-  onChange: (steps: string[]) => void
+  steps: StepDraft[]
+  onChange: (steps: StepDraft[]) => void
 }) {
-  const fields = useRef(new Map<number, HTMLTextAreaElement>())
+  const fields = useRef(new Map<string, HTMLTextAreaElement>())
   // Wohin der Cursor nach dem nächsten Rendern springen soll. Beim Teilen und
   // Verschmelzen existiert das Zielfeld im Moment des Tastendrucks noch nicht.
   const [pendingFocus, setPendingFocus] = useState<{
-    index: number
+    key: string
     caret: number
   } | null>(null)
 
+  const sensors = useSensors(
+    // Erst nach ein paar Pixeln Bewegung greifen — sonst zählte schon das
+    // Antippen des Griffs als Ziehen.
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   useEffect(() => {
     if (!pendingFocus) return
-    const field = fields.current.get(pendingFocus.index)
+    const field = fields.current.get(pendingFocus.key)
     if (field) {
       field.focus()
       field.setSelectionRange(pendingFocus.caret, pendingFocus.caret)
@@ -39,9 +85,9 @@ export function StepsEditor({
     setPendingFocus(null)
   }, [pendingFocus])
 
-  function replace(next: string[], focus?: { index: number; caret: number }) {
+  function replace(next: StepDraft[], focus?: { key: string; caret: number }) {
     // Ganz ohne Schritt stünde man vor einem Formular ohne Eingabefeld.
-    onChange(next.length > 0 ? next : [''])
+    onChange(next.length > 0 ? next : [emptyStep()])
     if (focus) setPendingFocus(focus)
   }
 
@@ -54,11 +100,12 @@ export function StepsEditor({
 
     if (event.key === 'Enter') {
       event.preventDefault()
-      const before = value.slice(0, selectionStart)
-      const after = value.slice(selectionEnd)
+      // Der obere Teil behält den Schlüssel, der neue untere bekommt einen
+      // eigenen — so bleibt oben stehen, was vorher da war.
+      const created = emptyStep(value.slice(selectionEnd))
       const next = [...steps]
-      next.splice(index, 1, before, after)
-      replace(next, { index: index + 1, caret: 0 })
+      next.splice(index, 1, { ...steps[index], text: value.slice(0, selectionStart) }, created)
+      replace(next, { key: created.key, caret: 0 })
       return
     }
 
@@ -74,8 +121,8 @@ export function StepsEditor({
       event.preventDefault()
       const previous = steps[index - 1]
       const next = [...steps]
-      next.splice(index - 1, 2, previous + value)
-      replace(next, { index: index - 1, caret: previous.length })
+      next.splice(index - 1, 2, { ...previous, text: previous.text + value })
+      replace(next, { key: previous.key, caret: previous.text.length })
     }
   }
 
@@ -92,19 +139,18 @@ export function StepsEditor({
     const field = event.currentTarget
     const before = field.value.slice(0, field.selectionStart)
     const after = field.value.slice(field.selectionEnd)
+    // Mindestens zwei Teile, sonst wären wir oben schon ausgestiegen.
     const parts = text.split(/\r?\n/)
+    const last = emptyStep((parts.at(-1) ?? '') + after)
 
-    const inserted = [
-      before + parts[0],
-      ...parts.slice(1, -1),
-      (parts.at(-1) ?? '') + after,
+    const inserted: StepDraft[] = [
+      { ...steps[index], text: before + parts[0] },
+      ...parts.slice(1, -1).map((part) => emptyStep(part)),
+      last,
     ]
     const next = [...steps]
     next.splice(index, 1, ...inserted)
-    replace(next, {
-      index: index + inserted.length - 1,
-      caret: (parts.at(-1) ?? '').length,
-    })
+    replace(next, { key: last.key, caret: (parts.at(-1) ?? '').length })
   }
 
   /**
@@ -115,8 +161,15 @@ export function StepsEditor({
   function addSpoken(text: string) {
     const spoken = splitSpokenSteps(text)
     if (spoken.length === 0) return
-    const base = steps.at(-1)?.trim() ? steps : steps.slice(0, -1)
-    onChange([...base, ...spoken])
+    const base = steps.at(-1)?.text.trim() ? steps : steps.slice(0, -1)
+    onChange([...base, ...spoken.map((part) => emptyStep(part))])
+  }
+
+  function move(fromKey: string, toKey: string) {
+    const from = steps.findIndex((step) => step.key === fromKey)
+    const to = steps.findIndex((step) => step.key === toKey)
+    if (from === -1 || to === -1 || from === to) return
+    onChange(arrayMove(steps, from, to))
   }
 
   return (
@@ -135,56 +188,141 @@ export function StepsEditor({
         </div>
       </div>
 
-      <ol className="space-y-2">
-        {steps.map((step, index) => (
-          <li
-            key={index}
-            className="flex items-start gap-2 rounded-xl bg-surface p-2 ring-1 ring-clay-200"
-          >
-            <span className="mt-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
-              {index + 1}
-            </span>
-
-            <StepField
-              value={step}
-              register={(element) => {
-                if (element) fields.current.set(index, element)
-                else fields.current.delete(index)
-              }}
-              onChange={(value) => {
-                const next = [...steps]
-                next[index] = value
-                onChange(next)
-              }}
-              onKeyDown={(event) => handleKeyDown(event, index)}
-              onPaste={(event) => handlePaste(event, index)}
-              label={`Schritt ${index + 1}`}
-              placeholder={index === 0 ? 'Zwiebeln würfeln und anbraten.' : ''}
-            />
-
-            <IconButton
-              label={`Schritt ${index + 1} entfernen`}
-              className="mt-0.5 size-9 shrink-0 text-ink-400"
-              onClick={() =>
-                replace(steps.filter((_, position) => position !== index))
-              }
-            >
-              <CloseIcon className="size-4.5" />
-            </IconButton>
-          </li>
-        ))}
-      </ol>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        onDragEnd={({ active, over }) => {
+          if (over && active.id !== over.id) {
+            move(String(active.id), String(over.id))
+          }
+        }}
+      >
+        <SortableContext
+          items={steps.map((step) => step.key)}
+          strategy={verticalListSortingStrategy}
+        >
+          <ol className="space-y-2">
+            {steps.map((step, index) => (
+              <SortableStep
+                key={step.key}
+                step={step}
+                index={index}
+                canMove={steps.length > 1}
+                register={(element) => {
+                  if (element) fields.current.set(step.key, element)
+                  else fields.current.delete(step.key)
+                }}
+                onChangeText={(text) => {
+                  const next = [...steps]
+                  next[index] = { ...step, text }
+                  onChange(next)
+                }}
+                onKeyDown={(event) => handleKeyDown(event, index)}
+                onPaste={(event) => handlePaste(event, index)}
+                onRemove={() =>
+                  replace(steps.filter((entry) => entry.key !== step.key))
+                }
+              />
+            ))}
+          </ol>
+        </SortableContext>
+      </DndContext>
 
       <Button
         variant="secondary"
         block
         className="mt-2"
-        onClick={() => replace([...steps, ''], { index: steps.length, caret: 0 })}
+        onClick={() => {
+          const created = emptyStep()
+          replace([...steps, created], { key: created.key, caret: 0 })
+        }}
       >
         <PlusIcon className="size-5" />
         Schritt hinzufügen
       </Button>
     </section>
+  )
+}
+
+function SortableStep({
+  step,
+  index,
+  canMove,
+  register,
+  onChangeText,
+  onKeyDown,
+  onPaste,
+  onRemove,
+}: {
+  step: StepDraft
+  index: number
+  /** Bei einem einzigen Schritt gibt es nichts zu verschieben. */
+  canMove: boolean
+  register: (element: HTMLTextAreaElement | null) => void
+  onChangeText: (text: string) => void
+  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
+  onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void
+  onRemove: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.key })
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cx(
+        'flex items-start gap-1 rounded-xl bg-surface p-2 ring-1 ring-clay-200',
+        // Die gezogene Zeile über die anderen legen, sonst verschwindet sie
+        // beim Vorbeiziehen unter der Nachbarzeile.
+        isDragging && 'relative z-10 shadow-lg ring-accent',
+      )}
+    >
+      {canMove && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          aria-label={`Schritt ${index + 1} verschieben`}
+          // touch-none verhindert, dass der Browser die Geste als Scrollen
+          // beansprucht, bevor dnd-kit sie überhaupt zu sehen bekommt.
+          className="mt-1.5 flex size-7 shrink-0 touch-none items-center justify-center text-clay-300 transition-colors active:text-ink-500"
+          {...attributes}
+          {...listeners}
+        >
+          <GripIcon className="size-5" />
+        </button>
+      )}
+
+      <span className="mt-2 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
+        {index + 1}
+      </span>
+
+      <StepField
+        value={step.text}
+        register={register}
+        onChange={onChangeText}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
+        label={`Schritt ${index + 1}`}
+        placeholder={index === 0 ? 'Zwiebeln würfeln und anbraten.' : ''}
+      />
+
+      <IconButton
+        label={`Schritt ${index + 1} entfernen`}
+        className="mt-0.5 size-9 shrink-0 text-ink-400"
+        onClick={onRemove}
+      >
+        <CloseIcon className="size-4.5" />
+      </IconButton>
+    </li>
   )
 }
 
@@ -238,15 +376,15 @@ function StepField({
 }
 
 /** Text mit Zeilenumbrüchen → Schritte fürs Formular. */
-export function stepsFromText(text: string): string[] {
-  const steps = text.split('\n')
-  return steps.length > 0 ? steps : ['']
+export function stepsFromText(text: string): StepDraft[] {
+  const parts = text.split('\n')
+  return parts.length > 0 ? parts.map((part) => emptyStep(part)) : [emptyStep()]
 }
 
 /** Schritte → Text mit Zeilenumbrüchen, wie er gespeichert wird. */
-export function stepsToText(steps: string[]): string {
+export function stepsToText(steps: StepDraft[]): string {
   return steps
-    .map((step) => step.trim())
+    .map((step) => step.text.trim())
     .filter(Boolean)
     .join('\n')
 }
