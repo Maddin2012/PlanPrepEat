@@ -6,6 +6,7 @@ import { Button } from '../../components/ui.tsx'
 import { CopyIcon, ShareIcon } from '../../components/Icons.tsx'
 import { copyText, shareText } from '../../lib/share.ts'
 import { missingConfig } from '../../data/firebase.ts'
+import { inviteUrl } from '../../lib/invite.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
 import { useOnline } from '../../data/hooks.ts'
@@ -28,10 +29,22 @@ export default function SettingsPage() {
   const code = household ? formatHouseholdCode(household.id) : null
 
   async function share() {
-    if (!code) return
+    if (!household || !code) return
+    // Die Adresse steht im Text, nicht im url-Feld von navigator.share: Die
+    // Ziele gehen unterschiedlich damit um, manche hängen beides aneinander und
+    // der Link stünde doppelt da. Ein Feld ist vorhersagbar, und WhatsApp macht
+    // aus einer Adresse im Text von selbst einen antippbaren Link.
+    //
+    // Der Code steht zusätzlich als Zeile darunter — falls der Link unterwegs
+    // abgeschnitten wird, kommt die andere Person trotzdem weiter.
     const result = await shareText({
       title: 'PlanPrepEat',
-      text: `Tritt unserem Haushalt bei PlanPrepEat bei. Code: ${code}`,
+      text: [
+        `Tritt unserem Haushalt „${household.name}“ bei PlanPrepEat bei:`,
+        inviteUrl(household.id),
+        '',
+        `Falls der Link nicht geht: Code ${code} in der App unter „Einem Haushalt beitreten“ eintragen.`,
+      ].join('\n'),
     })
     if (result === 'copied') flashCopied()
   }
@@ -82,8 +95,9 @@ export default function SettingsPage() {
               </div>
 
               <p className="mt-3 text-xs leading-relaxed text-ink-400">
-                Wer diesen Code hat, sieht eure Rezepte und Pläne und kann sie
-                ändern. Gib ihn nur weiter, wenn das so gewollt ist.
+                Wer diesen Code oder den Einladungslink hat, sieht eure Rezepte
+                und Pläne und kann sie ändern. Gib beides nur weiter, wenn das so
+                gewollt ist.
               </p>
             </>
           ) : (

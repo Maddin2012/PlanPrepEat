@@ -1,9 +1,11 @@
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { INVITE_PATH } from './lib/invite.ts'
 import { useSession } from './data/RepositoryContext.tsx'
 import { BookIcon, CalendarIcon, CartIcon } from './components/Icons.tsx'
 import { cx } from './components/ui.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import SetupPage from './features/setup/SetupPage.tsx'
+import JoinPage from './features/setup/JoinPage.tsx'
 import RecipeListPage from './features/recipes/RecipeListPage.tsx'
 import RecipeDetailPage from './features/recipes/RecipeDetailPage.tsx'
 import RecipeEditPage from './features/recipes/RecipeEditPage.tsx'
@@ -19,8 +21,20 @@ const TABS = [
 
 export default function App() {
   const { status } = useSession()
+  const { pathname } = useLocation()
 
   if (status === 'loading') return <Splash />
+
+  // Der Einladungslink muss gerade dann greifen, wenn auf diesem Gerät noch
+  // kein Haushalt eingerichtet ist — deshalb vor der Einrichtungsseite.
+  if (pathname.startsWith(`${INVITE_PATH}/`)) {
+    return (
+      <Routes>
+        <Route path={`${INVITE_PATH}/:code`} element={<JoinPage />} />
+      </Routes>
+    )
+  }
+
   if (status !== 'ready') return <SetupPage />
 
   return <Shell />

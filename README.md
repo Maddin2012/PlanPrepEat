@@ -70,13 +70,20 @@ verändert habt.
 ## Zu zweit benutzen
 
 Beide Geräte gehören zum selben **Haushalt**. Wer ihn anlegt, findet unter
-*Einstellungen* einen Code wie `ABCD-EFGH-JKMN-PQRS`. Die zweite Person tippt
-beim ersten Start auf „Einem Haushalt beitreten" und gibt ihn ein — fertig.
+*Einstellungen* einen Code wie `ABCD-EFGH-JKMN-PQRS`.
+
+Der bequeme Weg ist der Knopf **Teilen**: Er verschickt eine Nachricht mit einem
+Einladungslink. Die zweite Person tippt ihn im Messenger an, PlanPrepEat geht
+auf, der Code steht schon drin — ein Tipp auf „Beitreten", fertig. Der Code
+steht in derselben Nachricht noch einmal als Textzeile, falls der Link unterwegs
+abgeschnitten wird; dann tippt man ihn beim ersten Start unter „Einem Haushalt
+beitreten" von Hand ein.
+
 Ab da sehen beide dieselben Rezepte, denselben Plan und dieselbe Einkaufsliste,
 und Änderungen erscheinen innerhalb von Sekunden auf dem anderen Gerät.
 
-Wer den Code hat, kann alles sehen und ändern. Gebt ihn also nur weiter, wenn
-das so gewollt ist.
+Wer den Code **oder den Link** hat, kann alles sehen und ändern — der Link *ist*
+der Code. Gebt beides nur weiter, wenn das so gewollt ist.
 
 ## Ohne Netz
 

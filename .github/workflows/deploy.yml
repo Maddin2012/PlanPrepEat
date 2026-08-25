@@ -33,41 +33,6 @@ jobs:
       - name: Tests
         run: npm test
 
-      # Vorübergehend, solange die Firebase-Einrichtung hakt: Kommt beim Bauen
-      # überhaupt etwas an? Ins Protokoll gehen nur Namen und Längen — nie ein
-      # Wert. GitHub maskiert Secret-Werte in Logs zusätzlich von sich aus.
-      #
-      # Die Werte werden einzeln durchgereicht, genau wie im Bau-Schritt.
-      # `toJSON(secrets)` wäre bequemer gewesen, ließ GitHub den Lauf aber zur
-      # Freigabe anhalten — verständlich, es reicht das ganze Bund durch.
-      - name: Zugangsdaten prüfen
-        env:
-          VITE_FB_API_KEY: ${{ secrets.VITE_FB_API_KEY }}
-          VITE_FB_AUTH_DOMAIN: ${{ secrets.VITE_FB_AUTH_DOMAIN }}
-          VITE_FB_PROJECT_ID: ${{ secrets.VITE_FB_PROJECT_ID }}
-          VITE_FB_APP_ID: ${{ secrets.VITE_FB_APP_ID }}
-          VITE_FB_MESSAGING_SENDER_ID: ${{ secrets.VITE_FB_MESSAGING_SENDER_ID }}
-        run: |
-          python3 - <<'ENDE'
-          import os
-
-          print('Was beim Bauen ankommt:')
-          for name in [
-              'VITE_FB_API_KEY',
-              'VITE_FB_AUTH_DOMAIN',
-              'VITE_FB_PROJECT_ID',
-              'VITE_FB_APP_ID',
-              'VITE_FB_MESSAGING_SENDER_ID',
-          ]:
-              wert = os.environ.get(name, '')
-              if wert.strip():
-                  print(f'  {name}: gesetzt ({len(wert)} Zeichen)')
-              elif wert:
-                  print(f'  {name}: NUR LEERZEICHEN ({len(wert)} Zeichen)')
-              else:
-                  print(f'  {name}: LEER')
-          ENDE
-
       - name: Bauen
         env:
           # Auf GitHub Pages liegt die App unter /<repo>/.
