@@ -9,6 +9,7 @@ import type {
 import {
   emptyShoppingState,
   normalizeShoppingState,
+  toPlanEntry,
 } from '../../domain/types.ts'
 import type {
   PhotoUpdate,
@@ -230,7 +231,9 @@ export class MemoryRepository implements Repository {
 
       for (const pair of asArray(data.slots)) {
         if (!Array.isArray(pair) || !isSlotKey(pair[0])) continue
-        const entries = asArray(pair[1]).filter(isPlanEntry)
+        const entries = asArray(pair[1])
+          .map(toPlanEntry)
+          .filter((entry): entry is PlanEntry => entry !== null)
         if (entries.length > 0) this.slots.set(pair[0], entries)
       }
 
@@ -251,11 +254,4 @@ function isSlotKey(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}_(lunch|dinner)$/.test(value)
 }
 
-function isPlanEntry(value: unknown): value is PlanEntry {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as PlanEntry).recipeId === 'string' &&
-    typeof (value as PlanEntry).servings === 'number'
-  )
-}
+

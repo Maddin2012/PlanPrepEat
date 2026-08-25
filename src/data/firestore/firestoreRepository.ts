@@ -24,7 +24,7 @@ import type {
   Recipe,
   ShoppingState,
 } from '../../domain/types.ts'
-import { normalizeShoppingState } from '../../domain/types.ts'
+import { normalizeShoppingState, toPlanEntry } from '../../domain/types.ts'
 import type {
   PhotoUpdate,
   RecipeDraft,
@@ -161,13 +161,17 @@ export class FirestoreRepository implements Repository {
     )
 
     return onSnapshot(range, (snapshot) => {
-      const slots = snapshot.docs.map((entry) => ({
-        key: entry.id,
-        entries: ((entry.data().entries as PlanEntry[]) ?? []).map((item) => ({
-          recipeId: item.recipeId,
-          servings: item.servings,
-        })),
-      }))
+      const slots = snapshot.docs.map((entry) => {
+        const raw: unknown = entry.data().entries
+        return {
+          key: entry.id,
+          // Über `toPlanEntry`, nicht von Hand nachgebaut: Ein hier vergessenes
+          // Feld verschwände beim Lesen spurlos aus dem Plan.
+          entries: (Array.isArray(raw) ? (raw as unknown[]) : [])
+            .map(toPlanEntry)
+            .filter((item): item is PlanEntry => item !== null),
+        }
+      })
       listener(slots.sort((a, b) => a.key.localeCompare(b.key)))
     })
   }

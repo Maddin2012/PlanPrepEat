@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRecipeMap, useRecipes, useSlots } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import type { ISODate, Meal, PlanEntry } from '../../domain/types.ts'
+import { isRecipeEntry } from '../../domain/types.ts'
 import {
   EXTEND_DAYS,
   MEALS,
@@ -325,15 +326,21 @@ function DayRow({
             ) : (
               entries.map((entry, index) => (
                 <span
-                  key={`${entry.recipeId}-${index}`}
+                  key={index}
                   className="block text-xs leading-snug font-medium text-ink-900"
                 >
                   <span className="line-clamp-2">
-                    {recipeName(entry.recipeId) ?? 'Gelöscht'}
+                    {isRecipeEntry(entry)
+                      ? (recipeName(entry.recipeId) ?? 'Gelöscht')
+                      : entry.text}
                   </span>
-                  <span className="text-[0.65rem] font-normal text-ink-400">
-                    {entry.servings} Portionen
-                  </span>
+                  {/* Ein freier Eintrag hat keine Portionen — die Zeile fällt
+                      weg, statt „0 Portionen" zu behaupten. */}
+                  {isRecipeEntry(entry) && (
+                    <span className="text-[0.65rem] font-normal text-ink-400">
+                      {entry.servings} Portionen
+                    </span>
+                  )}
                 </span>
               ))
             )}

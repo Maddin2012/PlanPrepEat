@@ -62,10 +62,58 @@ export interface Recipe {
 export type Meal = 'lunch' | 'dinner'
 
 /** Ein auf einen Mahlzeiten-Platz gelegtes Rezept. */
-export interface PlanEntry {
+export interface RecipePlanEntry {
   recipeId: string
   /** Für wie viele Portionen an diesem Tag gekocht wird. */
   servings: number
+}
+
+/**
+ * Ein frei eingetippter Eintrag — „Pizza bestellen", „Reste", „bei Oma".
+ *
+ * Er hat kein Rezept und damit keine Zutaten. Auf der Einkaufsliste taucht er
+ * deshalb nicht auf: „Grillen" sagt nicht, was gekauft werden muss. Wer dafür
+ * etwas braucht, trägt es dort als eigenen Posten ein.
+ */
+export interface TextPlanEntry {
+  text: string
+}
+
+export type PlanEntry = RecipePlanEntry | TextPlanEntry
+
+export function isRecipeEntry(entry: PlanEntry): entry is RecipePlanEntry {
+  return typeof (entry as RecipePlanEntry).recipeId === 'string'
+}
+
+/**
+ * Bringt einen gelesenen Eintrag auf eine der beiden Formen, oder `null`.
+ *
+ * Steht an genau einer Stelle, weil beide Ablagen dieselbe Frage haben: Was
+ * aus Firestore oder aus dem Browserspeicher kommt, ist erst einmal nur
+ * „irgendetwas" — ein Stand aus einer älteren Fassung der App, ein halb
+ * geschriebenes Dokument. Ein Eintrag der alten Form (nur `recipeId` und
+ * `servings`) kommt hier unverändert wieder heraus; deshalb braucht es für die
+ * vorhandenen Pläne keinen Umbau.
+ */
+export function toPlanEntry(value: unknown): PlanEntry | null {
+  if (typeof value !== 'object' || value === null) return null
+  const entry = value as Record<string, unknown>
+
+  // Das Rezept hat Vorrang: Ein alter Eintrag soll unter keinen Umständen
+  // versehentlich als freier Text durchgehen.
+  if (typeof entry.recipeId === 'string' && entry.recipeId !== '') {
+    const servings = entry.servings
+    return {
+      recipeId: entry.recipeId,
+      servings: typeof servings === 'number' && servings > 0 ? servings : 1,
+    }
+  }
+
+  if (typeof entry.text === 'string' && entry.text.trim() !== '') {
+    return { text: entry.text.trim() }
+  }
+
+  return null
 }
 
 /** Der Inhalt eines Mahlzeiten-Platzes, z.B. Hauptgericht plus Beilage. */

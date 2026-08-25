@@ -451,4 +451,18 @@ describe('collectPlanned', () => {
     ]
     expect(collectPlanned(slots, recipesById)).toEqual([])
   })
+
+  it('lässt einen freien Eintrag nicht auf die Einkaufsliste', () => {
+    // „Pizza bestellen" hat keine Zutaten. Käme der Eintrag hier durch,
+    // stolperte die Berechnung über ein Rezept, das es nie gab.
+    const slots: PlanSlot[] = [
+      {
+        key: '2026-08-26_lunch',
+        entries: [{ text: 'Pizza bestellen' }, { recipeId: 'a', servings: 2 }],
+      },
+    ]
+    const planned = collectPlanned(slots, recipesById)
+    expect(planned).toHaveLength(1)
+    expect(planned[0].recipe.id).toBe('a')
+  })
 })

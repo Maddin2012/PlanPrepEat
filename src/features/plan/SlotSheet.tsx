@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Meal, PlanEntry, Recipe } from '../../domain/types.ts'
+import { isRecipeEntry } from '../../domain/types.ts'
 import { MEAL_LABELS, formatDayShort, fromISODate, WEEKDAY_LONG } from '../../domain/planWindow.ts'
 import { Button, EmptyState, IconButton, Sheet, TextInput } from '../../components/ui.tsx'
 import { BookIcon, CloseIcon, PlusIcon, SearchIcon } from '../../components/Icons.tsx'
@@ -29,6 +30,7 @@ export default function SlotSheet({
 }) {
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState('')
+  const [free, setFree] = useState('')
 
   const byId = useMemo(
     () => new Map(recipes.map((recipe) => [recipe.id, recipe])),
@@ -49,7 +51,16 @@ export default function SlotSheet({
   function close() {
     setPicking(false)
     setQuery('')
+    setFree('')
     onClose()
+  }
+
+  /** Ein frei eingetippter Eintrag — ohne Rezept, ohne Portionen. */
+  function addFree() {
+    const text = free.trim()
+    if (!text) return
+    onSave([...entries, { text }])
+    setFree('')
   }
 
   function add(recipe: Recipe) {
@@ -61,7 +72,11 @@ export default function SlotSheet({
   function setServings(index: number, servings: number) {
     onSave(
       entries.map((entry, position) =>
-        position === index ? { ...entry, servings } : entry,
+        // Die Prüfung ist der Sicherheitsgurt: Ohne sie bekäme ein freier
+        // Eintrag ein Portionsfeld verpasst, das dort nichts zu suchen hat.
+        position === index && isRecipeEntry(entry)
+          ? { ...entry, servings }
+          : entry,
       ),
     )
   }
@@ -153,30 +168,33 @@ export default function SlotSheet({
       {entries.length === 0 ? (
         <EmptyState
           title="Noch nichts geplant"
-          description="Such dir ein Rezept aus dem Rezeptbuch aus."
+          description="Such dir ein Rezept aus — oder tipp unten einfach ein, was es gibt."
         />
       ) : (
         <ul className="space-y-2">
-          {entries.map((entry, index) => {
-            const recipe = byId.get(entry.recipeId)
-            return (
-              <li
-                key={`${entry.recipeId}-${index}`}
-                className="rounded-xl bg-surface p-3 ring-1 ring-clay-200"
-              >
-                <div className="flex items-start gap-2">
-                  <p className="min-w-0 flex-1 font-medium text-ink-900">
-                    {recipe?.name ?? 'Gelöschtes Rezept'}
-                  </p>
-                  <IconButton
-                    label="Vom Plan nehmen"
-                    className="size-8 text-ink-400"
-                    onClick={() => remove(index)}
-                  >
-                    <CloseIcon className="size-4.5" />
-                  </IconButton>
-                </div>
+          {entries.map((entry, index) => (
+            <li
+              key={index}
+              className="rounded-xl bg-surface p-3 ring-1 ring-clay-200"
+            >
+              <div className="flex items-start gap-2">
+                <p className="min-w-0 flex-1 font-medium text-ink-900">
+                  {isRecipeEntry(entry)
+                    ? (byId.get(entry.recipeId)?.name ?? 'Gelöschtes Rezept')
+                    : entry.text}
+                </p>
+                <IconButton
+                  label="Vom Plan nehmen"
+                  className="size-8 text-ink-400"
+                  onClick={() => remove(index)}
+                >
+                  <CloseIcon className="size-4.5" />
+                </IconButton>
+              </div>
 
+              {/* Ein freier Eintrag hat keine Zutaten und damit keine
+                  Portionen — der Regler wäre dort ohne Wirkung. */}
+              {isRecipeEntry(entry) && (
                 <div className="mt-2 flex items-center justify-between gap-3">
                   <span className="text-sm text-ink-500">Portionen</span>
                   <Stepper
@@ -187,9 +205,9 @@ export default function SlotSheet({
                     onChange={(value) => setServings(index, value)}
                   />
                 </div>
-              </li>
-            )
-          })}
+              )}
+            </li>
+          ))}
         </ul>
       )}
 
@@ -197,6 +215,42 @@ export default function SlotSheet({
         <PlusIcon className="size-5" />
         Rezept hinzufügen
       </Button>
+
+      {/*
+        Der freie Eintrag steht bewusst unter der Rezeptauswahl und nicht
+        gleichrangig daneben: Der Regelfall ist ein Rezept aus dem Rezeptbuch.
+        Hier landet, was keines hat — „Pizza bestellen", „Reste", „bei Oma".
+      */}
+      <form
+        className="mt-4 border-t border-clay-200 pt-4"
+        onSubmit={(event) => {
+          event.preventDefault()
+          addFree()
+        }}
+      >
+        <label
+          htmlFor="freier-eintrag"
+          className="mb-1.5 block text-sm font-medium text-ink-600"
+        >
+          Oder etwas eintippen
+        </label>
+        <div className="flex gap-2">
+          <TextInput
+            id="freier-eintrag"
+            value={free}
+            onChange={(event) => setFree(event.target.value)}
+            placeholder="Pizza bestellen"
+            enterKeyHint="done"
+          />
+          <Button type="submit" disabled={free.trim() === ''}>
+            <PlusIcon className="size-5" />
+          </Button>
+        </div>
+        <p className="mt-1.5 text-xs leading-relaxed text-ink-400">
+          Kommt in den Plan, aber nicht auf die Einkaufsliste — dafür fehlen die
+          Zutaten.
+        </p>
+      </form>
     </Sheet>
   )
 }

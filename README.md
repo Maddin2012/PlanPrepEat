@@ -7,6 +7,12 @@ App verhält: eigenes Icon, Vollbild, funktioniert auch ohne Netz.
 
 ## Die drei Reiter
 
+**Essensplan.** Für jeden Tag Mittag und Abend. Ein Platz fasst mehrere Rezepte —
+Hauptgericht und Beilage sind schließlich zwei. Was kein Rezept hat, lässt sich
+unten im Blatt als freier Text eintragen: „Pizza bestellen", „Reste", „bei Oma".
+Solche Einträge stehen im Plan, kommen aber nicht auf die Einkaufsliste — dafür
+fehlen ihnen die Zutaten.
+
 **Rezeptbuch.** Rezepte mit Zutaten (Gramm, Milliliter, Stück, EL, TL …), Foto,
 Zubereitungszeit und Zubereitungsschritten. Die Schritte lassen sich am
 Anfasser links untereinander verschieben, wenn die Reihenfolge nicht stimmt. Jedes Rezept gilt für eine bestimmte

@@ -6,6 +6,7 @@ import type {
   ShoppingState,
   UnitCode,
 } from './types.ts'
+import { isRecipeEntry } from './types.ts'
 import { normalize, roundForShopping } from './units.ts'
 import { scaleAmount } from './scaling.ts'
 
@@ -52,6 +53,11 @@ export function collectPlanned(
   const planned: PlannedRecipe[] = []
   for (const slot of slots) {
     for (const entry of slot.entries) {
+      // Freie Einträge („Pizza bestellen") haben keine Zutaten. Ausgesiebt
+      // würden sie auch von der Prüfung darunter — ohne `recipeId` findet die
+      // Suche ohnehin nichts. Diese Zeile ist trotzdem nötig, damit der
+      // Übersetzer die beiden Eintragsformen auseinanderhalten kann.
+      if (!isRecipeEntry(entry)) continue
       const recipe = recipesById.get(entry.recipeId)
       // Ein zwischenzeitlich gelöschtes Rezept wird stillschweigend übersprungen.
       if (!recipe) continue
