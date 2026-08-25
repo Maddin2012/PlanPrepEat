@@ -3,18 +3,22 @@ import { useSession } from '../../data/RepositoryContext.tsx'
 import { formatHouseholdCode } from '../../data/ids.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button } from '../../components/ui.tsx'
-import { CopyIcon, ShareIcon } from '../../components/Icons.tsx'
+import { CopyIcon, DownloadIcon, ShareIcon } from '../../components/Icons.tsx'
 import { copyText, shareText } from '../../lib/share.ts'
 import { missingConfig } from '../../data/firebase.ts'
 import { inviteUrl } from '../../lib/invite.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
-import { useOnline } from '../../data/hooks.ts'
+import { useOnline, useRecipes } from '../../data/hooks.ts'
+import { backupFilename, formatRecipeBackup } from '../../domain/backup.ts'
+import { downloadText } from '../../lib/download.ts'
 
 export default function SettingsPage() {
   const { household, isDemo, canSync, leave } = useSession()
   const online = useOnline()
+  const { data: recipes } = useRecipes()
   const [copied, setCopied] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
   // Der Zustand steht im Dokument, nicht in React — das Skript im Kopf von
   // index.html hat ihn schon vor dem ersten Zeichnen gesetzt. Hier wird er nur
@@ -52,6 +56,17 @@ export default function SettingsPage() {
   async function copy() {
     if (!code) return
     if (await copyText(code)) flashCopied()
+  }
+
+  function saveBackup() {
+    const now = new Date()
+    const text = formatRecipeBackup(recipes, {
+      household: household?.name ?? 'Dieses Gerät',
+      now,
+    })
+    downloadText(backupFilename(now), text)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   function flashCopied() {
@@ -132,6 +147,34 @@ export default function SettingsPage() {
               onChoose={chooseTheme}
             />
           </div>
+        </section>
+
+        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
+          <h2 className="text-sm font-semibold text-ink-700">Sicherung</h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+            Lädt alle Rezepte als Textdatei herunter — zum Nachlesen, falls
+            einmal eines verlorengeht.
+          </p>
+
+          <Button
+            variant="secondary"
+            className="mt-3"
+            block
+            disabled={recipes.length === 0}
+            onClick={saveBackup}
+          >
+            <DownloadIcon className="size-5" />
+            {saved
+              ? 'Gesichert'
+              : recipes.length === 0
+                ? 'Noch keine Rezepte'
+                : `${recipes.length} ${recipes.length === 1 ? 'Rezept' : 'Rezepte'} sichern`}
+          </Button>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink-400">
+            Ohne Fotos, und die Datei lässt sich nicht wieder einlesen — du
+            liest sie und tippst ab, was fehlt. Am besten ab und zu wiederholen.
+          </p>
         </section>
 
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">

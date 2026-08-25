@@ -107,6 +107,14 @@ export const ShareIcon = (props: IconProps) => (
   </Icon>
 )
 
+/** Pfeil nach unten in eine Ablage — das Gegenstück zu ShareIcon. */
+export const DownloadIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3v13M12 16l-4-4M12 16l4-4" />
+    <path d="M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4" />
+  </Icon>
+)
+
 export const CopyIcon = (props: IconProps) => (
   <Icon {...props}>
     <rect x="9" y="9" width="12" height="12" rx="2" />

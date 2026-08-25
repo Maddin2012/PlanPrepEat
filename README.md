@@ -85,6 +85,27 @@ und Änderungen erscheinen innerhalb von Sekunden auf dem anderen Gerät.
 Wer den Code **oder den Link** hat, kann alles sehen und ändern — der Link *ist*
 der Code. Gebt beides nur weiter, wenn das so gewollt ist.
 
+## Sicherung
+
+Unter *Einstellungen → Sicherung* lädt ein Knopf alle Rezepte als Textdatei
+herunter — nach Namen sortiert, mit Portionen, Zeit, Zutaten und Zubereitung.
+Die Datei heißt `PlanPrepEat-Rezepte-2026-08-25.txt` und landet in *Downloads*.
+
+Zwei Grenzen, die man kennen sollte:
+
+- **Ohne Fotos.** Ein Vollbild wiegt bis zu 0,7 MB, ein Rezept als Text ein bis
+  zwei Kilobyte. Mit Bildern wäre die Datei auf dem Handy unhandlich.
+- **Sie lässt sich nicht wieder einlesen.** Sie ist zum Nachlesen da: Geht ein
+  Rezept verloren, öffnest du die Datei und tippst es neu ein.
+
+Das ist bewusst so gewählt. Ein Firestore-Export über die Google-Cloud-Werkzeuge
+wäre der andere Weg, verlangt aber ein Abrechnungskonto mit Kreditkarte — genau
+dem sind wir schon bei den Fotos ausgewichen.
+
+Es gibt sonst **keine** Sicherung: kein Papierkorb, kein Verlauf früherer
+Fassungen. Wer ein Rezept überschreibt und speichert, verliert die alte Version.
+Ab und zu auf den Knopf drücken ist deshalb keine schlechte Angewohnheit.
+
 ## Ohne Netz
 
 Die App funktioniert offline weiter — im Supermarkt der entscheidende Teil.
