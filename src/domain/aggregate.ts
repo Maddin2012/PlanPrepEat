@@ -7,34 +7,18 @@ import type {
   UnitCode,
 } from './types.ts'
 import { isRecipeEntry } from './types.ts'
+import {
+  manualKey,
+  orderKey,
+  parseManualKey,
+  shoppingKey,
+} from './shoppingKeys.ts'
 import { normalize, roundForShopping } from './units.ts'
 import { scaleAmount } from './scaling.ts'
 
-/**
- * Schlüssel eines abgeleiteten Postens. Zutat *und* Basiseinheit gehen ein:
- * „Milch, 500 ml" und „Milch, 2 EL" bleiben dadurch getrennte Zeilen, statt zu
- * einer falschen Summe verschmolzen zu werden.
- */
-export function shoppingKey(ingredientId: string, unit: UnitCode): string {
-  return `${ingredientId}|${unit}`
-}
-
-/** Schlüssel eines selbst hinzugefügten Postens. */
-export function manualKey(id: string): string {
-  return `manual|${id}`
-}
-
-/**
- * Der Rückweg: die Kennung aus einem Schlüssel wie `manual|abc123`.
- *
- * Ein Posten in der Liste kennt nur seinen Schlüssel; zum Zurückschreiben in
- * `state.manual` wird die Kennung wieder gebraucht. Für alles andere — etwa den
- * Schlüssel eines abgeleiteten Postens — kommt `null` heraus.
- */
-export function parseManualKey(key: string): string | null {
-  const id = key.startsWith('manual|') ? key.slice('manual|'.length) : ''
-  return id === '' ? null : id
-}
+// Die Schlüssel selbst liegen in shoppingKeys.ts, weil auch types.ts sie
+// braucht. Hier weiterreichen, damit die Aufrufer an einer Stelle bleiben.
+export { manualKey, orderKey, parseManualKey, shoppingKey } from './shoppingKeys.ts'
 
 export interface PlannedRecipe {
   recipe: Recipe
@@ -150,7 +134,7 @@ export function buildShoppingList(
     })
   }
 
-  return items.sort(shoppingComparator(state.order))
+  return items.sort(shoppingComparator(state.storeOrder))
 }
 
 /**
@@ -158,18 +142,19 @@ export function buildShoppingList(
  *
  * 1. Offene Posten vor abgehakten — Erledigtes rutscht nach unten und bleibt
  *    dort durchgestrichen stehen, statt zwischen dem zu stören, was noch fehlt.
- * 2. Innerhalb dessen die von Hand gewählte Reihenfolge aus `order`.
- * 3. Was in `order` nicht vorkommt, alphabetisch und hinten dran. Das betrifft
- *    alles, was später über ein neu eingeplantes Rezept dazugekommen ist.
+ * 2. Innerhalb dessen die **Ladenreihenfolge**: die Runde, die man einmal von
+ *    Hand geschoben hat und die seitdem gemerkt wird.
+ * 3. Was dort nicht vorkommt, alphabetisch und hinten dran — alles, was neu
+ *    dazugekommen und noch nie einsortiert worden ist.
  *
  * Der Index wird einmal als Map vorgebaut, statt bei jedem Vergleich durch das
  * Array zu suchen.
  */
 export function shoppingComparator(
-  order: readonly string[] = [],
+  storeOrder: readonly string[] = [],
 ): (a: ShoppingItem, b: ShoppingItem) => number {
-  const position = new Map(order.map((key, index) => [key, index]))
-  const rank = (item: ShoppingItem) => position.get(item.key) ?? Infinity
+  const position = new Map(storeOrder.map((key, index) => [key, index]))
+  const rank = (item: ShoppingItem) => position.get(orderKey(item.key)) ?? Infinity
 
   return (a, b) => {
     if (a.checked !== b.checked) return a.checked ? 1 : -1
@@ -188,6 +173,13 @@ export function shoppingComparator(
  * Entfernt Zustand, der zu keinem Posten mehr gehört — etwa das Häkchen einer
  * Zutat, deren Rezept inzwischen aus dem Plan geflogen ist. Ohne das würde ein
  * später wieder eingeplantes Rezept mit bereits gesetzten Häkchen auftauchen.
+ *
+ * **Die Ladenreihenfolge ist ausgenommen.** Genau daran ist sie vorher
+ * gescheitert: Sie wurde bei jeder Änderung auf die gerade sichtbaren Posten
+ * zusammengestrichen, und in der Woche darauf standen die Tomaten wieder
+ * irgendwo. Eine Zutat behält ihren Platz im Laden, ob sie diese Woche auf der
+ * Liste steht oder nicht. Nur eigene Posten fliegen raus, wenn es sie nicht
+ * mehr gibt — die kommen nicht wieder.
  */
 export function pruneShoppingState(
   state: ShoppingState,
@@ -195,14 +187,66 @@ export function pruneShoppingState(
 ): ShoppingState {
   const manualKeys = new Set(state.manual.map((entry) => manualKey(entry.id)))
   const isLive = (key: string) => liveKeys.has(key) || manualKeys.has(key)
+  const keepsPlace = (key: string) =>
+    parseManualKey(key) === null || manualKeys.has(key)
 
   return {
     checked: pickKeys(state.checked, isLive),
     overrides: pickKeys(state.overrides, isLive),
     removed: state.removed.filter(isLive),
     manual: state.manual,
-    order: state.order.filter(isLive),
+    storeOrder: capStoreOrder(state.storeOrder.filter(keepsPlace)),
   }
+}
+
+/**
+ * Obergrenze für die Ladenreihenfolge.
+ *
+ * Sie wächst mit jeder je einsortierten Zutat und wird nie kleiner. Bei einem
+ * Haushalt sind das ein paar Hundert Einträge — die Grenze ist reine Vorsorge,
+ * damit ein jahrelang benutzter Haushalt nicht irgendwann ein Dokument mit
+ * Zehntausenden Einträgen mit sich herumträgt. Abgeschnitten wird am **Ende**:
+ * Was zuletzt hinten stand, ist am ehesten verzichtbar.
+ */
+const STORE_ORDER_LIMIT = 2000
+
+function capStoreOrder(keys: string[]): string[] {
+  return keys.length > STORE_ORDER_LIMIT ? keys.slice(0, STORE_ORDER_LIMIT) : keys
+}
+
+/**
+ * Schreibt die Ladenreihenfolge fort, nachdem jemand die Liste umsortiert hat.
+ *
+ * Der Knackpunkt: Sichtbar ist immer nur ein Ausschnitt. Würde man die
+ * Reihenfolge einfach durch die sichtbaren Posten ersetzen, verlöre man den
+ * Platz jeder Zutat, die diese Woche nicht dran ist — und wäre wieder da, wo
+ * wir hergekommen sind.
+ *
+ * Deshalb bleiben die **Plätze** stehen und nur ihr Inhalt wird getauscht: Wo
+ * in der gemerkten Runde ein sichtbarer Posten stand, steht danach der nächste
+ * aus der neuen Reihenfolge. Unsichtbare Einträge behalten ihre Stelle
+ * dazwischen. Was mehr ist als Plätze da sind — neu einsortierte Zutaten —
+ * hängt sich hinten an.
+ */
+export function reorderStore(
+  storeOrder: readonly string[],
+  visibleAfter: readonly string[],
+): string[] {
+  const visible = new Set(visibleAfter)
+  const queue = [...visibleAfter]
+  const result: string[] = []
+
+  for (const key of storeOrder) {
+    if (visible.has(key)) {
+      const next = queue.shift()
+      if (next !== undefined) result.push(next)
+    } else {
+      result.push(key)
+    }
+  }
+
+  result.push(...queue)
+  return capStoreOrder(result)
 }
 
 function pickKeys<T>(

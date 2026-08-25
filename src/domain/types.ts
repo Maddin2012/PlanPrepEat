@@ -1,3 +1,5 @@
+import { orderKey } from './shoppingKeys.ts'
+
 /** Datum im Format YYYY-MM-DD, immer als lokales Kalenderdatum gemeint. */
 export type ISODate = string
 
@@ -145,15 +147,18 @@ export interface ShoppingState {
   removed: string[]
   manual: ManualItem[]
   /**
-   * Die von Hand gewählte Reihenfolge, als Liste von Schlüsseln.
+   * Die **Ladenreihenfolge**: die Runde durch den Laden, so wie man sie geht.
    *
-   * Leer heißt „noch nie etwas verschoben" — dann bleibt die Liste
-   * alphabetisch. Erst das erste Verschieben schreibt die Reihenfolge fest.
-   * Posten, die hier fehlen (weil sie später über ein neues Rezept dazukamen),
-   * hängen sich alphabetisch hinten an, statt sich in die sortierte
-   * Ladenrunde zu mogeln.
+   * Eine Liste von Zutat-Kennungen (bei eigenen Posten deren Schlüssel), nicht
+   * von Listenschlüsseln — siehe `orderKey`. Sonst bekäme dieselbe Zutat je
+   * Einheit einen eigenen Platz.
+   *
+   * Leer heißt „noch nie etwas verschoben"; dann bleibt die Liste alphabetisch.
+   * Das erste Verschieben schreibt die Runde fest, und sie **bleibt stehen** —
+   * auch für Zutaten, die gerade gar nicht auf der Liste sind. Was hier fehlt,
+   * hängt sich alphabetisch hinten an, statt sich in die Runde zu mogeln.
    */
-  order: string[]
+  storeOrder: string[]
 }
 
 /** Ein fertig berechneter Posten der Einkaufsliste. */
@@ -177,7 +182,7 @@ export const emptyShoppingState = (): ShoppingState => ({
   overrides: {},
   removed: [],
   manual: [],
-  order: [],
+  storeOrder: [],
 })
 
 /**
@@ -205,8 +210,22 @@ export function normalizeShoppingState(value: unknown): ShoppingState {
     manual: Array.isArray(value.manual)
       ? value.manual.filter(isManualItem)
       : empty.manual,
-    order: onlyStrings(value.order),
+    storeOrder: readStoreOrder(value),
   }
+}
+
+/**
+ * Die Ladenreihenfolge lesen — und einen Stand aus der Zeit davor übernehmen.
+ *
+ * Vorher hieß das Feld `order` und enthielt volle Listenschlüssel
+ * („zutat|g"). Wer schon einmal sortiert hat, soll das nicht noch einmal tun
+ * müssen, also werden die alten Schlüssel auf ihre Zutat zurückgeführt.
+ * Doppelte fallen dabei weg: Dieselbe Zutat in zwei Einheiten hatte zwei
+ * Einträge und hat jetzt einen.
+ */
+function readStoreOrder(value: Record<string, unknown>): string[] {
+  if (Array.isArray(value.storeOrder)) return onlyStrings(value.storeOrder)
+  return [...new Set(onlyStrings(value.order).map(orderKey))]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

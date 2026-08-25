@@ -9,7 +9,7 @@ describe('normalizeShoppingState', () => {
       overrides: { a: 500 },
       removed: ['b'],
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
-      order: ['a', 'b'],
+      storeOrder: ['a', 'b'],
     }
     expect(normalizeShoppingState(state)).toEqual(state)
   })
@@ -31,14 +31,14 @@ describe('normalizeShoppingState', () => {
   })
 
   it('ergänzt fehlende Felder einzeln', () => {
-    // Ein Stand von vor der freien Sortierung kennt `order` noch nicht.
+    // Ein Stand von vor der freien Sortierung kennt die Ladenrunde nicht.
     const ohneOrder = {
       checked: { a: true },
       overrides: {},
       removed: [],
       manual: [],
     }
-    expect(normalizeShoppingState(ohneOrder).order).toEqual([])
+    expect(normalizeShoppingState(ohneOrder).storeOrder).toEqual([])
     expect(normalizeShoppingState(ohneOrder).checked).toEqual({ a: true })
   })
 
@@ -48,7 +48,7 @@ describe('normalizeShoppingState', () => {
       overrides: { gut: 5, kaputt: 'viel' },
       removed: ['gut', 7],
       manual: [{ id: 'm1', name: 'Klopapier' }, { name: 'ohne Kennung' }],
-      order: ['gut', null],
+      order: ['gut|g', null],
     }
     const sauber = normalizeShoppingState(gemischt)
 
@@ -56,7 +56,8 @@ describe('normalizeShoppingState', () => {
     expect(sauber.overrides).toEqual({ gut: 5 })
     expect(sauber.removed).toEqual(['gut'])
     expect(sauber.manual).toHaveLength(1)
-    expect(sauber.order).toEqual(['gut'])
+    // Der alte Schlüssel „gut|g" wird dabei auf seine Zutat zurückgeführt.
+    expect(sauber.storeOrder).toEqual(['gut'])
   })
 
   it('liefert einen Zustand, mit dem die Einkaufsliste rechnen kann', () => {

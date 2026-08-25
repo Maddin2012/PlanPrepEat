@@ -243,6 +243,9 @@ describe('Reihenfolge der Einkaufsliste', () => {
   const pasta = shoppingKey('pasta', 'g')
   const onion = shoppingKey('onion', 'g')
 
+  // In der Ladenreihenfolge steht die Zutat, nicht der Listenschlüssel.
+  const platz = (...ids: string[]) => ids
+
   const namesOf = (state: ShoppingState) =>
     buildShoppingList(planned, catalog, state).map((item) => item.name)
 
@@ -261,27 +264,44 @@ describe('Reihenfolge der Einkaufsliste', () => {
     ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
   })
 
-  it('folgt der von Hand gewählten Reihenfolge', () => {
+  it('folgt der Ladenreihenfolge', () => {
     expect(
-      namesOf({ ...emptyShoppingState(), order: [onion, milk, pasta] }),
+      namesOf({
+        ...emptyShoppingState(),
+        storeOrder: platz('onion', 'milk', 'pasta'),
+      }),
     ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
+  })
+
+  it('gilt für eine Zutat unabhängig von ihrer Einheit', () => {
+    // Der Kern der Umstellung: Gemerkt wird der Platz der *Zutat*. Sonst
+    // bekäme „Milch in Litern" einen anderen Platz als „Milch in Millilitern",
+    // und ein anderes Rezept schöbe sie quer durch den Laden.
+    const inLitern = recipe('b', 'Suppe', 2, [
+      { ingredientId: 'milk', name: 'Milch', amount: 1, unit: 'l' },
+      { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
+    ])
+    const namen = buildShoppingList([{ recipe: inLitern, servings: 2 }], catalog, {
+      ...emptyShoppingState(),
+      storeOrder: platz('milk', 'onion'),
+    }).map((item) => item.name)
+
+    expect(namen).toEqual(['Milch', 'Zwiebeln'])
   })
 
   it('hängt später Dazugekommenes alphabetisch hinten an', () => {
     // Nur zwei der drei Posten wurden je verschoben.
-    expect(namesOf({ ...emptyShoppingState(), order: [onion, pasta] })).toEqual([
-      'Zwiebeln',
-      'Nudeln',
-      'Milch',
-    ])
+    expect(
+      namesOf({ ...emptyShoppingState(), storeOrder: platz('onion', 'pasta') }),
+    ).toEqual(['Zwiebeln', 'Nudeln', 'Milch'])
   })
 
-  it('lässt das Häkchen schwerer wiegen als die eigene Reihenfolge', () => {
-    // Zwiebeln stehen in `order` ganz vorn, sind aber abgehakt.
+  it('lässt das Häkchen schwerer wiegen als die Ladenreihenfolge', () => {
+    // Zwiebeln stehen in der Runde ganz vorn, sind aber abgehakt.
     expect(
       namesOf({
         ...emptyShoppingState(),
-        order: [onion, milk, pasta],
+        storeOrder: platz('onion', 'milk', 'pasta'),
         checked: { [onion]: true },
       }),
     ).toEqual(['Milch', 'Nudeln', 'Zwiebeln'])
@@ -291,7 +311,7 @@ describe('Reihenfolge der Einkaufsliste', () => {
     const state: ShoppingState = {
       ...emptyShoppingState(),
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
-      order: [manualKey('m1'), onion],
+      storeOrder: [manualKey('m1'), 'onion'],
     }
     expect(namesOf(state)).toEqual([
       'Klopapier',
@@ -351,7 +371,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       overrides: {},
       removed: [],
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
-      order: [],
+      storeOrder: [],
     }
 
     // Ein zweites Rezept kommt in den Plan.
@@ -379,11 +399,7 @@ describe('pruneShoppingState', () => {
       overrides: { [shoppingKey('weg', 'g')]: 5 },
       removed: [shoppingKey('auch-weg', 'g')],
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
-      order: [
-        shoppingKey('onion', 'g'),
-        shoppingKey('weg', 'g'),
-        manualKey('m1'),
-      ],
+      storeOrder: ['onion', 'weg', manualKey('m1')],
     }
 
     const pruned = pruneShoppingState(
@@ -400,15 +416,15 @@ describe('pruneShoppingState', () => {
     expect(pruned.manual).toHaveLength(1)
   })
 
-  it('räumt auch die eigene Reihenfolge auf', () => {
+  it('lässt die Ladenreihenfolge in Ruhe', () => {
+    // **Die Kernprobe dieses Pakets.** Vorher wurde hier zusammengestrichen,
+    // was gerade nicht auf der Liste stand — und in der Woche darauf standen
+    // die Tomaten wieder irgendwo. Eine Zutat behält ihren Platz im Laden,
+    // ob sie diese Woche eingeplant ist oder nicht.
     const state: ShoppingState = {
       ...emptyShoppingState(),
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
-      order: [
-        shoppingKey('onion', 'g'),
-        shoppingKey('weg', 'g'),
-        manualKey('m1'),
-      ],
+      storeOrder: ['onion', 'weg', manualKey('m1')],
     }
 
     const pruned = pruneShoppingState(
@@ -416,9 +432,20 @@ describe('pruneShoppingState', () => {
       new Set([shoppingKey('onion', 'g')]),
     )
 
-    // Der Schlüssel der ausgeplanten Zutat fällt raus, die übrigen bleiben
-    // in ihrer Reihenfolge stehen.
-    expect(pruned.order).toEqual([shoppingKey('onion', 'g'), manualKey('m1')])
+    expect(pruned.storeOrder).toEqual(['onion', 'weg', manualKey('m1')])
+  })
+
+  it('wirft nur eigene Posten raus, die es nicht mehr gibt', () => {
+    // Die kommen nicht wieder — anders als eine Zutat, die nächste Woche
+    // wieder eingeplant sein kann.
+    const state: ShoppingState = {
+      ...emptyShoppingState(),
+      manual: [],
+      storeOrder: ['onion', manualKey('geloescht'), 'weg'],
+    }
+
+    const pruned = pruneShoppingState(state, new Set())
+    expect(pruned.storeOrder).toEqual(['onion', 'weg'])
   })
 })
 

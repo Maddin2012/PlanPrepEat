@@ -9,7 +9,8 @@ import { missingConfig } from '../../data/firebase.ts'
 import { inviteUrl } from '../../lib/invite.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
-import { useOnline, useRecipes } from '../../data/hooks.ts'
+import { useOnline, useRecipes, useShoppingState } from '../../data/hooks.ts'
+import { useRepository } from '../../data/RepositoryContext.tsx'
 import { backupFilename, formatRecipeBackup } from '../../domain/backup.ts'
 import { downloadText } from '../../lib/download.ts'
 
@@ -17,8 +18,11 @@ export default function SettingsPage() {
   const { household, isDemo, canSync, leave } = useSession()
   const online = useOnline()
   const { data: recipes } = useRecipes()
+  const { data: shopping } = useShoppingState()
+  const repository = useRepository()
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [orderReset, setOrderReset] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
   // Der Zustand steht im Dokument, nicht in React — das Skript im Kopf von
   // index.html hat ihn schon vor dem ersten Zeichnen gesetzt. Hier wird er nur
@@ -56,6 +60,20 @@ export default function SettingsPage() {
   async function copy() {
     if (!code) return
     if (await copyText(code)) flashCopied()
+  }
+
+  /**
+   * Die gemerkte Ladenreihenfolge verwerfen.
+   *
+   * Nötig, wenn der Laden umgebaut wurde oder man den Laden wechselt: Sonst
+   * schleppt man eine Runde mit sich herum, die nicht mehr stimmt, und müsste
+   * sie Posten für Posten zurechtschieben. Danach steht die Liste wieder
+   * alphabetisch, und die nächste Runde wird neu gelernt.
+   */
+  function resetStoreOrder() {
+    void repository.saveShoppingState({ ...shopping, storeOrder: [] })
+    setOrderReset(true)
+    setTimeout(() => setOrderReset(false), 2000)
   }
 
   function saveBackup() {
@@ -147,6 +165,34 @@ export default function SettingsPage() {
               onChoose={chooseTheme}
             />
           </div>
+        </section>
+
+        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
+          <h2 className="text-sm font-semibold text-ink-700">
+            Ladenreihenfolge
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+            {shopping.storeOrder.length === 0
+              ? 'Noch nichts gemerkt. Schieb die Posten auf der Einkaufsliste einmal in die Reihenfolge, in der du durch den Laden gehst — ab dann bleibt sie stehen.'
+              : `${shopping.storeOrder.length} ${shopping.storeOrder.length === 1 ? 'Zutat hat' : 'Zutaten haben'} einen festen Platz.`}
+          </p>
+
+          {shopping.storeOrder.length > 0 && (
+            <>
+              <Button
+                variant="secondary"
+                className="mt-3"
+                block
+                onClick={resetStoreOrder}
+              >
+                {orderReset ? 'Zurückgesetzt' : 'Reihenfolge zurücksetzen'}
+              </Button>
+              <p className="mt-3 text-xs leading-relaxed text-ink-400">
+                Danach steht die Liste wieder alphabetisch. Sinnvoll, wenn ihr
+                den Laden wechselt oder dort umgebaut wurde.
+              </p>
+            </>
+          )}
         </section>
 
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">

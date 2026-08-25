@@ -38,7 +38,9 @@ import {
   liveShoppingKeys,
   manualKey,
   parseManualKey,
+  orderKey,
   pruneShoppingState,
+  reorderStore,
 } from '../../domain/aggregate.ts'
 import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
 import { formatShoppingListText } from '../../domain/exportList.ts'
@@ -129,10 +131,15 @@ export default function ShoppingPage() {
   const openCount = open.length
 
   /**
-   * Verschieben. Beim ersten Mal wird die aktuelle Reihenfolge aller Posten
-   * festgeschrieben — vorher ist `order` leer und alles steht alphabetisch.
-   * Abgehakte hängen hinten dran, damit sie ihre Position behalten, wenn das
-   * Häkchen später wieder wegfällt.
+   * Verschieben — und damit die Ladenreihenfolge fortschreiben.
+   *
+   * Beim ersten Mal wird die aktuelle Reihenfolge festgeschrieben; vorher ist
+   * die Runde leer und alles steht alphabetisch. Abgehakte hängen hinten dran,
+   * damit sie ihre Position behalten, wenn das Häkchen später wieder wegfällt.
+   *
+   * Gemerkt wird über `orderKey`, also je Zutat statt je Listenschlüssel — und
+   * über `reorderStore`, damit Zutaten, die gerade nicht auf der Liste stehen,
+   * ihren Platz behalten. Ein schlichtes Ersetzen hätte sie verloren.
    */
   const move = useCallback(
     (fromKey: string, toKey: string) => {
@@ -142,7 +149,11 @@ export default function ShoppingPage() {
       if (from === -1 || to === -1 || from === to) return
 
       keys.splice(to, 0, ...keys.splice(from, 1))
-      update((current) => ({ ...current, order: keys }))
+      const visible = [...new Set(keys.map(orderKey))]
+      update((current) => ({
+        ...current,
+        storeOrder: reorderStore(current.storeOrder, visible),
+      }))
     },
     [open, done, update],
   )
@@ -152,8 +163,8 @@ export default function ShoppingPage() {
    * und Einheit kommen bei Bedarf hinterher über das Antippen der Zeile.
    *
    * Er soll unten in der offenen Liste stehen, wo man ihn hingeschrieben hat.
-   * Dafür wird — wie beim ersten Verschieben auch — die aktuelle Reihenfolge
-   * festgeschrieben und der neue Schlüssel ans Ende der offenen Posten gehängt.
+   * Dafür wird — wie beim Verschieben auch — die aktuelle Reihenfolge in die
+   * Ladenrunde geschrieben, mit dem neuen Schlüssel am Ende der offenen Posten.
    * Ab dann ist die Liste von Hand sortiert statt alphabetisch.
    */
   const addManual = useCallback(
@@ -164,15 +175,19 @@ export default function ShoppingPage() {
         amount: null,
         unit: null,
       }
-      const order = [
-        ...open.map((item) => item.key),
-        manualKey(entry.id),
-        ...done.map((item) => item.key),
+      const visible = [
+        ...new Set(
+          [
+            ...open.map((item) => item.key),
+            manualKey(entry.id),
+            ...done.map((item) => item.key),
+          ].map(orderKey),
+        ),
       ]
       update((current) => ({
         ...current,
         manual: [...current.manual, entry],
-        order,
+        storeOrder: reorderStore(current.storeOrder, visible),
       }))
     },
     [open, done, update],

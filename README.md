@@ -113,6 +113,21 @@ Es gibt sonst **keine** Sicherung: kein Papierkorb, kein Verlauf früherer
 Fassungen. Wer ein Rezept überschreibt und speichert, verliert die alte Version.
 Ab und zu auf den Knopf drücken ist deshalb keine schlechte Angewohnheit.
 
+## Die Einkaufsliste in Ladenreihenfolge
+
+Am Anfasser links lassen sich die Posten verschieben. Diese Reihenfolge wird
+**dauerhaft gemerkt** — je Zutat, nicht je Listeneintrag. Wer die Tomaten einmal
+nach vorn geschoben hat, findet sie dort auch in den Wochen darauf wieder, ganz
+gleich aus welchem Rezept sie diesmal kommen und in welcher Einheit.
+
+Es gibt nichts einzurichten: Die Liste lernt beim Benutzen. Zutaten, die noch nie
+einsortiert wurden, hängen alphabetisch hinten an, bis man sie einmal an ihren
+Platz schiebt. Abgehaktes rutscht weiterhin ans Ende, unabhängig von der Runde.
+
+Unter *Einstellungen → Ladenreihenfolge* steht, wie viele Zutaten einen festen
+Platz haben, und dort lässt sich die Runde auch zurücksetzen — sinnvoll beim
+Wechsel des Ladens oder nach einem Umbau.
+
 ## Ohne Netz
 
 Die App funktioniert offline weiter — im Supermarkt der entscheidende Teil.
