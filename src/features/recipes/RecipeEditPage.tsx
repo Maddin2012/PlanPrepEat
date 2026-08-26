@@ -24,7 +24,13 @@ import {
 import { MicButton } from '../../components/MicButton.tsx'
 import { parseSpokenIngredient } from '../../domain/dictation.ts'
 import { newId } from '../../data/ids.ts'
-import { ImageTooLargeError, preparePhoto } from '../../lib/image.ts'
+import {
+  ImageTooLargeError,
+  loadBitmap,
+  preparePhotoFrom,
+} from '../../lib/image.ts'
+import type { Rect } from '../../lib/crop.ts'
+import CropSheet from './CropSheet.tsx'
 import {
   StepsEditor,
   emptyStep,
@@ -62,6 +68,8 @@ export default function RecipeEditPage() {
   const [items, setItems] = useState<ItemDraft[]>([emptyItemDraft()])
   const [photo, setPhoto] = useState<PhotoState>({ kind: 'keep' })
   const [preview, setPreview] = useState<string | null>(null)
+  // Das gewählte Bild wartet hier, solange der Ausschnitt noch offen ist.
+  const [cropping, setCropping] = useState<ImageBitmap | null>(null)
 
   const [ready, setReady] = useState(!id)
   const [saving, setSaving] = useState(false)
@@ -99,10 +107,25 @@ export default function RecipeEditPage() {
 
   if (id && !ready) return <Spinner label="Rezept wird geladen …" />
 
+  /**
+   * Ein gewähltes Bild geht zuerst in den Zuschneide-Bildschirm. Gespeichert
+   * wird erst, wenn der Ausschnitt steht — vorher weiß niemand, was ins Bild
+   * soll und was weg.
+   */
   async function pickPhoto(file: File) {
     setError(null)
     try {
-      const prepared = await preparePhoto(file)
+      setCropping(await loadBitmap(file))
+    } catch {
+      setError('Das Bild konnte nicht gelesen werden.')
+    }
+  }
+
+  function applyCrop(crop: Rect) {
+    const bitmap = cropping
+    if (!bitmap) return
+    try {
+      const prepared = preparePhotoFrom(bitmap, crop)
       setPhoto({ kind: 'set', full: prepared.full, thumb: prepared.thumb })
       setPreview(prepared.full)
     } catch (cause) {
@@ -111,7 +134,17 @@ export default function RecipeEditPage() {
           ? 'Dieses Bild ist zu groß. Nimm ein kleineres oder mach ein neues Foto.'
           : 'Das Bild konnte nicht gelesen werden.',
       )
+    } finally {
+      // Der Speicher des Bildes wird hier frei; ohne das bliebe bei jedem
+      // gewählten Foto ein ganzes Bitmap liegen.
+      bitmap.close?.()
+      setCropping(null)
     }
+  }
+
+  function cancelCrop() {
+    cropping?.close?.()
+    setCropping(null)
   }
 
   function removePhoto() {
@@ -193,6 +226,13 @@ export default function RecipeEditPage() {
         }}
       >
         <PhotoPicker preview={preview} onPick={pickPhoto} onRemove={removePhoto} />
+
+        <CropSheet
+          open={cropping !== null}
+          bitmap={cropping}
+          onCancel={cancelCrop}
+          onConfirm={applyCrop}
+        />
 
         {/* Das Mikrofon steht bewusst außerhalb von <Field>: Dessen <label>
             umschließt seine Kinder, und ein Knopf darin würde beim Vorlesen
@@ -339,7 +379,7 @@ function PhotoPicker({
 
       {preview ? (
         <div className="relative overflow-hidden rounded-2xl ring-1 ring-clay-200">
-          <img src={preview} alt="" className="h-44 w-full object-cover" />
+          <img src={preview} alt="" className="aspect-[4/3] w-full object-cover" />
           <div className="absolute top-2 right-2 flex gap-2">
             <label
               htmlFor={cameraId}

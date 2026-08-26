@@ -6,6 +6,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { CloseIcon } from './Icons.tsx'
 
 export function cx(...values: Array<string | false | null | undefined>): string {
@@ -185,7 +186,15 @@ export function Sheet({
 
   if (!open) return null
 
-  return (
+  // Über ein Portal direkt an den Seitenkörper: Ein Blatt liegt über allem,
+  // und wo im Baum es entsteht, darf dafür keine Rolle spielen.
+  //
+  // Gemessen: Aus dem Rezeptformular heraus wurde die `fixed inset-0`-Hülle
+  // nur 824 statt 844 Pixel hoch — unten blieb ein Streifen frei, durch den
+  // die Speicherleiste des Formulars kam, anklickbar. Einen Vorfahren mit
+  // transform, filter oder contain gab es dabei nicht; woran es genau lag,
+  // habe ich nicht geklärt. Am Seitenkörper ist die Frage gegenstandslos.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         type="button"
@@ -223,7 +232,8 @@ export function Sheet({
       </div>
 
       <style>{`@keyframes sheet-in { from { transform: translateY(12%); opacity: .6 } to { transform: none; opacity: 1 } }`}</style>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

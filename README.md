@@ -74,6 +74,21 @@ Gesetzte Häkchen, korrigierte Mengen und eigene Posten bleiben dabei erhalten �
 die Liste selbst wird nämlich nirgends gespeichert, nur das, was ihr daran
 verändert habt.
 
+## Fotos
+
+Nach dem Aufnehmen oder Auswählen kommt ein Bildschirm mit einem festen Rahmen
+im Verhältnis 4:3. Das Bild lässt sich darin schieben und über den Regler
+größer ziehen; Drittel-Linien zeigen, was drinbleibt. **Genau dieser Ausschnitt
+wird gespeichert** — Rezeptliste, Vorschau und Rezeptseite zeigen danach
+dasselbe.
+
+Vorher hat die App gar nichts abgeschnitten. Beschnitten wurde erst beim
+Anzeigen, und zwar in jeder der drei Ansichten anders.
+
+**Fotos aus der Zeit davor** sind nicht 4:3 und werden weiterhin mittig
+beschnitten. Wer eines davon anders haben will, öffnet das Rezept und wählt das
+Bild neu.
+
 ## Diktieren
 
 Zwei Sorten Mikrofon, und der Unterschied ist wichtig:

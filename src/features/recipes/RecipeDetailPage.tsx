@@ -81,7 +81,7 @@ export default function RecipeDetailPage() {
         <img
           src={photo ?? recipe.thumb}
           alt=""
-          className="h-52 w-full object-cover"
+          className="aspect-[4/3] w-full object-cover"
         />
       )}
 

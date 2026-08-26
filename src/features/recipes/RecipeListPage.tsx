@@ -138,12 +138,14 @@ function Thumb({ recipe }: { recipe: Recipe }) {
         src={recipe.thumb}
         alt=""
         loading="lazy"
-        className="size-14 shrink-0 rounded-xl object-cover ring-1 ring-clay-200"
+        className="h-14 w-[4.67rem] shrink-0 rounded-xl object-cover ring-1 ring-clay-200"
       />
     )
   }
   return (
-    <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-clay-300 ring-1 ring-clay-200">
+    // Dieselbe Fläche wie das Bildchen, sonst stünden die Rezeptnamen je nach
+    // Foto unterschiedlich weit eingerückt.
+    <div className="flex h-14 w-[4.67rem] shrink-0 items-center justify-center rounded-xl bg-accent-soft text-clay-300 ring-1 ring-clay-200">
       <BookIcon className="size-6" />
     </div>
   )
