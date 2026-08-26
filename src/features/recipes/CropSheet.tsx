@@ -92,10 +92,18 @@ export default function CropSheet({
     const next = { x: event.clientX, y: event.clientY }
     pointers.current.set(event.pointerId, next)
 
-    if (pointers.current.size >= 2 && gesture.current) {
-      const factor = abstand() / (gesture.current.distance || 1)
+    // Der Startwert wird **hier** festgehalten, nicht erst in der Vorschrift
+    // unten. React führt die nämlich erst beim nächsten Zeichnen aus, und bis
+    // dahin kann `gesture.current` längst leer sein — etwa weil zwischendurch
+    // ein Finger abgehoben wurde. Genau daran ist die App abgestürzt.
+    //
+    // Die Regel dahinter: In einer Rechenvorschrift für den Zustand nichts aus
+    // einer Ablage lesen. Sie läuft später, und später gilt womöglich anderes.
+    const start = gesture.current
+    if (pointers.current.size >= 2 && start) {
+      const factor = abstand() / (start.distance || 1)
       setView((current) =>
-        clampView({ ...current, zoom: gesture.current!.zoom * factor }, image, frame),
+        clampView({ ...current, zoom: start.zoom * factor }, image, frame),
       )
       return
     }

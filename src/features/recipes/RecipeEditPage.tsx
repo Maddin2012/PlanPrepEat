@@ -31,6 +31,7 @@ import {
 } from '../../lib/image.ts'
 import type { Rect } from '../../lib/crop.ts'
 import CropSheet from './CropSheet.tsx'
+import { ErrorBoundary } from '../../components/ErrorBoundary.tsx'
 import {
   StepsEditor,
   emptyStep,
@@ -227,12 +228,32 @@ export default function RecipeEditPage() {
       >
         <PhotoPicker preview={preview} onPick={pickPhoto} onRemove={removePhoto} />
 
-        <CropSheet
-          open={cropping !== null}
-          bitmap={cropping}
-          onCancel={cancelCrop}
-          onConfirm={applyCrop}
-        />
+        {/*
+          Eigener Schutzring um das Blatt: Stürzt dort etwas ab, geht nur das
+          Blatt zu — das Formular mit dem halb eingetippten Rezept bleibt
+          stehen. Ohne das reißt ein Fehler im Blatt alles mit, und die Arbeit
+          ist weg. Genau so ist es beim Zoomen mit zwei Fingern passiert.
+        */}
+        <ErrorBoundary
+          fallback={null}
+          // Sobald das Blatt zu ist, ist der Ring wieder scharf. Ohne das
+          // bliebe er nach einem Absturz für immer ausgelöst, und der nächste
+          // Versuch mit einem Foto zeigte gar nichts mehr.
+          resetKey={cropping ? 'offen' : 'zu'}
+          onError={() => {
+            cancelCrop()
+            setError(
+              'Beim Zuschneiden ist etwas schiefgegangen. Dein Rezept ist unversehrt — versuch das Foto noch einmal.',
+            )
+          }}
+        >
+          <CropSheet
+            open={cropping !== null}
+            bitmap={cropping}
+            onCancel={cancelCrop}
+            onConfirm={applyCrop}
+          />
+        </ErrorBoundary>
 
         {/* Das Mikrofon steht bewusst außerhalb von <Field>: Dessen <label>
             umschließt seine Kinder, und ein Knopf darin würde beim Vorlesen

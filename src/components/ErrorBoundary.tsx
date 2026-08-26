@@ -5,6 +5,16 @@ interface Props {
   children: ReactNode
   /** Wechselt dieser Wert, wird ein aufgefangener Fehler zurückgesetzt. */
   resetKey?: string
+  /**
+   * Was statt der ganzseitigen Meldung erscheinen soll.
+   *
+   * Für abgeschottete Teile: Ein abgestürztes Blatt soll nicht die Seite
+   * darunter durch eine Fehlerseite ersetzen — es soll schlicht verschwinden,
+   * und die Seite sagt selbst, was los ist. `null` ist dafür der Normalfall.
+   */
+  fallback?: ReactNode
+  /** Wird einmal beim Auffangen gerufen — zum Aufräumen ringsherum. */
+  onError?: (error: Error) => void
 }
 
 interface State {
@@ -29,6 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('Fehler beim Rendern:', error, info.componentStack)
+    this.props.onError?.(error)
   }
 
   componentDidUpdate(previous: Props): void {
@@ -42,6 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     const { error } = this.state
     if (!error) return this.props.children
+    if (this.props.fallback !== undefined) return this.props.fallback
 
     return (
       <div className="flex flex-col items-center px-8 py-16 text-center">
