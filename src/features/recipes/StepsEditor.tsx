@@ -220,6 +220,17 @@ export function StepsEditor({
                 }}
                 onKeyDown={(event) => handleKeyDown(event, index)}
                 onPaste={(event) => handlePaste(event, index)}
+                onSpoken={(text) => {
+                  // Anhängen statt ersetzen: Wer einen Schritt ergänzt, will
+                  // das schon Getippte nicht verlieren.
+                  const next = [...steps]
+                  const vorhanden = step.text.trim()
+                  next[index] = {
+                    ...step,
+                    text: vorhanden ? `${vorhanden} ${text}` : text,
+                  }
+                  onChange(next)
+                }}
                 onRemove={() =>
                   replace(steps.filter((entry) => entry.key !== step.key))
                 }
@@ -253,6 +264,7 @@ function SortableStep({
   onChangeText,
   onKeyDown,
   onPaste,
+  onSpoken,
   onRemove,
 }: {
   step: StepDraft
@@ -263,6 +275,7 @@ function SortableStep({
   onChangeText: (text: string) => void
   onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
   onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void
+  onSpoken: (text: string) => void
   onRemove: () => void
 }) {
   const {
@@ -313,6 +326,17 @@ function SortableStep({
         onPaste={onPaste}
         label={`Schritt ${index + 1}`}
         placeholder={index === 0 ? 'Zwiebeln würfeln und anbraten.' : ''}
+      />
+
+      {/* Füllt genau diesen Schritt und hört nach einem Satz von selbst auf —
+          anders als der Knopf oben, der neue Schritte anlegt. */}
+      <MicButton
+        small
+        once
+        label={`Schritt ${index + 1}`}
+        hint="Ein Satz für diesen Schritt."
+        className="mt-1"
+        onChunk={onSpoken}
       />
 
       <IconButton

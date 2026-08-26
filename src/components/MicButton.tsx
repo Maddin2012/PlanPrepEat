@@ -27,6 +27,8 @@ export function MicButton({
   label,
   hint,
   onChunk,
+  once,
+  small,
   className,
 }: {
   /** Was diktiert wird, für die Beschriftung: „Zutaten", „Zubereitung" … */
@@ -34,6 +36,16 @@ export function MicButton({
   /** Steht in der Leiste, solange zugehört wird. */
   hint?: string
   onChunk: (text: string) => void
+  /**
+   * Nach einem Satz von selbst aufhören.
+   *
+   * Für die Mikrofone direkt an einem Feld: Dort wird ein Wert diktiert, nicht
+   * eine Liste. Ohne das liefe das Zuhören weiter, während man überlegt, was
+   * als Nächstes hineinsoll — genau die Reibung, die es abstellen soll.
+   */
+  once?: boolean
+  /** Schmalere Bauform für die Mikrofone in einer Zeile. */
+  small?: boolean
   className?: string
 }) {
   const [listening, setListening] = useState(false)
@@ -75,6 +87,10 @@ export function MicButton({
       onChunk: (text) => {
         setInterim('')
         latest.current(text)
+        // Gefahrlos von hier aus: `stop()` gibt zwar noch einmal ab, findet
+        // den Puffer aber leer vor — es kommt also kein zweiter Abschnitt.
+        // Den Rest erledigt `onStopped`.
+        if (once) handle.current?.stop()
       },
       onInterim: setInterim,
       onError: (kind) => setError(MESSAGES[kind]),
@@ -101,14 +117,15 @@ export function MicButton({
         aria-label={listening ? `${label} — Diktat beenden` : `${label} diktieren`}
         aria-pressed={listening}
         className={cx(
-          'flex size-9 shrink-0 items-center justify-center rounded-full transition-colors',
+          'flex shrink-0 items-center justify-center rounded-full transition-colors',
+          small ? 'size-8' : 'size-9',
           listening
             ? 'animate-pulse bg-red-600 text-white'
             : 'bg-clay-100 text-ink-500 active:bg-clay-200',
           className,
         )}
       >
-        <MicIcon className="size-4.5" />
+        <MicIcon className={small ? 'size-4' : 'size-4.5'} />
       </button>
 
       {error && (

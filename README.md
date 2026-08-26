@@ -74,6 +74,24 @@ Gesetzte Häkchen, korrigierte Mengen und eigene Posten bleiben dabei erhalten �
 die Liste selbst wird nämlich nirgends gespeichert, nur das, was ihr daran
 verändert habt.
 
+## Diktieren
+
+Zwei Sorten Mikrofon, und der Unterschied ist wichtig:
+
+- **Oben neben „Zutaten" bzw. „Zubereitung"** — es *legt an*. Jede Sprechpause
+  wird eine neue Zutat bzw. ein neuer Schritt. Es hört zu, bis man „Fertig"
+  drückt. Gut, wenn man ein Rezept am Stück herunterspricht.
+- **Klein in der Zeile** — es *füllt genau diese Zeile* und schaltet sich nach
+  einem Satz von selbst ab. Gut, wenn man zwischendurch überlegen muss: Es läuft
+  nicht mit, während man nachdenkt.
+
+Bei einer Zutat wird in beiden Fällen mitzerlegt: „300 Gramm Nudeln" setzt Name,
+Menge und Einheit. Bei einem Schritt hängt das kleine Mikrofon an, was schon
+dasteht — Getipptes geht also nicht verloren.
+
+Wo der Browser keine Spracherkennung hat (Firefox etwa), erscheint gar kein
+Mikrofon, statt beim Antippen ins Leere zu laufen.
+
 ## Zu zweit benutzen
 
 Beide Geräte gehören zum selben **Haushalt**. Wer ihn anlegt, findet unter

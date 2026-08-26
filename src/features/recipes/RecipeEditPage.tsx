@@ -428,6 +428,25 @@ function IngredientEditor({
     onChange(lastIsEmpty ? [...items.slice(0, -1), filled] : [...items, filled])
   }
 
+  /**
+   * Diktat in **eine bestimmte** Zeile, über das Mikrofon daneben.
+   *
+   * Der Unterschied zum Knopf oben: Der legt an, dieser füllt. Zerlegt wird
+   * mit demselben `parseSpokenIngredient` — „300 Gramm Nudeln" setzt also auch
+   * hier Menge und Einheit mit, nicht nur den Namen.
+   *
+   * Ohne erkennbare Menge bleibt stehen, was schon eingetragen war: Wer nur
+   * den Namen nachträgt, will die getippte Menge nicht verlieren.
+   */
+  function fillSpoken(key: string, text: string) {
+    const spoken = parseSpokenIngredient(text)
+    if (!spoken.name) return
+    patch(key, {
+      name: spoken.name,
+      ...(spoken.amount ? { amount: spoken.amount, unit: spoken.unit } : {}),
+    })
+  }
+
   return (
     <section>
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -462,14 +481,25 @@ function IngredientEditor({
             key={item.key}
             className="space-y-2 rounded-xl bg-surface p-2 ring-1 ring-clay-200"
           >
-            <TextInput
-              value={item.name}
-              list={listId}
-              aria-label="Zutat"
-              onChange={(event) => patch(item.key, { name: event.target.value })}
-              placeholder="Zwiebeln"
-              className="ring-0"
-            />
+            {/* Das Mikrofon füllt genau diese Zeile und hört nach einem Satz
+                von selbst auf — anders als der Knopf oben, der anlegt. */}
+            <div className="flex items-center gap-1">
+              <TextInput
+                value={item.name}
+                list={listId}
+                aria-label="Zutat"
+                onChange={(event) => patch(item.key, { name: event.target.value })}
+                placeholder="Zwiebeln"
+                className="ring-0"
+              />
+              <MicButton
+                small
+                once
+                label="Diese Zutat"
+                hint={'Eine Zutat, z. B. „300 Gramm Nudeln".'}
+                onChunk={(text) => fillSpoken(item.key, text)}
+              />
+            </div>
 
             <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
               <TextInput
