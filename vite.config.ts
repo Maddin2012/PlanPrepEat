@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -40,8 +41,28 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // Legt die Änderungsnotizen zusätzlich als eigene Datei neben die App.
+    // Dadurch kann die laufende Fassung nachsehen, was im wartenden Update
+    // steckt — sie liest die Datei der *neuen* Fassung vom Server.
+    {
+      name: 'planprepeat-changelog',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'changelog.json',
+          source: readFileSync('src/data/changelog.json', 'utf8'),
+        })
+      },
+    },
     VitePWA({
-      registerType: 'autoUpdate',
+      // `prompt` statt `autoUpdate`: Sonst tauscht sich die App stillschweigend
+      // aus, und es gibt nichts zu melden und nichts zu drücken. Wer den Knopf
+      // nie drückt, verliert nichts — ein wartendes Update wird trotzdem
+      // eingespielt, sobald die App einmal ganz geschlossen war.
+      registerType: 'prompt',
+      // Sonst meldete sich der Service Worker zweimal an: einmal über das
+      // eingespritzte Skript, einmal über unseren Haken in src/lib/updates.tsx.
+      injectRegister: null,
       includeAssets: [
         'favicon.svg',
         'icon-192.png',

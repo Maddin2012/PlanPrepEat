@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BackIcon } from './Icons.tsx'
+import { BackIcon, UpdateIcon } from './Icons.tsx'
 import { APP_NAME, Mark } from './Logo.tsx'
 import { IconButton, cx } from './ui.tsx'
+import { useUpdate } from '../lib/updates.tsx'
 
 /**
  * Kopfzeile einer Seite. Bleibt beim Scrollen oben stehen, damit die
@@ -32,6 +33,7 @@ export function PageHeader({
   brand?: boolean
 }) {
   const navigate = useNavigate()
+  const { ready } = useUpdate()
 
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-clay-200 bg-surface/95 backdrop-blur">
@@ -76,6 +78,22 @@ export function PageHeader({
             </div>
           )}
         </div>
+
+        {/*
+          Das Update-Zeichen steht auf **jeder** Seite, nicht nur auf den
+          Hauptreitern: Wer gerade ein Rezept bearbeitet, soll es genauso sehen.
+          Es führt in die Einstellungen, wo der Knopf sitzt.
+        */}
+        {ready && (
+          <IconButton
+            label="Update verfügbar — zu den Einstellungen"
+            className="relative text-accent-text"
+            onClick={() => navigate('/einstellungen')}
+          >
+            <UpdateIcon className="size-5" />
+            <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-accent ring-2 ring-surface" />
+          </IconButton>
+        )}
 
         {actions && <div className="flex items-center gap-1">{actions}</div>}
       </div>

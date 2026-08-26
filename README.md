@@ -74,6 +74,27 @@ Gesetzte Häkchen, korrigierte Mengen und eigene Posten bleiben dabei erhalten �
 die Liste selbst wird nämlich nirgends gespeichert, nur das, was ihr daran
 verändert habt.
 
+## Updates
+
+Die App meldet sich, wenn eine neue Fassung bereitliegt: Oben in der Kopfzeile
+erscheint ein Pfeil mit einem Punkt. Ein Tipp darauf führt in die Einstellungen,
+wo **Jetzt aktualisieren** steht. Dort lässt sich auch von Hand nachsehen.
+
+Darunter steht in einfachen Worten, was sich geändert hat — mit einer Marke
+dabei, ob es eine Fehlerbehebung, etwas Neues oder eine Verbesserung war. Liegt
+ein Update bereit, zeigt die App vorher, was darin steckt: Sie ruft dafür die
+Notizen der neuen Fassung ab. Ist der Server nicht erreichbar, fehlt nur dieser
+Text — aktualisieren lässt sich trotzdem.
+
+Wer den Knopf nie drückt, verliert nichts: Ein wartendes Update wird auch dann
+eingespielt, sobald die App einmal ganz geschlossen war. Der Knopf erspart nur
+das Schließen und Wiederöffnen.
+
+**Die Notizen pflegen:** Sie stehen in `src/data/changelog.json`, neueste zuerst,
+mit `datum`, `art` (`fehler` | `neu` | `besser`) und `text`. Beim Bauen legt
+`vite.config.ts` dieselbe Datei zusätzlich neben die App, damit eine laufende
+Fassung die Notizen der neueren lesen kann. Eine Quelle, zwei Wege dorthin.
+
 ## Fotos
 
 Nach dem Aufnehmen oder Auswählen kommt ein Bildschirm mit einem festen Rahmen

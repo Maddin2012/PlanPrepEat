@@ -107,6 +107,14 @@ export const ShareIcon = (props: IconProps) => (
   </Icon>
 )
 
+/** Kreisender Pfeil — für „es gibt etwas Neues". */
+export const UpdateIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+    <path d="M20 4v4h-4" />
+  </Icon>
+)
+
 /** Pfeil nach unten in eine Ablage — das Gegenstück zu ShareIcon. */
 export const DownloadIcon = (props: IconProps) => (
   <Icon {...props}>

@@ -1,0 +1,47 @@
+[
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "Updates lassen sich in den Einstellungen selbst starten. Steht eines bereit, erscheint oben in der Kopfzeile ein Punkt."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "fehler",
+    "text": "Die App stürzte ab, wenn man ein Foto mit zwei Fingern zoomte und dabei einen Finger abhob."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "Beim Foto lässt sich der Bildausschnitt jetzt selbst wählen — mit Rahmen und Rasterlinien."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "Neben jeder Zutatenzeile und jedem Zubereitungsschritt sitzt ein kleines Mikrofon. Es füllt nur diese Zeile und hört nach einem Satz von selbst auf."
+  },
+  {
+    "datum": "2026-08-25",
+    "art": "fehler",
+    "text": "Die von Hand geschobene Reihenfolge der Einkaufsliste wurde bei jeder Änderung wieder verworfen. Sie bleibt jetzt dauerhaft stehen."
+  },
+  {
+    "datum": "2026-08-25",
+    "art": "neu",
+    "text": "Ein Tag im Essensplan lässt sich mit freiem Text belegen — für alles ohne Rezept."
+  },
+  {
+    "datum": "2026-08-25",
+    "art": "neu",
+    "text": "Zubereitungsschritte lassen sich am Anfasser links untereinander verschieben."
+  },
+  {
+    "datum": "2026-08-25",
+    "art": "neu",
+    "text": "Alle Rezepte lassen sich als Textdatei sichern."
+  },
+  {
+    "datum": "2026-08-25",
+    "art": "neu",
+    "text": "Der Haushalt wird über einen Einladungslink geteilt statt über einen abzutippenden Code."
+  }
+]

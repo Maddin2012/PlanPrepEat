@@ -1,15 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from '../../data/RepositoryContext.tsx'
 import { formatHouseholdCode } from '../../data/ids.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button } from '../../components/ui.tsx'
-import { CopyIcon, DownloadIcon, ShareIcon } from '../../components/Icons.tsx'
+import {
+  CopyIcon,
+  DownloadIcon,
+  ShareIcon,
+  UpdateIcon,
+} from '../../components/Icons.tsx'
 import { copyText, shareText } from '../../lib/share.ts'
 import { missingConfig } from '../../data/firebase.ts'
 import { inviteUrl } from '../../lib/invite.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
 import { useOnline, useRecipes, useShoppingState } from '../../data/hooks.ts'
+import { useUpdate } from '../../lib/updates.tsx'
+import { CHANGELOG, KIND_LABELS, type ChangeEntry } from '../../data/changelog.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import { backupFilename, formatRecipeBackup } from '../../domain/backup.ts'
 import { downloadText } from '../../lib/download.ts'
@@ -20,6 +27,8 @@ export default function SettingsPage() {
   const { data: recipes } = useRecipes()
   const { data: shopping } = useShoppingState()
   const repository = useRepository()
+  const update = useUpdate()
+  const updateBox = useRef<HTMLElement | null>(null)
   const [copied, setCopied] = useState(false)
   const [saved, setSaved] = useState(false)
   const [orderReset, setOrderReset] = useState(false)
@@ -33,6 +42,14 @@ export default function SettingsPage() {
     setTheme(next)
     setThemeState(next)
   }
+
+  // Wer oben auf das Update-Zeichen getippt hat, landet hier — und soll den
+  // Knopf sehen, nicht erst danach suchen müssen.
+  useEffect(() => {
+    if (update.ready) {
+      updateBox.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }
+  }, [update.ready])
 
   const code = household ? formatHouseholdCode(household.id) : null
 
@@ -97,6 +114,8 @@ export default function SettingsPage() {
       <PageHeader title="Einstellungen" back="/rezepte" />
 
       <div className="space-y-6 p-4">
+        <UpdateSection boxRef={updateBox} />
+
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
           <h2 className="text-sm font-semibold text-ink-700">Haushalt</h2>
 
@@ -286,6 +305,107 @@ export default function SettingsPage() {
         </section>
       </div>
     </>
+  )
+}
+
+/**
+ * Aktualisierung.
+ *
+ * Vorher tauschte sich die App stillschweigend aus, und man musste sie
+ * schließen, neu öffnen und den Stand ablesen, um zu wissen, ob etwas
+ * angekommen ist. Hier steht, ob etwas bereitliegt, was drinsteckt, und ein
+ * Knopf, der es einspielt.
+ */
+function UpdateSection({
+  boxRef,
+}: {
+  boxRef: React.RefObject<HTMLElement | null>
+}) {
+  const { ready, state, pending, check, install } = useUpdate()
+
+  return (
+    <section
+      ref={boxRef}
+      className={cx(
+        'rounded-2xl bg-surface p-4 ring-1',
+        ready ? 'ring-accent' : 'ring-clay-200',
+      )}
+    >
+      <h2 className="text-sm font-semibold text-ink-700">Aktualisierung</h2>
+
+      {ready ? (
+        <>
+          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+            Ein Update ist geladen und wartet. Die App startet dabei kurz neu.
+          </p>
+          <Button block className="mt-3" onClick={install}>
+            <UpdateIcon className="size-5" />
+            Jetzt aktualisieren
+          </Button>
+
+          {pending.length > 0 && (
+            <ChangeList title="Das ist neu darin" entries={pending} />
+          )}
+        </>
+      ) : (
+        <>
+          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+            {state === 'aktuell'
+              ? 'Alles auf dem neuesten Stand.'
+              : state === 'fehlgeschlagen'
+                ? 'Der Server war nicht erreichbar. Ohne Netz geht das nicht.'
+                : 'Die App sucht beim Start von selbst nach Updates. Du kannst auch jetzt nachsehen.'}
+          </p>
+          <Button
+            variant="secondary"
+            block
+            className="mt-3"
+            disabled={state === 'checking'}
+            onClick={() => void check()}
+          >
+            {state === 'checking' ? 'Wird gesucht …' : 'Nach Update suchen'}
+          </Button>
+        </>
+      )}
+
+      <ChangeList title="Zuletzt geändert" entries={CHANGELOG.slice(0, 5)} />
+    </section>
+  )
+}
+
+/** Ein paar Änderungsnotizen, in einfachen Worten. */
+function ChangeList({
+  title,
+  entries,
+}: {
+  title: string
+  entries: ChangeEntry[]
+}) {
+  if (entries.length === 0) return null
+
+  return (
+    <div className="mt-4 border-t border-clay-200 pt-3">
+      <h3 className="text-xs font-medium tracking-wide text-ink-400 uppercase">
+        {title}
+      </h3>
+      <ul className="mt-2 space-y-2.5">
+        {entries.map((entry, index) => (
+          <li key={`${entry.datum}-${index}`} className="text-xs leading-relaxed">
+            <span
+              className={cx(
+                'mr-1.5 rounded px-1.5 py-0.5 text-[0.65rem] font-medium',
+                entry.art === 'fehler'
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-accent-soft text-accent-text',
+              )}
+            >
+              {KIND_LABELS[entry.art]}
+            </span>
+            <span className="text-ink-600">{entry.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
