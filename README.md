@@ -122,11 +122,18 @@ Zwei Sorten Mikrofon, und der Unterschied ist wichtig:
   nicht mit, während man nachdenkt.
 
 Bei einer Zutat wird in beiden Fällen mitzerlegt: „300 Gramm Nudeln" setzt Name,
-Menge und Einheit. Bei einem Schritt hängt das kleine Mikrofon an, was schon
+Menge und Einheit — und „Nudeln 300 Gramm" genauso, die Wortstellung ist egal. Bei einem Schritt hängt das kleine Mikrofon an, was schon
 dasteht — Getipptes geht also nicht verloren.
 
 Wo der Browser keine Spracherkennung hat (Firefox etwa), erscheint gar kein
 Mikrofon, statt beim Antippen ins Leere zu laufen.
+
+**Eigene Wörter.** Die Erkennung selbst lässt sich nicht trainieren — sie kommt
+von Google und nimmt keine eigenen Wörter an. Dahinter sitzt aber eine
+Austauschliste: Verbesserst du einen gerade diktierten Zutatennamen von Hand,
+merkt sich die App das Paar („Fatham" → „Feta") und setzt beim nächsten Mal
+gleich das Richtige ein. Unter *Einstellungen → Eigene Wörter* steht die Liste
+zum Nachsehen, Löschen und Ergänzen. Sie gilt je Gerät.
 
 ## Zu zweit benutzen
 

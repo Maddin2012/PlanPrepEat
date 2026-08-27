@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useIngredientMap, useRecipeMap } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
@@ -23,6 +23,8 @@ import {
 } from '../../components/Icons.tsx'
 import { MicButton } from '../../components/MicButton.tsx'
 import { parseSpokenIngredient } from '../../domain/dictation.ts'
+import { applyCorrections, learnCorrection } from '../../domain/corrections.ts'
+import { useWordbook } from '../../lib/wordbook.ts'
 import { newId } from '../../data/ids.ts'
 import {
   ImageTooLargeError,
@@ -459,6 +461,23 @@ function IngredientEditor({
   knownNames: string[]
 }) {
   const listId = useId()
+  const [wordbook, saveWordbook] = useWordbook()
+
+  /**
+   * Was das Diktat zuletzt in eine Zeile geschrieben hat.
+   *
+   * Wird der Name danach von Hand geändert, war die Erkennung daneben — und
+   * genau dieses Paar ist etwas wert. Gelernt wird erst beim Verlassen des
+   * Feldes: Bei jedem Tastendruck käme sonst „Fatham → F", „Fatham → Fe" …
+   */
+  const spoken = useRef(new Map<string, string>())
+
+  function learnIfCorrected(key: string, name: string) {
+    const gehoert = spoken.current.get(key)
+    if (!gehoert) return
+    spoken.current.delete(key)
+    saveWordbook(learnCorrection(wordbook, gehoert, name))
+  }
 
   function patch(key: string, changes: Partial<ItemDraft>) {
     onChange(
@@ -472,7 +491,7 @@ function IngredientEditor({
    * weitere anzuhängen; sonst bliebe oben eine Leerzeile stehen.
    */
   function addSpoken(text: string) {
-    const spoken = parseSpokenIngredient(text)
+    const spoken = correctedIngredient(text)
     if (!spoken.name) return
 
     const last = items.at(-1)
@@ -500,12 +519,23 @@ function IngredientEditor({
    * den Namen nachträgt, will die getippte Menge nicht verlieren.
    */
   function fillSpoken(key: string, text: string) {
-    const spoken = parseSpokenIngredient(text)
-    if (!spoken.name) return
+    const gesprochen = correctedIngredient(text)
+    if (!gesprochen.name) return
+    // Merken, was die Erkennung geliefert hat — falls es gleich von Hand
+    // berichtigt wird, ist das die Gelegenheit zu lernen.
+    spoken.current.set(key, gesprochen.name)
     patch(key, {
-      name: spoken.name,
-      ...(spoken.amount ? { amount: spoken.amount, unit: spoken.unit } : {}),
+      name: gesprochen.name,
+      ...(gesprochen.amount
+        ? { amount: gesprochen.amount, unit: gesprochen.unit }
+        : {}),
     })
+  }
+
+  /** Zerlegen und die eigene Wörterliste darauf anwenden. */
+  function correctedIngredient(text: string) {
+    const gesprochen = parseSpokenIngredient(text)
+    return { ...gesprochen, name: applyCorrections(gesprochen.name, wordbook) }
   }
 
   return (
@@ -550,6 +580,7 @@ function IngredientEditor({
                 list={listId}
                 aria-label="Zutat"
                 onChange={(event) => patch(item.key, { name: event.target.value })}
+                onBlur={(event) => learnIfCorrected(item.key, event.target.value)}
                 placeholder="Zwiebeln"
                 className="ring-0"
               />

@@ -122,3 +122,75 @@ describe('splitSpokenSteps', () => {
     expect(splitSpokenSteps('   ')).toEqual([])
   })
 })
+
+describe('parseSpokenIngredient — Menge am Ende', () => {
+  /**
+   * „200 Gramm Tomaten" ging schon immer, „Tomaten 200 Gramm" landete komplett
+   * im Namensfeld. Beim Diktieren rutscht einem mal das eine, mal das andere
+   * heraus — beides muss ankommen.
+   */
+
+  it('versteht Zutat, Menge, Einheit', () => {
+    expect(parseSpokenIngredient('Tomaten 200 Gramm')).toEqual({
+      amount: '200',
+      unit: 'g',
+      name: 'Tomaten',
+    })
+  })
+
+  it('versteht eine Zahl am Ende ohne Einheit als Stück', () => {
+    expect(parseSpokenIngredient('Eier 3')).toEqual({
+      amount: '3',
+      unit: 'stk',
+      name: 'Eier',
+    })
+  })
+
+  it('versteht auch ausgeschriebene Zahlen am Ende', () => {
+    expect(parseSpokenIngredient('Zwiebeln zwei')).toEqual({
+      amount: '2',
+      unit: 'stk',
+      name: 'Zwiebeln',
+    })
+  })
+
+  it('versteht „ein halbes Kilo" am Ende', () => {
+    expect(parseSpokenIngredient('Hackfleisch ein halbes Kilo')).toEqual({
+      amount: '0,5',
+      unit: 'kg',
+      name: 'Hackfleisch',
+    })
+  })
+
+  it('lässt mehrteilige Namen zusammen', () => {
+    expect(parseSpokenIngredient('Passierte Tomaten 500 Gramm')).toEqual({
+      amount: '500',
+      unit: 'g',
+      name: 'Passierte Tomaten',
+    })
+  })
+
+  it('rührt eine Angabe am Anfang nicht an', () => {
+    // Steht vorn schon etwas, wird hinten nicht mehr gesucht — sonst risse
+    // eine Zahl im Namen die richtige Angabe wieder ein.
+    expect(parseSpokenIngredient('500 Gramm Mehl Typ 405')).toEqual({
+      amount: '500',
+      unit: 'g',
+      name: 'Mehl Typ 405',
+    })
+  })
+
+  it('lässt eine Zutat ohne Menge in Ruhe', () => {
+    expect(parseSpokenIngredient('Salz')).toEqual({
+      amount: '',
+      unit: 'g',
+      name: 'Salz',
+    })
+  })
+
+  it('macht aus einer Menge ohne Zutat keinen leeren Namen', () => {
+    // „200 Gramm" allein ist verhört. Dann lieber alles ins Namensfeld,
+    // sichtbar und mit zwei Handgriffen zu berichtigen.
+    expect(parseSpokenIngredient('200 Gramm').name).toBe('200 Gramm')
+  })
+})

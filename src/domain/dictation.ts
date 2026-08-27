@@ -143,6 +143,28 @@ export function parseSpokenIngredient(text: string): SpokenIngredient {
     }
   }
 
+  // Vorn war nichts? Dann das Ende absuchen — „Tomaten 200 Gramm" ist genauso
+  // gemeint wie „200 Gramm Tomaten", und beim Diktieren rutscht einem mal das
+  // eine, mal das andere heraus.
+  //
+  // Nur wenn vorn **gar nichts** stand: Sonst risse „500 Gramm Mehl 2" die
+  // vordere Angabe wieder ein.
+  if (amount === null && unit === null) {
+    const hinten = readTrailing(tokens)
+    if (hinten) {
+      const davor = tokens.slice(0, hinten.from).join(' ').trim()
+      // Ohne Namen davor war es doch nur eine Menge — dann greift unten die
+      // gewohnte Notlösung und der ganze Satz wird zum Namen.
+      if (davor) {
+        return {
+          amount: formatAmount(hinten.amount),
+          unit: hinten.unit ?? 'stk',
+          name: capitalize(davor),
+        }
+      }
+    }
+  }
+
   const name = tokens.slice(position).join(' ').trim()
 
   // Eine Einheit ohne alles andere ist kein Rezept, sondern verhört: dann
@@ -154,6 +176,51 @@ export function parseSpokenIngredient(text: string): SpokenIngredient {
     unit: unit ?? (amount === null ? 'g' : 'stk'),
     name: capitalize(name),
   }
+}
+
+/**
+ * Menge und Einheit am **Ende** lesen: „… 200 Gramm", „… 3", „… ein halbes Kilo".
+ *
+ * `from` sagt, ab welchem Wort die Angabe beginnt — alles davor ist der Name.
+ * `null` heißt: Am Ende steht keine Menge, hier ist nichts zu holen.
+ */
+function readTrailing(
+  tokens: string[],
+): { amount: number; unit: UnitCode | null; from: number } | null {
+  let ende = tokens.length
+  let unit: UnitCode | null = null
+
+  if (bare(tokens[ende - 1]) in UNIT_WORDS) {
+    unit = UNIT_WORDS[bare(tokens[ende - 1])]
+    ende -= 1
+  }
+  if (ende === 0) return null
+
+  const zahl = readNumberEndingAt(tokens, ende)
+  return zahl ? { amount: zahl.value, unit, from: zahl.from } : null
+}
+
+/** Die Zahl, die unmittelbar vor `ende` steht — als Ziffern oder als Wort. */
+function readNumberEndingAt(
+  tokens: string[],
+  ende: number,
+): { value: number; from: number } | null {
+  const letztes = bare(tokens[ende - 1])
+
+  const asDigits = digits(letztes)
+  if (asDigits !== null) return { value: asDigits, from: ende - 1 }
+
+  if (HALF_WORDS.has(letztes)) {
+    // „ein halbes Kilo" — die Eins davor ist nur Grammatik und gehört mit weg.
+    const davor = ende >= 2 ? bare(tokens[ende - 2]) : ''
+    const eins = NUMBER_WORDS[davor] === 1
+    return { value: 0.5, from: ende - (eins ? 2 : 1) }
+  }
+
+  if (letztes in NUMBER_WORDS) {
+    return { value: NUMBER_WORDS[letztes], from: ende - 1 }
+  }
+  return null
 }
 
 /** Zutatennamen fangen groß an — die Erkennung liefert sie oft klein. */

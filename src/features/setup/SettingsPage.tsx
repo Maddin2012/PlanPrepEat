@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useSession } from '../../data/RepositoryContext.tsx'
 import { formatHouseholdCode } from '../../data/ids.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
-import { Button } from '../../components/ui.tsx'
+import { Button, Field, IconButton, TextInput } from '../../components/ui.tsx'
 import {
+  CloseIcon,
   CopyIcon,
   DownloadIcon,
+  PlusIcon,
   ShareIcon,
   UpdateIcon,
 } from '../../components/Icons.tsx'
@@ -17,6 +19,9 @@ import { cx } from '../../components/ui.tsx'
 import { useOnline, useRecipes, useShoppingState } from '../../data/hooks.ts'
 import { useUpdate } from '../../lib/updates.tsx'
 import { CHANGELOG, KIND_LABELS, type ChangeEntry } from '../../data/changelog.ts'
+import { useWordbook } from '../../lib/wordbook.ts'
+import { forgetCorrection, learnCorrection } from '../../domain/corrections.ts'
+import { isDictationAvailable } from '../../lib/speech.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import { backupFilename, formatRecipeBackup } from '../../domain/backup.ts'
 import { downloadText } from '../../lib/download.ts'
@@ -186,6 +191,8 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        <WordbookSection />
+
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
           <h2 className="text-sm font-semibold text-ink-700">
             Ladenreihenfolge
@@ -305,6 +312,102 @@ export default function SettingsPage() {
         </section>
       </div>
     </>
+  )
+}
+
+/**
+ * Die eigene Wörterliste fürs Diktat.
+ *
+ * **Die Spracherkennung selbst lässt sich nicht trainieren** — sie kommt von
+ * Google und nimmt keine eigenen Wörter an. Diese Liste sitzt dahinter und
+ * tauscht aus, was falsch verstanden wurde. Sie füllt sich von selbst, wenn man
+ * einen diktierten Zutatennamen überschreibt; hier steht sie zum Nachsehen,
+ * Löschen und Ergänzen.
+ *
+ * Ohne Spracherkennung auf dem Gerät gibt es nichts zu korrigieren — dann
+ * erscheint der Abschnitt gar nicht, wie das Mikrofon auch.
+ */
+function WordbookSection() {
+  const [wordbook, saveWordbook] = useWordbook()
+  const [gehoert, setGehoert] = useState('')
+  const [gemeint, setGemeint] = useState('')
+
+  if (!isDictationAvailable()) return null
+
+  function add() {
+    if (!gehoert.trim() || !gemeint.trim()) return
+    saveWordbook(learnCorrection(wordbook, gehoert, gemeint))
+    setGehoert('')
+    setGemeint('')
+  }
+
+  return (
+    <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
+      <h2 className="text-sm font-semibold text-ink-700">Eigene Wörter</h2>
+      <p className="mt-1 text-sm leading-relaxed text-ink-500">
+        {wordbook.length === 0
+          ? 'Noch nichts gelernt. Verbesserst du einen diktierten Zutatennamen von Hand, merkt sich die App das Paar.'
+          : `${wordbook.length} ${wordbook.length === 1 ? 'Wort wird' : 'Wörter werden'} nach dem Diktieren ausgetauscht.`}
+      </p>
+
+      {wordbook.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {wordbook.map((entry) => (
+            <li
+              key={entry.gehoert}
+              className="flex items-center gap-2 rounded-lg bg-clay-100 py-1 pr-1 pl-3 text-sm"
+            >
+              <span className="min-w-0 flex-1 truncate text-ink-600">
+                <span className="text-ink-400">{entry.gehoert}</span>
+                {' → '}
+                <span className="font-medium text-ink-900">{entry.gemeint}</span>
+              </span>
+              <IconButton
+                label={`„${entry.gemeint}" vergessen`}
+                className="size-8 shrink-0 text-ink-400"
+                onClick={() => saveWordbook(forgetCorrection(wordbook, entry.gehoert))}
+              >
+                <CloseIcon className="size-4" />
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form
+        className="mt-3 flex items-end gap-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          add()
+        }}
+      >
+        <Field label="Verstanden als" className="min-w-0 flex-1">
+          <TextInput
+            value={gehoert}
+            onChange={(event) => setGehoert(event.target.value)}
+            placeholder="Fatham"
+          />
+        </Field>
+        <Field label="Gemeint ist" className="min-w-0 flex-1">
+          <TextInput
+            value={gemeint}
+            onChange={(event) => setGemeint(event.target.value)}
+            placeholder="Feta"
+          />
+        </Field>
+        <Button
+          type="submit"
+          className="mb-1"
+          disabled={!gehoert.trim() || !gemeint.trim()}
+        >
+          <PlusIcon className="size-5" />
+        </Button>
+      </form>
+
+      <p className="mt-3 text-xs leading-relaxed text-ink-400">
+        Gilt nur auf diesem Gerät.
+      </p>
+    </section>
   )
 }
 

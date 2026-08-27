@@ -1,6 +1,16 @@
 [
   {
     "datum": "2026-08-26",
+    "art": "besser",
+    "text": "Beim Diktieren einer Zutat geht jetzt auch „Tomaten 200 Gramm“ — nicht mehr nur „200 Gramm Tomaten“."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "Die App merkt sich verhörte Wörter: Verbesserst du einen diktierten Zutatennamen, steht beim nächsten Mal gleich der richtige da. Die Liste steht in den Einstellungen."
+  },
+  {
+    "datum": "2026-08-26",
     "art": "neu",
     "text": "Updates lassen sich in den Einstellungen selbst starten. Steht eines bereit, erscheint oben in der Kopfzeile ein Punkt."
   },
