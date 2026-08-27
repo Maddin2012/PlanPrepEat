@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useIngredientMap, useRecipeMap } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import type { UnitCode } from '../../domain/types.ts'
@@ -16,6 +16,7 @@ import {
 } from '../../components/ui.tsx'
 import {
   CameraIcon,
+  ClipboardIcon,
   CloseIcon,
   ImageIcon,
   PlusIcon,
@@ -26,6 +27,7 @@ import { parseSpokenIngredient } from '../../domain/dictation.ts'
 import { applyCorrections, learnCorrection } from '../../domain/corrections.ts'
 import { useWordbook } from '../../lib/wordbook.ts'
 import { newId } from '../../data/ids.ts'
+import { RecipeTextError, parseRecipeText } from '../../domain/recipeText.ts'
 import {
   ImageTooLargeError,
   loadBitmap,
@@ -58,11 +60,14 @@ type PhotoState =
 
 export default function RecipeEditPage() {
   const { id } = useParams<{ id: string }>()
+  const [search] = useSearchParams()
   const navigate = useNavigate()
   const repository = useRepository()
   const recipes = useRecipeMap()
   const catalog = useIngredientMap()
   const existing = id ? recipes.get(id) : undefined
+  // „Kopieren" führt auf /rezepte/neu?von=<id> — dann ist das Vorbild hier.
+  const source = !id ? recipes.get(search.get('von') ?? '') : undefined
 
   const [name, setName] = useState('')
   const [servings, setServings] = useState('2')
@@ -78,6 +83,7 @@ export default function RecipeEditPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pasting, setPasting] = useState(false)
 
   // Das vorhandene Rezept einmalig ins Formular übernehmen. Danach nicht mehr,
   // sonst würde eine Änderung der anderen Person die eigene Eingabe überschreiben.
@@ -95,6 +101,33 @@ export default function RecipeEditPage() {
     setPreview(existing.thumb ?? null)
     setReady(true)
   }, [id, ready, existing])
+
+  /**
+   * Beim Kopieren das Vorbild übernehmen — einmalig, wie beim Bearbeiten.
+   *
+   * Ohne Foto: Ein kopiertes Rezept ist ein anderes Gericht, und das alte Bild
+   * dazu wäre eine Behauptung. Der Name bekommt „(Kopie)", damit die beiden im
+   * Rezeptbuch auseinanderzuhalten sind.
+   */
+  // `ready` taugt hier nicht als Riegel: Bei einem neuen Rezept steht es von
+  // Anfang an auf true (es gibt ja nichts zu laden). Deshalb ein eigener
+  // Merker — sonst liefe die Übernahme entweder nie oder bei jeder Änderung
+  // am Vorbild erneut und überschriebe das Eingetippte.
+  const copied = useRef(false)
+
+  useEffect(() => {
+    if (id || copied.current || !source) return
+    copied.current = true
+    setName(`${source.name} (Kopie)`)
+    setServings(String(source.servings))
+    setMinutes(source.minutes > 0 ? String(source.minutes) : '')
+    setSteps(stepsFromText(source.steps))
+    setItems(
+      source.items.length > 0
+        ? source.items.map(itemDraftFrom)
+        : [emptyItemDraft()],
+    )
+  }, [id, source])
 
   // Beim Bearbeiten das Vollbild nachladen, damit die Vorschau scharf ist.
   useEffect(() => {
@@ -148,6 +181,39 @@ export default function RecipeEditPage() {
   function cancelCrop() {
     cropping?.close?.()
     setCropping(null)
+  }
+
+  /**
+   * Ein geteiltes Rezept aus Text übernehmen.
+   *
+   * Was aus einem Messenger kommt, hat unterwegs allerlei erlebt — deshalb
+   * liest `parseRecipeText` großzügig und sagt Bescheid, wenn gar nichts
+   * Brauchbares darin steht. Eingetragen wird ins Formular, nicht direkt
+   * gespeichert: So sieht man vorher, was ankommt, und kann es geraderücken.
+   */
+  function pasteRecipe(text: string) {
+    try {
+      const gelesen = parseRecipeText(text)
+      setName(gelesen.name)
+      setServings(String(gelesen.servings))
+      setMinutes(gelesen.minutes > 0 ? String(gelesen.minutes) : '')
+      setSteps(stepsFromText(gelesen.steps))
+      setItems(
+        gelesen.items.length > 0
+          ? gelesen.items.map((item) =>
+              itemDraftFrom({ ...item, ingredientId: '' }),
+            )
+          : [emptyItemDraft()],
+      )
+      setError(null)
+      setPasting(false)
+    } catch (cause) {
+      setError(
+        cause instanceof RecipeTextError
+          ? cause.message
+          : 'Dieser Text ließ sich nicht lesen.',
+      )
+    }
   }
 
   function removePhoto() {
@@ -209,13 +275,22 @@ export default function RecipeEditPage() {
         title={id ? 'Rezept bearbeiten' : 'Neues Rezept'}
         back
         actions={
-          id && (
+          id ? (
             <IconButton
               label="Rezept löschen"
               className="text-red-600"
               onClick={() => setConfirmDelete(true)}
             >
               <TrashIcon className="size-5" />
+            </IconButton>
+          ) : (
+            // Nur beim neuen Rezept: ein geteiltes Rezept einfügen, statt es
+            // abzutippen. Beim Bearbeiten wäre es ein Überschreiben.
+            <IconButton
+              label="Rezept aus Text einfügen"
+              onClick={() => setPasting(true)}
+            >
+              <ClipboardIcon className="size-5" />
             </IconButton>
           )
         }
@@ -312,6 +387,12 @@ export default function RecipeEditPage() {
         )}
       </form>
 
+      <PasteSheet
+        open={pasting}
+        onClose={() => setPasting(false)}
+        onPaste={pasteRecipe}
+      />
+
       {/* Speichern bleibt in Daumenreichweite, egal wie lang das Formular wird. */}
       <div className="safe-bottom sticky bottom-0 border-t border-clay-200 bg-surface/95 p-4 backdrop-blur">
         <div className="flex gap-2">
@@ -354,6 +435,51 @@ export default function RecipeEditPage() {
         </p>
       </Sheet>
     </>
+  )
+}
+
+/**
+ * Ein geteiltes Rezept einfügen.
+ *
+ * Absichtlich ein Textfeld zum Hineinkopieren und kein Griff in die
+ * Zwischenablage: Das Lesen der Zwischenablage verlangt in vielen Browsern eine
+ * Erlaubnis, geht am Rechner oft gar nicht — und niemand versteht, warum eine
+ * Rezept-App danach fragt. Einfügen kann jeder.
+ */
+function PasteSheet({
+  open,
+  onClose,
+  onPaste,
+}: {
+  open: boolean
+  onClose: () => void
+  onPaste: (text: string) => void
+}) {
+  const [text, setText] = useState('')
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Rezept einfügen"
+      footer={
+        <Button block disabled={!text.trim()} onClick={() => onPaste(text)}>
+          Übernehmen
+        </Button>
+      }
+    >
+      <p className="mb-3 text-sm leading-relaxed text-ink-500">
+        Füge hier ein Rezept ein, das dir jemand geschickt hat. Es landet im
+        Formular — du kannst es vor dem Speichern noch ändern.
+      </p>
+      <textarea
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        rows={10}
+        aria-label="Rezepttext"
+        className="w-full resize-none rounded-xl bg-surface p-3 font-mono text-xs leading-relaxed text-ink-900 ring-1 ring-clay-200 outline-none focus:ring-2 focus:ring-accent"
+      />
+    </Sheet>
   )
 }
 

@@ -1,6 +1,26 @@
 [
   {
     "datum": "2026-08-26",
+    "art": "neu",
+    "text": "Am Rezept stehen jetzt drei Knöpfe: Einplanen, Kopieren und Teilen."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "„Einplanen“ zeigt die nächsten zwei Wochen — ein Tipp auf Mittag oder Abend, und das Rezept steht im Plan."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "„Kopieren“ legt ein neues Rezept mit denselben Zutaten an, damit man für eine Abwandlung nicht alles neu tippt."
+  },
+  {
+    "datum": "2026-08-26",
+    "art": "neu",
+    "text": "„Teilen“ verschickt das Rezept als lesbaren Text. Wer die App hat, fügt ihn beim neuen Rezept über das Klemmbrett-Zeichen wieder ein."
+  },
+  {
+    "datum": "2026-08-26",
     "art": "besser",
     "text": "Beim Diktieren einer Zutat geht jetzt auch „Tomaten 200 Gramm“ — nicht mehr nur „200 Gramm Tomaten“."
   },

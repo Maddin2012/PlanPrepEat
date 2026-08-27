@@ -110,6 +110,24 @@ Anzeigen, und zwar in jeder der drei Ansichten anders.
 beschnitten. Wer eines davon anders haben will, öffnet das Rezept und wählt das
 Bild neu.
 
+## Was man mit einem Rezept machen kann
+
+Unter dem Bild stehen drei Knöpfe:
+
+- **Einplanen** — die nächsten zwei Wochen, je Mittag und Abend. Ein Tipp, und
+  das Rezept steht im Plan; mit der Portionszahl, die gerade eingestellt ist.
+  Liegt auf dem Platz schon etwas, kommt es dazu statt es zu ersetzen.
+- **Kopieren** — legt ein neues Rezept mit denselben Zutaten und Schritten an,
+  benannt mit „(Kopie)". Für „Nudeln mit Tomatensoße" → „… und Jägerschnitzel"
+  muss man dann nur noch ergänzen. Ohne Foto: Das gehört zum alten Gericht.
+- **Teilen** — schickt das Rezept als lesbaren Text, über WhatsApp, Mail oder
+  was sonst da ist. Wer die App nicht hat, kann es trotzdem lesen und nachkochen.
+
+**Ein geteiltes Rezept übernehmen:** Beim Anlegen eines neuen Rezepts sitzt oben
+rechts ein Klemmbrett-Zeichen. Text hineinkopieren, *Übernehmen* — es landet im
+Formular, wo man es vor dem Speichern noch ändern kann. Es ist dasselbe Format
+wie in der Sicherung; ein Rezept lässt sich also auch von dort herauskopieren.
+
 ## Diktieren
 
 Zwei Sorten Mikrofon, und der Unterschied ist wichtig:

@@ -49,7 +49,15 @@ export function formatRecipeBackup(
 const TRENNER_DICK = '═'.repeat(40)
 const TRENNER_DUENN = '─'.repeat(40)
 
-function formatRecipe(recipe: Recipe): string {
+/**
+ * Ein Rezept als lesbarer Text.
+ *
+ * Öffentlich, weil zwei Wege ihn brauchen: die Sicherung aller Rezepte und das
+ * Verschicken eines einzelnen. Die Form ist dieselbe — und `recipeText.ts`
+ * liest sie wieder ein. Wer hier etwas ändert, muss dort nachziehen; die
+ * Hin-und-Rückweg-Tests halten die beiden zusammen.
+ */
+export function formatRecipe(recipe: Recipe): string {
   const zeilen = [recipe.name, formatMeta(recipe), '']
 
   if (recipe.items.length > 0) {

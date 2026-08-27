@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useRecipeMap, useRecipes } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import { scaleItems } from '../../domain/scaling.ts'
 import { formatAmount } from '../../domain/units.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button, EmptyState, Spinner } from '../../components/ui.tsx'
-import { ClockIcon, UsersIcon } from '../../components/Icons.tsx'
+import {
+  CalendarIcon,
+  ClockIcon,
+  CopyIcon,
+  ShareIcon,
+  UsersIcon,
+} from '../../components/Icons.tsx'
+import { formatRecipe } from '../../domain/backup.ts'
+import { shareText } from '../../lib/share.ts'
+import AddToPlanSheet from './AddToPlanSheet.tsx'
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -14,8 +23,11 @@ export default function RecipeDetailPage() {
   const { loading } = useRecipes()
   const recipe = useRecipeMap().get(id ?? '')
 
+  const navigate = useNavigate()
   const [servings, setServings] = useState<number | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
+  const [planning, setPlanning] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   // Der Portionsregler startet bei der Angabe des Rezepts, bleibt danach aber
   // beim selbst gewählten Wert stehen.
@@ -62,6 +74,27 @@ export default function RecipeDetailPage() {
   const steps = recipe.steps.split('\n').filter((line) => line.trim())
   const scaled = shown !== recipe.servings
 
+  /**
+   * Das Rezept als Text verschicken.
+   *
+   * Dieselbe Form wie in der Sicherung, über `formatRecipe`. Wer die App hat,
+   * fügt den Text unter „Rezept einfügen" ein; wer sie nicht hat, kann trotzdem
+   * lesen und nachkochen. Kein Konto, keine Ablage außerhalb des Haushalts.
+   */
+  async function share() {
+    const ergebnis = await shareText({
+      title: recipe!.name,
+      text: formatRecipe(recipe!),
+    })
+    if (ergebnis === 'copied') flash('Rezept in die Zwischenablage kopiert.')
+    else if (ergebnis === 'failed') flash('Das hat leider nicht geklappt.')
+  }
+
+  function flash(text: string) {
+    setToast(text)
+    setTimeout(() => setToast(null), 2600)
+  }
+
   return (
     <>
       <PageHeader
@@ -86,6 +119,30 @@ export default function RecipeDetailPage() {
       )}
 
       <div className="space-y-6 p-4">
+        {/* Die drei Handgriffe, die man am Rezept am häufigsten braucht. */}
+        <div className="flex gap-2">
+          <Button className="min-w-0 flex-1" onClick={() => setPlanning(true)}>
+            <CalendarIcon className="size-5 shrink-0" />
+            <span className="truncate">Einplanen</span>
+          </Button>
+          <Button
+            variant="secondary"
+            className="min-w-0 flex-1"
+            onClick={() => navigate(`/rezepte/neu?von=${recipe.id}`)}
+          >
+            <CopyIcon className="size-5 shrink-0" />
+            <span className="truncate">Kopieren</span>
+          </Button>
+          <Button
+            variant="secondary"
+            className="min-w-0 flex-1"
+            onClick={() => void share()}
+          >
+            <ShareIcon className="size-5 shrink-0" />
+            <span className="truncate">Teilen</span>
+          </Button>
+        </div>
+
         {recipe.minutes > 0 && (
           <p className="inline-flex items-center gap-1.5 text-sm text-ink-500">
             <ClockIcon className="size-4" />
@@ -162,6 +219,19 @@ export default function RecipeDetailPage() {
           </section>
         )}
       </div>
+
+      <AddToPlanSheet
+        open={planning}
+        recipe={recipe}
+        servings={shown}
+        onClose={() => setPlanning(false)}
+      />
+
+      {toast && (
+        <p className="fixed inset-x-4 bottom-24 z-40 rounded-xl bg-overlay p-3 text-center text-sm text-on-overlay shadow-lg">
+          {toast}
+        </p>
+      )}
     </>
   )
 }

@@ -108,6 +108,15 @@ export const ShareIcon = (props: IconProps) => (
 )
 
 /** Kreisender Pfeil — für „es gibt etwas Neues". */
+/** Klemmbrett — für „aus Text einfügen". */
+export const ClipboardIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="8" y="3" width="8" height="4" rx="1" />
+    <path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3" />
+    <path d="M9 12h6M9 16h4" />
+  </Icon>
+)
+
 export const UpdateIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M20 12a8 8 0 1 1-2.3-5.6" />
