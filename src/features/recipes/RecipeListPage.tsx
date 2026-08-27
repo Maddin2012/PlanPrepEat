@@ -17,10 +17,16 @@ import {
   Spinner,
   TextInput,
 } from '../../components/ui.tsx'
+import AddToPlanSheet from './AddToPlanSheet.tsx'
 
 export default function RecipeListPage() {
   const { data: recipes, loading } = useRecipes()
   const [query, setQuery] = useState('')
+
+  // **Ein** Blatt für die ganze Seite, nicht eines je Zeile: Das Blatt fragt die
+  // belegten Plätze der nächsten zwei Wochen ab, und dieselbe Abfrage dreißigmal
+  // nebeneinander wäre reine Verschwendung.
+  const [planning, setPlanning] = useState<Recipe | null>(null)
 
   const visible = useMemo(
     () => filterRecipes(recipes, query),
@@ -94,11 +100,29 @@ export default function RecipeListPage() {
       ) : (
         <ul className="divide-y divide-clay-200/70 px-4">
           {visible.map((recipe) => (
-            <li key={recipe.id}>
+            <li key={recipe.id} className="flex items-center gap-1">
               <RecipeRow recipe={recipe} />
+              <IconButton
+                label={`Einplanen: ${recipe.name}`}
+                className="text-accent-text"
+                onClick={() => setPlanning(recipe)}
+              >
+                <PlusIcon className="size-5" />
+              </IconButton>
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Erst beim Antippen eingehängt — vorher gibt es kein Rezept, für das es
+          etwas abzufragen gäbe. */}
+      {planning && (
+        <AddToPlanSheet
+          open
+          recipe={planning}
+          servings={planning.servings}
+          onClose={() => setPlanning(null)}
+        />
       )}
     </>
   )
@@ -106,9 +130,12 @@ export default function RecipeListPage() {
 
 function RecipeRow({ recipe }: { recipe: Recipe }) {
   return (
+    // Der Verweis umfasst **nicht** mehr die ganze Zeile: Ein Knopf darf nicht
+    // in einem Verweis stehen, und der Tipp aufs Plus spränge sonst zusätzlich
+    // ins Rezept.
     <Link
       to={`/rezepte/${recipe.id}`}
-      className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors active:bg-clay-100"
+      className="-ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-xl py-3 pl-2 transition-colors active:bg-clay-100"
     >
       <Thumb recipe={recipe} />
 

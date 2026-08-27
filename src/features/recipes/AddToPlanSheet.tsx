@@ -21,9 +21,11 @@ const DAYS_AHEAD = 14
 /**
  * Ein Rezept vom Rezeptbuch aus einplanen.
  *
- * Vorher musste man sich den Namen merken, in den Essensplan wechseln, den Tag
- * suchen und das Rezept dort noch einmal auswählen. Hier steht die Liste der
- * nächsten Tage, ein Tipp genügt.
+ * Geöffnet wird es über das Pluszeichen an der Zeile im Rezeptbuch — dort geht
+ * man die Rezepte durch, wenn man den Plan füllt. Vorher musste man sich den
+ * Namen merken, in den Essensplan wechseln, den Tag suchen und das Rezept dort
+ * noch einmal auswählen. Hier steht die Liste der nächsten Tage, ein Tipp
+ * genügt.
  *
  * Der Platz wird **ergänzt**, nicht ersetzt: Steht dort schon etwas, kommt das
  * Rezept dazu — ein Platz darf mehrere fassen, Hauptgericht und Beilage sind
@@ -37,7 +39,10 @@ export default function AddToPlanSheet({
 }: {
   open: boolean
   recipe: Recipe
-  /** Die gerade eingestellte Portionszahl, nicht die des Rezepts. */
+  /**
+   * Mit wie vielen Portionen der Eintrag angelegt wird. Aus der Liste heraus die
+   * Angabe des Rezepts; ändern lässt sie sich danach im Plan am Eintrag selbst.
+   */
   servings: number
   onClose: () => void
 }) {

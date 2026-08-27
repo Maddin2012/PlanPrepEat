@@ -7,7 +7,6 @@ import { formatAmount } from '../../domain/units.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button, EmptyState, Spinner } from '../../components/ui.tsx'
 import {
-  CalendarIcon,
   ClockIcon,
   CopyIcon,
   ShareIcon,
@@ -15,7 +14,6 @@ import {
 } from '../../components/Icons.tsx'
 import { formatRecipe } from '../../domain/backup.ts'
 import { shareText } from '../../lib/share.ts'
-import AddToPlanSheet from './AddToPlanSheet.tsx'
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -26,7 +24,6 @@ export default function RecipeDetailPage() {
   const navigate = useNavigate()
   const [servings, setServings] = useState<number | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
-  const [planning, setPlanning] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   // Der Portionsregler startet bei der Angabe des Rezepts, bleibt danach aber
@@ -119,12 +116,9 @@ export default function RecipeDetailPage() {
       )}
 
       <div className="space-y-6 p-4">
-        {/* Die drei Handgriffe, die man am Rezept am häufigsten braucht. */}
+        {/* Einplanen sitzt in der Rezeptliste — dort geht man die Rezepte durch,
+            wenn man den Plan füllt, und muss dafür keines öffnen. */}
         <div className="flex gap-2">
-          <Button className="min-w-0 flex-1" onClick={() => setPlanning(true)}>
-            <CalendarIcon className="size-5 shrink-0" />
-            <span className="truncate">Einplanen</span>
-          </Button>
           <Button
             variant="secondary"
             className="min-w-0 flex-1"
@@ -219,13 +213,6 @@ export default function RecipeDetailPage() {
           </section>
         )}
       </div>
-
-      <AddToPlanSheet
-        open={planning}
-        recipe={recipe}
-        servings={shown}
-        onClose={() => setPlanning(false)}
-      />
 
       {toast && (
         <p className="fixed inset-x-4 bottom-24 z-40 rounded-xl bg-overlay p-3 text-center text-sm text-on-overlay shadow-lg">

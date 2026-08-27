@@ -112,11 +112,16 @@ Bild neu.
 
 ## Was man mit einem Rezept machen kann
 
-Unter dem Bild stehen drei Knöpfe:
+**Einplanen** geht direkt aus dem Rezeptbuch: Hinter jeder Zeile steht ein
+Pluszeichen. Ein Tipp darauf zeigt die nächsten zwei Wochen, je Mittag und
+Abend; noch ein Tipp, und das Rezept steht im Plan. Liegt auf dem Platz schon
+etwas, kommt es dazu statt es zu ersetzen — die Zahl in Klammern sagt, wie viel
+dort schon liegt. Angelegt wird es mit der Portionszahl des Rezepts; ändern
+lässt sie sich danach im Plan am Eintrag.
 
-- **Einplanen** — die nächsten zwei Wochen, je Mittag und Abend. Ein Tipp, und
-  das Rezept steht im Plan; mit der Portionszahl, die gerade eingestellt ist.
-  Liegt auf dem Platz schon etwas, kommt es dazu statt es zu ersetzen.
+Das Rezept dafür zu öffnen ist nicht nötig — wer den Plan füllt, geht die Liste
+durch. Unter dem Bild im Rezept stehen deshalb nur zwei Knöpfe:
+
 - **Kopieren** — legt ein neues Rezept mit denselben Zutaten und Schritten an,
   benannt mit „(Kopie)". Für „Nudeln mit Tomatensoße" → „… und Jägerschnitzel"
   muss man dann nur noch ergänzen. Ohne Foto: Das gehört zum alten Gericht.
