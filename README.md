@@ -133,6 +133,26 @@ rechts ein Klemmbrett-Zeichen. Text hineinkopieren, *Übernehmen* — es landet 
 Formular, wo man es vor dem Speichern noch ändern kann. Es ist dasselbe Format
 wie in der Sicherung; ein Rezept lässt sich also auch von dort herauskopieren.
 
+## Vorlesen beim Kochen
+
+Über den Zubereitungsschritten steht **Vorlesen**. Die App liest den ersten
+Schritt vor, geht danach von selbst zum nächsten und hebt jeweils den hervor,
+der gerade dran ist; er rückt auch von selbst ins Bild. Unten sitzt eine Leiste
+mit vier Knöpfen: einen Schritt zurück, anhalten, einen Schritt weiter, Schluss.
+
+Nach dem Anhalten geht es am **Anfang** des Schritts weiter, nicht mitten im
+Satz. Das ist Absicht: Mitten im Satz weiterzumachen klappt nicht auf allen
+Geräten verlässlich, und beim Kochen ist der ganze Schritt ohnehin das, was man
+noch einmal hören will.
+
+Vorgelesen wird, was dasteht — nur die Kürzel werden ausgesprochen statt
+buchstabiert: aus „2 EL" wird „zwei Esslöffel", aus „180 °C" werden „180 Grad".
+Der Text auf dem Bildschirm bleibt unverändert.
+
+Hat das Gerät keine deutsche Stimme, erscheint der Knopf gar nicht — eine
+englische Stimme, die „Zwiebeln würfeln" vorträgt, hilft niemandem. Den
+Bildschirm lässt die App weiterhin nicht an.
+
 ## Diktieren
 
 Zwei Sorten Mikrofon, und der Unterschied ist wichtig:

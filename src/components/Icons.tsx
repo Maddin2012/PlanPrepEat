@@ -189,6 +189,42 @@ export const GripIcon = (props: IconProps) => (
   </Icon>
 )
 
+/** Lautsprecher mit Schallwellen — der Knopf zum Vorlesen. */
+export const SpeakerIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M11 5 6.5 9H3v6h3.5L11 19z" />
+    <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10" />
+  </Icon>
+)
+
+export const PlayIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M7 4.5 19 12 7 19.5z" />
+  </Icon>
+)
+
+export const PauseIcon = (props: IconProps) => (
+  <Icon {...props} strokeWidth={2.5}>
+    <path d="M9 5v14M15 5v14" />
+  </Icon>
+)
+
+/** Zum nächsten Schritt springen. */
+export const NextIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 5l8 7-8 7z" />
+    <path d="M18 5v14" />
+  </Icon>
+)
+
+/** Zurück zum vorigen Schritt. */
+export const PrevIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M18 5l-8 7 8 7z" />
+    <path d="M6 5v14" />
+  </Icon>
+)
+
 export const CloudOffIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 3l18 18" />

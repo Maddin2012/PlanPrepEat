@@ -1,6 +1,16 @@
 [
   {
     "datum": "2026-08-27",
+    "art": "neu",
+    "text": "Die App liest die Zubereitung vor. Über den Schritten sitzt der Knopf „Vorlesen“: Sie liest einen Schritt, geht von selbst zum nächsten und hebt den hervor, der gerade dran ist. Unten kann man anhalten, einen Schritt zurück oder weiter springen."
+  },
+  {
+    "datum": "2026-08-27",
+    "art": "besser",
+    "text": "Beim Vorlesen werden Kürzel ausgesprochen statt buchstabiert: Aus „2 EL“ wird „zwei Esslöffel“, aus „180 °C“ werden „180 Grad“. Auf dem Bildschirm bleibt alles, wie es getippt wurde."
+  },
+  {
+    "datum": "2026-08-27",
     "art": "besser",
     "text": "Das Einplanen sitzt jetzt vorn im Rezeptbuch: Hinter jedem Rezept steht ein Pluszeichen — einmal tippen, Tag und Mahlzeit wählen, fertig. Man muss das Rezept dafür nicht mehr öffnen. Am Rezept selbst stehen deshalb nur noch Kopieren und Teilen."
   },

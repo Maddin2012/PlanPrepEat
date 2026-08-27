@@ -13,7 +13,9 @@ import {
   UsersIcon,
 } from '../../components/Icons.tsx'
 import { formatRecipe } from '../../domain/backup.ts'
+import { toSteps } from '../../domain/speakable.ts'
 import { shareText } from '../../lib/share.ts'
+import StepReader from './StepReader.tsx'
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -68,7 +70,7 @@ export default function RecipeDetailPage() {
     )
   }
 
-  const steps = recipe.steps.split('\n').filter((line) => line.trim())
+  const steps = toSteps(recipe.steps)
   const scaled = shown !== recipe.servings
 
   /**
@@ -191,27 +193,7 @@ export default function RecipeDetailPage() {
           )}
         </section>
 
-        {steps.length > 0 && (
-          <section>
-            <h2 className="mb-2 text-sm font-medium text-ink-600">Zubereitung</h2>
-
-            <ol className="space-y-3">
-              {steps.map((step, index) => (
-                <li
-                  key={index}
-                  className="flex gap-3 rounded-2xl bg-surface p-4 ring-1 ring-clay-200"
-                >
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-text">
-                    {index + 1}
-                  </span>
-                  <p className="min-w-0 flex-1 leading-relaxed text-ink-900">
-                    {step}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
+        {steps.length > 0 && <StepReader steps={steps} />}
       </div>
 
       {toast && (
