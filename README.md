@@ -14,7 +14,10 @@ Solche Einträge stehen im Plan, kommen aber nicht auf die Einkaufsliste — daf
 fehlen ihnen die Zutaten.
 
 **Rezeptbuch.** Rezepte mit Zutaten (Gramm, Milliliter, Stück, EL, TL …), Foto,
-Zubereitungszeit und Zubereitungsschritten. Die Schritte lassen sich am
+Zubereitungszeit und Zubereitungsschritten. Sie stehen als **Kacheln** zu zweit
+nebeneinander, das Foto oben — ein Rezeptbuch schlägt man nach Bildern auf, nicht
+nach Namen. Rezepte ohne Foto bekommen dieselbe Fläche mit einem Buchzeichen
+darin, damit die Kacheln nicht ausfransen. Die Schritte lassen sich am
 Anfasser links untereinander verschieben, wenn die Reihenfolge nicht stimmt. Jedes Rezept gilt für eine bestimmte
 Portionszahl; in der Rezeptansicht könnt ihr hoch- und runterrechnen, ohne das
 Rezept zu ändern. Die Suche findet Rezepte über ihren Namen und über die Zutaten.
@@ -112,8 +115,8 @@ Bild neu.
 
 ## Was man mit einem Rezept machen kann
 
-**Einplanen** geht direkt aus dem Rezeptbuch: Hinter jeder Zeile steht ein
-Pluszeichen. Ein Tipp darauf zeigt die nächsten zwei Wochen, je Mittag und
+**Einplanen** geht direkt aus dem Rezeptbuch: Oben rechts auf jeder Kachel sitzt
+ein Pluszeichen. Ein Tipp darauf zeigt die nächsten zwei Wochen, je Mittag und
 Abend; noch ein Tipp, und das Rezept steht im Plan. Liegt auf dem Platz schon
 etwas, kommt es dazu statt es zu ersetzen — die Zahl in Klammern sagt, wie viel
 dort schon liegt. Angelegt wird es mit der Portionszahl des Rezepts; ändern

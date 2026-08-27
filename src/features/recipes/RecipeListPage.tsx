@@ -5,7 +5,6 @@ import type { Recipe } from '../../domain/types.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
 import {
   BookIcon,
-  ClockIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
@@ -98,13 +97,19 @@ export default function RecipeListPage() {
           description="Zu dieser Suche gibt es kein Rezept."
         />
       ) : (
-        <ul className="divide-y divide-clay-200/70 px-4">
+        <ul className="grid grid-cols-2 gap-3 px-4">
           {visible.map((recipe) => (
-            <li key={recipe.id} className="flex items-center gap-1">
-              <RecipeRow recipe={recipe} />
+            // Der Knopf sitzt **neben** dem Verweis, nicht darin — verschachtelte
+            // Bedienelemente sind ungültig. Über die Kachel gelegt wird er erst
+            // hier, mit `absolute`.
+            <li key={recipe.id} className="relative">
+              <RecipeTile recipe={recipe} />
               <IconButton
                 label={`Einplanen: ${recipe.name}`}
-                className="text-accent-text"
+                // Auf einem Foto ist jede Farbe möglich. Die dunkle Scheibe
+                // darunter ist der einzige Weg, das Plus überall lesbar zu
+                // halten — deshalb `overlay`, das in beiden Fassungen dunkel ist.
+                className="absolute top-1 right-1 bg-overlay/70 text-on-overlay active:bg-overlay"
                 onClick={() => setPlanning(recipe)}
               >
                 <PlusIcon className="size-5" />
@@ -128,30 +133,30 @@ export default function RecipeListPage() {
   )
 }
 
-function RecipeRow({ recipe }: { recipe: Recipe }) {
+/**
+ * Eine Kachel: Bild oben, Name darunter.
+ *
+ * Zwei Spalten statt einer Zeilenliste — ein Rezeptbuch schlägt man nach Bildern
+ * auf, nicht nach Namen. `h-full` sorgt dafür, dass die beiden Kacheln einer
+ * Reihe gleich hoch aussehen, auch wenn der eine Name zwei Zeilen braucht und
+ * der andere eine.
+ */
+function RecipeTile({ recipe }: { recipe: Recipe }) {
   return (
-    // Der Verweis umfasst **nicht** mehr die ganze Zeile: Ein Knopf darf nicht
-    // in einem Verweis stehen, und der Tipp aufs Plus spränge sonst zusätzlich
-    // ins Rezept.
     <Link
       to={`/rezepte/${recipe.id}`}
-      className="-ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-xl py-3 pl-2 transition-colors active:bg-clay-100"
+      className="flex h-full flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200 transition-colors active:bg-clay-100"
     >
       <Thumb recipe={recipe} />
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-ink-900">{recipe.name}</p>
-        <p className="mt-0.5 flex items-center gap-2 text-xs text-ink-500">
-          <span>
-            {recipe.items.length}{' '}
-            {recipe.items.length === 1 ? 'Zutat' : 'Zutaten'}
-          </span>
-          {recipe.minutes > 0 && (
-            <span className="inline-flex items-center gap-1">
-              <ClockIcon className="size-3.5" />
-              {recipe.minutes} Min.
-            </span>
-          )}
+      <div className="p-2.5">
+        <p className="line-clamp-2 text-sm leading-snug font-medium text-ink-900">
+          {recipe.name}
+        </p>
+        <p className="mt-1 truncate text-xs text-ink-500">
+          {recipe.items.length}{' '}
+          {recipe.items.length === 1 ? 'Zutat' : 'Zutaten'}
+          {recipe.minutes > 0 && ` · ${recipe.minutes} Min.`}
         </p>
       </div>
     </Link>
@@ -165,15 +170,15 @@ function Thumb({ recipe }: { recipe: Recipe }) {
         src={recipe.thumb}
         alt=""
         loading="lazy"
-        className="h-14 w-[4.67rem] shrink-0 rounded-xl object-cover ring-1 ring-clay-200"
+        className="aspect-[4/3] w-full object-cover"
       />
     )
   }
   return (
-    // Dieselbe Fläche wie das Bildchen, sonst stünden die Rezeptnamen je nach
-    // Foto unterschiedlich weit eingerückt.
-    <div className="flex h-14 w-[4.67rem] shrink-0 items-center justify-center rounded-xl bg-accent-soft text-clay-300 ring-1 ring-clay-200">
-      <BookIcon className="size-6" />
+    // Dieselbe Fläche wie das Foto: Ohne sie stünden Kacheln mit und ohne Bild
+    // unterschiedlich hoch nebeneinander.
+    <div className="flex aspect-[4/3] w-full items-center justify-center bg-accent-soft text-clay-300">
+      <BookIcon className="size-8" />
     </div>
   )
 }

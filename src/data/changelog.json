@@ -1,6 +1,11 @@
 [
   {
     "datum": "2026-08-27",
+    "art": "besser",
+    "text": "Das Rezeptbuch zeigt Kacheln statt einer Liste: zwei nebeneinander, das Foto oben, Name und Zutatenzahl darunter. Das Pluszeichen zum Einplanen sitzt jetzt oben rechts auf der Kachel."
+  },
+  {
+    "datum": "2026-08-27",
     "art": "neu",
     "text": "Die App liest die Zubereitung vor. Über den Schritten sitzt der Knopf „Vorlesen“: Sie liest einen Schritt, geht von selbst zum nächsten und hebt den hervor, der gerade dran ist. Unten kann man anhalten, einen Schritt zurück oder weiter springen."
   },
