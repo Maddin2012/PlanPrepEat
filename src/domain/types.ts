@@ -1,3 +1,4 @@
+import { toPeople } from './people.ts'
 import { orderKey } from './shoppingKeys.ts'
 
 /** Datum im Format YYYY-MM-DD, immer als lokales Kalenderdatum gemeint. */
@@ -63,8 +64,23 @@ export interface Recipe {
 
 export type Meal = 'lunch' | 'dinner'
 
+/** Was jeder Eintrag im Plan haben kann, egal welcher Art. */
+interface PlanEntryBase {
+  /**
+   * Wer mitisst — Namen aus der Haushaltsliste, siehe `people.ts`.
+   *
+   * Fehlt oder leer heißt **alle**. Das ist der Regelfall, und deshalb steht
+   * hier nichts statt einer vollständigen Aufzählung: Ein Plan, an dem an jedem
+   * Eintrag beide Namen kleben, liest sich schlechter als einer ohne.
+   *
+   * Abgelegt werden die Namen als Text, nicht als Verweis auf einen Menschen.
+   * Wer aus der Haushaltsliste gestrichen wird, steht am alten Eintrag weiter.
+   */
+  eaters?: string[]
+}
+
 /** Ein auf einen Mahlzeiten-Platz gelegtes Rezept. */
-export interface RecipePlanEntry {
+export interface RecipePlanEntry extends PlanEntryBase {
   recipeId: string
   /** Für wie viele Portionen an diesem Tag gekocht wird. */
   servings: number
@@ -77,7 +93,7 @@ export interface RecipePlanEntry {
  * deshalb nicht auf: „Grillen" sagt nicht, was gekauft werden muss. Wer dafür
  * etwas braucht, trägt es dort als eigenen Posten ein.
  */
-export interface TextPlanEntry {
+export interface TextPlanEntry extends PlanEntryBase {
   text: string
 }
 
@@ -101,6 +117,11 @@ export function toPlanEntry(value: unknown): PlanEntry | null {
   if (typeof value !== 'object' || value === null) return null
   const entry = value as Record<string, unknown>
 
+  // Wer mitisst, ist freiwillig — fehlt es, bleibt das Feld weg statt als
+  // leere Liste dazustehen.
+  const eaters = toPeople(entry.eaters)
+  const wer = eaters.length > 0 ? { eaters } : {}
+
   // Das Rezept hat Vorrang: Ein alter Eintrag soll unter keinen Umständen
   // versehentlich als freier Text durchgehen.
   if (typeof entry.recipeId === 'string' && entry.recipeId !== '') {
@@ -108,14 +129,32 @@ export function toPlanEntry(value: unknown): PlanEntry | null {
     return {
       recipeId: entry.recipeId,
       servings: typeof servings === 'number' && servings > 0 ? servings : 1,
+      ...wer,
     }
   }
 
   if (typeof entry.text === 'string' && entry.text.trim() !== '') {
-    return { text: entry.text.trim() }
+    return { text: entry.text.trim(), ...wer }
   }
 
   return null
+}
+
+/**
+ * Ein Eintrag, wie er in die Ablage geschrieben wird.
+ *
+ * **Firestore nimmt `undefined` nicht an** — ein Eintrag ohne Namen hätte das
+ * Speichern des ganzen Platzes mit einem Fehler abgebrochen. Deshalb wird hier
+ * jedes Feld einzeln gesetzt und ein leeres weggelassen, statt das Objekt
+ * einfach durchzureichen.
+ */
+export function planEntryData(entry: PlanEntry): Record<string, unknown> {
+  const data: Record<string, unknown> = isRecipeEntry(entry)
+    ? { recipeId: entry.recipeId, servings: entry.servings }
+    : { text: entry.text }
+
+  if (entry.eaters && entry.eaters.length > 0) data.eaters = [...entry.eaters]
+  return data
 }
 
 /** Der Inhalt eines Mahlzeiten-Platzes, z.B. Hauptgericht plus Beilage. */

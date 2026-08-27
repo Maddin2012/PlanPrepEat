@@ -17,6 +17,7 @@ import type {
   Repository,
   Unsubscribe,
 } from '../repository.ts'
+import { toPeople } from '../../domain/people.ts'
 import { newId } from '../ids.ts'
 
 /**
@@ -35,6 +36,7 @@ export class MemoryRepository implements Repository {
   private photos = new Map<string, string>()
   private slots = new Map<string, PlanEntry[]>()
   private shopping: ShoppingState | null = null
+  private people: string[] = []
 
   private listeners = new Set<() => void>()
   private storageKey: string | null
@@ -166,6 +168,17 @@ export class MemoryRepository implements Repository {
     this.commit()
   }
 
+  // ------------------------------------------------------------ Wer isst mit
+
+  subscribePeople(listener: (people: string[]) => void): Unsubscribe {
+    return this.watch(() => listener([...this.people]))
+  }
+
+  async savePeople(people: string[]): Promise<void> {
+    this.people = [...people]
+    this.commit()
+  }
+
   // ------------------------------------------------------------------ intern
 
   private watch(emit: () => void): Unsubscribe {
@@ -192,6 +205,7 @@ export class MemoryRepository implements Repository {
           photos: [...this.photos.entries()],
           slots: [...this.slots.entries()],
           shopping: this.shopping,
+          people: this.people,
         }),
       )
     } catch {
@@ -240,6 +254,7 @@ export class MemoryRepository implements Repository {
       this.shopping = data.shopping
         ? normalizeShoppingState(data.shopping)
         : null
+      this.people = toPeople(data.people)
     } catch {
       // Beschädigter Stand: lieber leer starten als gar nicht starten.
     }

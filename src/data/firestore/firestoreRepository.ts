@@ -24,7 +24,12 @@ import type {
   Recipe,
   ShoppingState,
 } from '../../domain/types.ts'
-import { normalizeShoppingState, toPlanEntry } from '../../domain/types.ts'
+import {
+  normalizeShoppingState,
+  planEntryData,
+  toPlanEntry,
+} from '../../domain/types.ts'
+import { toPeople } from '../../domain/people.ts'
 import type {
   PhotoUpdate,
   RecipeDraft,
@@ -179,7 +184,14 @@ export class FirestoreRepository implements Repository {
   async setSlot(key: string, entries: PlanEntry[]): Promise<void> {
     const ref = doc(this.col('slots'), key)
     if (entries.length === 0) await deleteDoc(ref)
-    else await setDoc(ref, { entries, updatedAt: serverTimestamp() })
+    // Über `planEntryData`, nicht roh: Ein Eintrag ohne Namen trüge sonst ein
+    // `undefined` mit sich, und daran bricht Firestore das Schreiben ab.
+    else {
+      await setDoc(ref, {
+        entries: entries.map(planEntryData),
+        updatedAt: serverTimestamp(),
+      })
+    }
   }
 
   // ----------------------------------------------------------- Einkaufsliste
@@ -200,6 +212,24 @@ export class FirestoreRepository implements Repository {
 
   private shoppingRef(): DocumentReference {
     return doc(this.col('shopping'), 'state')
+  }
+
+  // ------------------------------------------------------------ Wer isst mit
+
+  /**
+   * Die Namen stehen im Haushaltsdokument selbst, nicht in einer eigenen
+   * Sammlung: Es sind eine Handvoll Wörter, die zusammen gelesen und zusammen
+   * geschrieben werden. Das Feld `members` bleibt davon unberührt — an ihm
+   * hängt die Sicherheitsregel.
+   */
+  subscribePeople(listener: (people: string[]) => void): Unsubscribe {
+    return onSnapshot(this.household(), (snapshot) => {
+      listener(toPeople(snapshot.exists() ? snapshot.data().people : null))
+    })
+  }
+
+  async savePeople(people: string[]): Promise<void> {
+    await setDoc(this.household(), { people }, { merge: true })
   }
 }
 

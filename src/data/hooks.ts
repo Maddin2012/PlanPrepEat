@@ -102,6 +102,21 @@ export function useShoppingState(): Loaded<ShoppingState> {
   return state
 }
 
+/** Wer im Haushalt mitisst — die Namen für die Marke am Planeintrag. */
+export function usePeople(): Loaded<string[]> {
+  const repository = useRepository()
+  const [state, setState] = useState<Loaded<string[]>>({
+    data: [],
+    loading: true,
+  })
+
+  useEffect(() => {
+    return repository.subscribePeople((data) => setState({ data, loading: false }))
+  }, [repository])
+
+  return state
+}
+
 /** Merkt sich, ob das Gerät gerade Netz hat — für den Offline-Hinweis. */
 export function useOnline(): boolean {
   const [online, setOnline] = useState(

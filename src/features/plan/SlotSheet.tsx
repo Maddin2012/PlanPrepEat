@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react'
 import type { Meal, PlanEntry, Recipe } from '../../domain/types.ts'
 import { isRecipeEntry } from '../../domain/types.ts'
 import { MEAL_LABELS, formatDayShort, fromISODate, WEEKDAY_LONG } from '../../domain/planWindow.ts'
-import { Button, EmptyState, IconButton, Sheet, TextInput } from '../../components/ui.tsx'
+import { normalizeEaters, toggleEater } from '../../domain/people.ts'
+import {
+  Button,
+  EmptyState,
+  IconButton,
+  Sheet,
+  TextInput,
+  cx,
+} from '../../components/ui.tsx'
 import { BookIcon, CloseIcon, PlusIcon, SearchIcon } from '../../components/Icons.tsx'
 import { Stepper } from '../recipes/RecipeDetailPage.tsx'
 
@@ -18,6 +26,7 @@ export default function SlotSheet({
   meal,
   entries,
   recipes,
+  people,
   onSave,
 }: {
   open: boolean
@@ -26,6 +35,8 @@ export default function SlotSheet({
   meal: Meal
   entries: PlanEntry[]
   recipes: Recipe[]
+  /** Wer im Haushalt mitisst — die Auswahl für die Marke. */
+  people: string[]
   onSave: (entries: PlanEntry[]) => void
 }) {
   const [picking, setPicking] = useState(false)
@@ -83,6 +94,38 @@ export default function SlotSheet({
 
   function remove(index: number) {
     onSave(entries.filter((_, position) => position !== index))
+  }
+
+  /**
+   * Einen Namen an- oder abwählen.
+   *
+   * Sind danach alle angehakt, wird daraus wieder „alle" — eine leere Auswahl.
+   * Deshalb springt beim zweiten Namen die Marke „alle" an und die einzelnen
+   * gehen aus: Es ist derselbe Sachverhalt, und zwei Schreibweisen dafür wären
+   * eine Quelle für Missverständnisse.
+   */
+  function toggle(index: number, name: string) {
+    onSave(
+      entries.map((entry, position) => {
+        if (position !== index) return entry
+        const eaters = normalizeEaters(
+          toggleEater(entry.eaters ?? [], name),
+          people,
+        )
+        return eaters.length > 0
+          ? { ...entry, eaters }
+          : withoutEaters(entry)
+      }),
+    )
+  }
+
+  /** „alle" — die Auswahl ganz aufheben. */
+  function clearEaters(index: number) {
+    onSave(
+      entries.map((entry, position) =>
+        position === index ? withoutEaters(entry) : entry,
+      ),
+    )
   }
 
   if (picking) {
@@ -206,6 +249,27 @@ export default function SlotSheet({
                   />
                 </div>
               )}
+
+              {people.length > 0 && (
+                <div className="mt-3 border-t border-clay-200 pt-3">
+                  <span className="text-sm text-ink-500">Wer isst mit</span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <EaterChip
+                      name="alle"
+                      active={(entry.eaters?.length ?? 0) === 0}
+                      onClick={() => clearEaters(index)}
+                    />
+                    {people.map((person) => (
+                      <EaterChip
+                        key={person}
+                        name={person}
+                        active={(entry.eaters ?? []).includes(person)}
+                        onClick={() => toggle(index, person)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -251,6 +315,54 @@ export default function SlotSheet({
           Zutaten.
         </p>
       </form>
+
+      {/* Ohne Namen im Haushalt gäbe es nichts anzuhaken. Statt die Auswahl
+          wortlos wegzulassen, steht hier, wo sie herkommt. */}
+      {people.length === 0 && entries.length > 0 && (
+        <p className="mt-4 text-xs leading-relaxed text-ink-400">
+          Wenn nicht immer alle mitessen: In den Einstellungen kannst du
+          eintragen, wer zum Haushalt gehört. Danach lässt sich hier je Gericht
+          anhaken, für wen es ist.
+        </p>
+      )}
     </Sheet>
   )
+}
+
+/**
+ * Ein Name zum Anhaken.
+ *
+ * Bewusst kein Häkchen-Kästchen: Auf dem Handy trifft man eine Fläche in
+ * Wortbreite deutlich sicherer, und die Namen stehen ohnehin nebeneinander.
+ */
+function EaterChip({
+  name,
+  active,
+  onClick,
+}: {
+  name: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cx(
+        'min-h-9 rounded-full px-3 text-sm font-medium transition-colors',
+        active
+          ? 'bg-accent text-on-accent'
+          : 'bg-clay-100 text-ink-600 active:bg-clay-200',
+      )}
+    >
+      {name}
+    </button>
+  )
+}
+
+/** Den Eintrag ohne das Feld zurückgeben — nicht mit leerer Liste darin. */
+function withoutEaters(entry: PlanEntry): PlanEntry {
+  const { eaters: _weg, ...rest } = entry
+  return rest as PlanEntry
 }

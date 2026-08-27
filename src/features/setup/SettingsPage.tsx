@@ -16,7 +16,13 @@ import { missingConfig } from '../../data/firebase.ts'
 import { inviteUrl } from '../../lib/invite.ts'
 import { readTheme, setTheme, type Theme } from '../../lib/theme.ts'
 import { cx } from '../../components/ui.tsx'
-import { useOnline, useRecipes, useShoppingState } from '../../data/hooks.ts'
+import {
+  useOnline,
+  usePeople,
+  useRecipes,
+  useShoppingState,
+} from '../../data/hooks.ts'
+import { MAX_NAME, addPerson, removePerson } from '../../domain/people.ts'
 import { useUpdate } from '../../lib/updates.tsx'
 import { CHANGELOG, KIND_LABELS, type ChangeEntry } from '../../data/changelog.ts'
 import { useWordbook } from '../../lib/wordbook.ts'
@@ -191,6 +197,8 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        <PeopleSection />
+
         <WordbookSection />
 
         <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
@@ -327,6 +335,89 @@ export default function SettingsPage() {
  * Ohne Spracherkennung auf dem Gerät gibt es nichts zu korrigieren — dann
  * erscheint der Abschnitt gar nicht, wie das Mikrofon auch.
  */
+/**
+ * Wer im Haushalt mitisst.
+ *
+ * Kein Konto und keine Anmeldung — nur Namen. Wer hier steht, lässt sich im
+ * Essensplan an ein Gericht hängen („heute nur für Martin"). Auch Kinder und
+ * Gäste ohne eigenes Gerät gehören dazu, deshalb ist es eine Liste zum Tippen
+ * und keine Geräteverwaltung.
+ */
+function PeopleSection() {
+  const repository = useRepository()
+  const { data: people } = usePeople()
+  const [name, setName] = useState('')
+
+  function add() {
+    const naechste = addPerson(people, name)
+    // Unverändert heißt: leer, schon da oder Liste voll. Das Feld trotzdem
+    // leeren wäre gemein — dann wüsste man nicht, was man getippt hatte.
+    if (naechste !== people) {
+      void repository.savePeople(naechste)
+      setName('')
+    }
+  }
+
+  return (
+    <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
+      <h2 className="text-sm font-semibold text-ink-700">Wer isst mit</h2>
+      <p className="mt-1 text-sm leading-relaxed text-ink-500">
+        {people.length === 0
+          ? 'Trag ein, wer zum Haushalt gehört. Danach kannst du im Essensplan an jedem Gericht anhaken, für wen es ist.'
+          : 'Im Essensplan lässt sich an jedem Gericht anhaken, für wen es ist. Ohne Häkchen gilt: alle.'}
+      </p>
+
+      {people.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {people.map((person) => (
+            <li
+              key={person}
+              className="flex items-center gap-1 rounded-full bg-clay-100 py-1 pr-1 pl-3 text-sm"
+            >
+              <span className="text-ink-900">{person}</span>
+              <IconButton
+                label={`${person} entfernen`}
+                className="size-7 shrink-0 text-ink-400"
+                onClick={() => void repository.savePeople(removePerson(people, person))}
+              >
+                <CloseIcon className="size-4" />
+              </IconButton>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form
+        className="mt-3 flex items-end gap-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          add()
+        }}
+      >
+        <Field label="Name" className="min-w-0 flex-1">
+          <TextInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Martin"
+            maxLength={MAX_NAME}
+            enterKeyHint="done"
+          />
+        </Field>
+        <Button type="submit" className="mb-1" disabled={name.trim() === ''}>
+          <PlusIcon className="size-5" />
+        </Button>
+      </form>
+
+      {people.length > 0 && (
+        <p className="mt-2 text-xs leading-relaxed text-ink-400">
+          Ein gestrichener Name bleibt an schon geplanten Gerichten stehen — der
+          Plan von letzter Woche soll nicht rückwirkend anders lauten.
+        </p>
+      )}
+    </section>
+  )
+}
+
 function WordbookSection() {
   const [wordbook, saveWordbook] = useWordbook()
   const [gehoert, setGehoert] = useState('')

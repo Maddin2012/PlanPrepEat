@@ -50,6 +50,19 @@ weiter will, tippt am Ende auf „30 Tage früher" bzw. „30 Tage später". Der
 Ein Tippen auf ein Feld öffnet die Rezeptauswahl, danach stellt ihr die Portionen
 ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.
 
+**Wer isst mit.** Trag in den Einstellungen unter *Wer isst mit* ein, wer zum
+Haushalt gehört — einfach Namen, keine Anmeldung, also auch Kinder und Gäste
+ohne eigenes Handy. Danach steht im Blatt an jedem Gericht eine Reihe zum
+Anhaken. Ohne Häkchen gilt **alle**, und dann steht auch nichts im Plan; sonst
+erscheint der Name klein am Eintrag. Hakt ihr alle an, springt es von selbst
+wieder auf „alle" — es ist ja dasselbe.
+
+Die Marke ist eine Notiz, sie rechnet nichts um: Die Einkaufsliste richtet sich
+weiter nach den Portionen. Wenn nur eine Person mitisst, stellt die Portionen
+entsprechend ein. Und ein Name, den ihr später aus der Liste streicht, bleibt an
+schon geplanten Gerichten stehen — der Plan von letzter Woche soll nicht
+rückwirkend anders lauten.
+
 **Einkaufsliste.** Ergibt sich automatisch aus den Rezepten der 12 Tage um heute
 herum, zusammengefasst und zunächst alphabetisch sortiert. Zweimal 200 g Zwiebeln
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.

@@ -69,4 +69,14 @@ export interface Repository {
     listener: (state: ShoppingState) => void,
   ): Unsubscribe
   saveShoppingState(state: ShoppingState): Promise<void>
+
+  /**
+   * Wer im Haushalt mitisst — eine Liste von Namen.
+   *
+   * Sie gehört zum Haushalt und nicht zum Gerät: Wer sie auf dem einen Gerät
+   * ergänzt, sieht sie auf dem anderen. Namen sind keine Anmeldung und geben
+   * keine Rechte; sie hängen nur als Marke an einem Eintrag im Plan.
+   */
+  subscribePeople(listener: (people: string[]) => void): Unsubscribe
+  savePeople(people: string[]): Promise<void>
 }

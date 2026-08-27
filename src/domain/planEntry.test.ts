@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { isRecipeEntry, toPlanEntry } from './types.ts'
+import { isRecipeEntry, planEntryData, toPlanEntry } from './types.ts'
+import type { PlanEntry } from './types.ts'
 
 /**
  * `toPlanEntry` steht zwischen den gespeicherten Plänen und der App. Liegt es
@@ -71,5 +72,77 @@ describe('isRecipeEntry', () => {
   it('trennt die beiden Formen', () => {
     expect(isRecipeEntry({ recipeId: 'r1', servings: 2 })).toBe(true)
     expect(isRecipeEntry({ text: 'Reste' })).toBe(false)
+  })
+})
+
+describe('toPlanEntry — wer mitisst', () => {
+  it('nimmt die Namen mit', () => {
+    expect(toPlanEntry({ recipeId: 'r1', servings: 2, eaters: ['Martin'] })).toEqual({
+      recipeId: 'r1',
+      servings: 2,
+      eaters: ['Martin'],
+    })
+  })
+
+  it('hängt auch an einem freien Eintrag', () => {
+    expect(toPlanEntry({ text: 'Pizza bestellen', eaters: ['Steffi'] })).toEqual({
+      text: 'Pizza bestellen',
+      eaters: ['Steffi'],
+    })
+  })
+
+  it('lässt das Feld weg, wenn niemand angehakt ist', () => {
+    // Nicht `eaters: []`: Ein leeres Feld an jedem Eintrag wäre Ballast in der
+    // Ablage und würde beim Vergleichen zweier Einträge stören.
+    expect(toPlanEntry({ recipeId: 'r1', servings: 2, eaters: [] })).toEqual({
+      recipeId: 'r1',
+      servings: 2,
+    })
+    expect(toPlanEntry({ recipeId: 'r1', servings: 2 })).toEqual({
+      recipeId: 'r1',
+      servings: 2,
+    })
+  })
+
+  it('wirft Unbrauchbares aus der Namensliste', () => {
+    expect(
+      toPlanEntry({ recipeId: 'r1', servings: 2, eaters: ['Martin', 7, '', null] }),
+    ).toEqual({ recipeId: 'r1', servings: 2, eaters: ['Martin'] })
+  })
+
+  it('verkraftet eine Namensliste, die gar keine ist', () => {
+    expect(toPlanEntry({ recipeId: 'r1', servings: 2, eaters: 'Martin' })).toEqual({
+      recipeId: 'r1',
+      servings: 2,
+    })
+  })
+})
+
+describe('planEntryData — was in die Ablage geht', () => {
+  it('schreibt niemals ein undefined', () => {
+    // Firestore bricht das Schreiben bei `undefined` ab. Ein Eintrag ohne
+    // Namen hätte damit den ganzen Platz mitgerissen.
+    for (const entry of [
+      { recipeId: 'r1', servings: 2 },
+      { text: 'Reste' },
+      { recipeId: 'r1', servings: 2, eaters: [] },
+    ] as PlanEntry[]) {
+      const data = planEntryData(entry)
+      expect(Object.values(data).every((value) => value !== undefined)).toBe(true)
+      expect('eaters' in data).toBe(false)
+    }
+  })
+
+  it('nimmt die Namen mit, wenn welche dastehen', () => {
+    expect(planEntryData({ recipeId: 'r1', servings: 2, eaters: ['Martin'] })).toEqual({
+      recipeId: 'r1',
+      servings: 2,
+      eaters: ['Martin'],
+    })
+  })
+
+  it('überlebt die Rundreise durch die Ablage', () => {
+    const entry: PlanEntry = { text: 'Grillen', eaters: ['Martin', 'Steffi'] }
+    expect(toPlanEntry(planEntryData(entry))).toEqual(entry)
   })
 })

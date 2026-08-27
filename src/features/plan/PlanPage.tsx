@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useRecipeMap, useRecipes, useSlots } from '../../data/hooks.ts'
+import { usePeople, useRecipeMap, useRecipes, useSlots } from '../../data/hooks.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import type { ISODate, Meal, PlanEntry } from '../../domain/types.ts'
 import { isRecipeEntry } from '../../domain/types.ts'
@@ -18,6 +18,7 @@ import {
 import { PageHeader } from '../../components/PageHeader.tsx'
 import { Button, cx } from '../../components/ui.tsx'
 import { PlusIcon } from '../../components/Icons.tsx'
+import { eatersLabel } from '../../domain/people.ts'
 import SlotSheet from './SlotSheet.tsx'
 
 /** Abstand zwischen der klebenden Kopfzeile und der angesprungenen Zeile. */
@@ -26,6 +27,7 @@ const HEADER_GAP = 8
 export default function PlanPage() {
   const repository = useRepository()
   const { data: recipes } = useRecipes()
+  const { data: people } = usePeople()
   const recipesById = useRecipeMap()
 
   /**
@@ -213,6 +215,7 @@ export default function PlanPage() {
                 else rows.current.delete(day.date)
               }}
               entriesByKey={entriesByKey}
+              people={people}
               recipeName={(id) => recipesById.get(id)?.name}
               onOpen={(meal) => setEditing({ date: day.date, meal })}
             />
@@ -236,6 +239,7 @@ export default function PlanPage() {
           meal={editing.meal}
           entries={editingEntries}
           recipes={recipes}
+          people={people}
           onSave={(entries) =>
             void saveSlot(editing.date, editing.meal, entries)
           }
@@ -267,12 +271,14 @@ function DayRow({
   day,
   registerRow,
   entriesByKey,
+  people,
   recipeName,
   onOpen,
 }: {
   day: CalendarDay
   registerRow: (element: HTMLDivElement | null) => void
   entriesByKey: Map<string, PlanEntry[]>
+  people: string[]
   recipeName: (id: string) => string | undefined
   onOpen: (meal: Meal) => void
 }) {
@@ -335,12 +341,17 @@ function DayRow({
                       : entry.text}
                   </span>
                   {/* Ein freier Eintrag hat keine Portionen — die Zeile fällt
-                      weg, statt „0 Portionen" zu behaupten. */}
-                  {isRecipeEntry(entry) && (
-                    <span className="text-[0.65rem] font-normal text-ink-400">
-                      {entry.servings} Portionen
-                    </span>
-                  )}
+                      weg, statt „0 Portionen" zu behaupten. Die Namen stehen
+                      dahinter und nur dann, wenn nicht alle mitessen. */}
+                  <span className="block truncate text-[0.65rem] font-normal text-ink-400">
+                    {isRecipeEntry(entry) && `${entry.servings} Portionen`}
+                    {isRecipeEntry(entry) && eatersLabel(entry.eaters, people) && ' · '}
+                    {eatersLabel(entry.eaters, people) && (
+                      <span className="text-accent-text">
+                        {eatersLabel(entry.eaters, people)}
+                      </span>
+                    )}
+                  </span>
                 </span>
               ))
             )}
