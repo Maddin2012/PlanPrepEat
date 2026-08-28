@@ -7,6 +7,12 @@ App verhält: eigenes Icon, Vollbild, funktioniert auch ohne Netz.
 
 ## Die drei Reiter
 
+Gewechselt wird unten in der Leiste — oder mit einem **waagerechten Wisch** über
+den Bildschirm. Am Ende ist Schluss: Von der Einkaufsliste aus geht es nicht im
+Kreis zurück ins Rezeptbuch. Auf den Anfassern zum Umsortieren greift die Geste
+nicht, dort wird weiter gezogen; und im Rezept, im Formular und in den
+Einstellungen tut ein Wisch nichts.
+
 **Essensplan.** Für jeden Tag Mittag und Abend. Ein Platz fasst mehrere Rezepte —
 Hauptgericht und Beilage sind schließlich zwei. Was kein Rezept hat, lässt sich
 unten im Blatt als freier Text eintragen: „Pizza bestellen", „Reste", „bei Oma".

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { NO_SWIPE } from '../../lib/gesture.ts'
 import { Link } from 'react-router-dom'
 import {
   DndContext,
@@ -622,6 +623,9 @@ function SortableRow({
             type="button"
             ref={setActivatorNodeRef}
             aria-label={`${item.name} verschieben`}
+            // Hier wird gezogen, nicht gewischt: Ohne diese Marke wechselte
+            // beim Umsortieren der Reiter.
+            {...{ [NO_SWIPE]: true }}
             // touch-none verhindert, dass der Browser die Geste als Scrollen
             // beansprucht, bevor dnd-kit sie überhaupt zu sehen bekommt.
             className="flex shrink-0 touch-none items-center px-2.5 text-clay-300 transition-colors active:text-ink-500"

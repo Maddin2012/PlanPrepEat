@@ -1,5 +1,14 @@
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 import { INVITE_PATH } from './lib/invite.ts'
+import { useHorizontalSwipe } from './lib/gesture.ts'
+import { nextTab } from './domain/swipe.ts'
 import { useSession } from './data/RepositoryContext.tsx'
 import { BookIcon, CalendarIcon, CartIcon } from './components/Icons.tsx'
 import { cx } from './components/ui.tsx'
@@ -18,6 +27,9 @@ const TABS = [
   { to: '/plan', label: 'Essensplan', Icon: CalendarIcon },
   { to: '/einkaufsliste', label: 'Einkauf', Icon: CartIcon },
 ]
+
+/** Dieselbe Reihenfolge wie in der Leiste — daran entlang wird gewischt. */
+const TAB_PATHS = TABS.map((tab) => tab.to)
 
 export default function App() {
   const { status } = useSession()
@@ -42,15 +54,40 @@ export default function App() {
 
 function Shell() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   // Formulare bekommen den ganzen Bildschirm: Die Reiterleiste würde neben der
   // eingeblendeten Tastatur und dem Speichern-Balken nur im Weg stehen.
   const fullscreen = /\/(neu|bearbeiten)$/.test(pathname)
+
+  /**
+   * Gewischt wird **nur auf den drei Reiterseiten**. Im Rezept, im Formular und
+   * in den Einstellungen wäre „einen Reiter weiter" keine sinnvolle Antwort auf
+   * die Geste — dort führt der Weg über Zurück.
+   */
+  const swipeable = TAB_PATHS.includes(pathname)
+  const swipe = useHorizontalSwipe({
+    enabled: swipeable,
+    onSwipe: (richtung) => {
+      const ziel = nextTab(TAB_PATHS, pathname, richtung)
+      if (ziel) navigate(ziel)
+    },
+  })
 
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col bg-canvas">
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
-        style={{ paddingBottom: fullscreen ? 0 : 'var(--tabbar-height)' }}
+        style={{
+          paddingBottom: fullscreen ? 0 : 'var(--tabbar-height)',
+          // **Ohne das gäbe es die Geste nicht.** Auf einem scrollbaren Bereich
+          // nimmt der Browser die Berührung an sich, sobald sie sich bewegt —
+          // die App bekommt dann `pointercancel` statt `pointerup` und hat nie
+          // ein Ende zum Nachmessen. `pan-y` gibt ihm das Scrollen nach oben und
+          // unten und behält die waagerechte Richtung hier; `pinch-zoom` lässt
+          // das Vergrößern mit zwei Fingern unangetastet.
+          touchAction: swipeable ? 'pan-y pinch-zoom' : undefined,
+        }}
+        {...swipe}
       >
         {/* Innerhalb von <main>, damit die Reiterleiste stehen bleibt: Wer auf
             einer kaputten Seite landet, kommt so wenigstens wieder weg. */}

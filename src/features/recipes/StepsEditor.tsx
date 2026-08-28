@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { NO_SWIPE } from '../../lib/gesture.ts'
 import {
   DndContext,
   KeyboardSensor,
@@ -304,6 +305,8 @@ function SortableStep({
           type="button"
           ref={setActivatorNodeRef}
           aria-label={`Schritt ${index + 1} verschieben`}
+          // Hier wird gezogen, nicht gewischt.
+          {...{ [NO_SWIPE]: true }}
           // touch-none verhindert, dass der Browser die Geste als Scrollen
           // beansprucht, bevor dnd-kit sie überhaupt zu sehen bekommt.
           className="mt-1.5 flex size-7 shrink-0 touch-none items-center justify-center text-clay-300 transition-colors active:text-ink-500"
