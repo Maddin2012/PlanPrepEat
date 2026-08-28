@@ -11,6 +11,7 @@ import { useHorizontalSwipe } from './lib/gesture.ts'
 import { nextTab } from './domain/swipe.ts'
 import { useSession } from './data/RepositoryContext.tsx'
 import { BookIcon, CalendarIcon, CartIcon } from './components/Icons.tsx'
+import { Watermark } from './components/Logo.tsx'
 import { cx } from './components/ui.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import SetupPage from './features/setup/SetupPage.tsx'
@@ -74,7 +75,13 @@ function Shell() {
   })
 
   return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col bg-canvas">
+    // `isolate` hält die negative Ebene des Wasserzeichens hier fest: Ohne
+    // eigenen Stapel rutschte es hinter den Seitengrund und verschwände.
+    <div className="isolate mx-auto flex h-full max-w-4xl flex-col bg-canvas">
+      {/* Vor dem Inhalt im Aufbau, also dahinter im Bild — und fest, ohne
+          mitzuscrollen. */}
+      <Watermark />
+
       <main
         className="flex-1 overflow-y-auto overscroll-contain"
         style={{

@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useSession } from '../../data/RepositoryContext.tsx'
 import { formatHouseholdCode } from '../../data/ids.ts'
 import { PageHeader } from '../../components/PageHeader.tsx'
-import { Button, Field, IconButton, TextInput } from '../../components/ui.tsx'
+import {
+  Button,
+  Disclosure,
+  Field,
+  IconButton,
+  TextInput,
+} from '../../components/ui.tsx'
 import {
   CloseIcon,
   CopyIcon,
@@ -158,15 +164,14 @@ export default function SettingsPage() {
               </div>
 
               <p className="mt-3 text-xs leading-relaxed text-ink-400">
-                Wer diesen Code oder den Einladungslink hat, sieht eure Rezepte
-                und Pläne und kann sie ändern. Gib beides nur weiter, wenn das so
-                gewollt ist.
+                Wer den Code oder den Link hat, sieht eure Rezepte und Pläne und
+                kann sie ändern — gib beides nur bewusst weiter.
               </p>
             </>
           ) : (
             <p className="mt-1 text-sm leading-relaxed text-ink-500">
-              Du arbeitest gerade nur auf diesem Gerät. Es wird nichts
-              abgeglichen und nichts hochgeladen.
+              Du arbeitest nur auf diesem Gerät — nichts wird abgeglichen oder
+              hochgeladen.
             </p>
           )}
         </section>
@@ -201,14 +206,17 @@ export default function SettingsPage() {
 
         <WordbookSection />
 
-        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
-          <h2 className="text-sm font-semibold text-ink-700">
-            Ladenreihenfolge
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink-500">
-            {shopping.storeOrder.length === 0
-              ? 'Noch nichts gemerkt. Schieb die Posten auf der Einkaufsliste einmal in die Reihenfolge, in der du durch den Laden gehst — ab dann bleibt sie stehen.'
-              : `${shopping.storeOrder.length} ${shopping.storeOrder.length === 1 ? 'Zutat hat' : 'Zutaten haben'} einen festen Platz.`}
+        <Disclosure
+          title="Ladenreihenfolge"
+          hint={
+            shopping.storeOrder.length === 0
+              ? 'noch nichts gemerkt'
+              : `${shopping.storeOrder.length} ${shopping.storeOrder.length === 1 ? 'Zutat' : 'Zutaten'} mit festem Platz`
+          }
+        >
+          <p className="text-sm leading-relaxed text-ink-500">
+            Schieb die Posten auf der Einkaufsliste einmal in deine Runde durch
+            den Laden — ab dann bleibt sie stehen.
           </p>
 
           {shopping.storeOrder.length > 0 && (
@@ -222,16 +230,15 @@ export default function SettingsPage() {
                 {orderReset ? 'Zurückgesetzt' : 'Reihenfolge zurücksetzen'}
               </Button>
               <p className="mt-3 text-xs leading-relaxed text-ink-400">
-                Danach steht die Liste wieder alphabetisch. Sinnvoll, wenn ihr
-                den Laden wechselt oder dort umgebaut wurde.
+                Danach steht die Liste wieder alphabetisch — sinnvoll nach einem
+                Ladenwechsel oder Umbau.
               </p>
             </>
           )}
-        </section>
+        </Disclosure>
 
-        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
-          <h2 className="text-sm font-semibold text-ink-700">Sicherung</h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+        <Disclosure title="Sicherung" hint="Rezepte als Textdatei">
+          <p className="text-sm leading-relaxed text-ink-500">
             Lädt alle Rezepte als Textdatei herunter — zum Nachlesen, falls
             einmal eines verlorengeht.
           </p>
@@ -252,14 +259,16 @@ export default function SettingsPage() {
           </Button>
 
           <p className="mt-3 text-xs leading-relaxed text-ink-400">
-            Ohne Fotos, und die Datei lässt sich nicht wieder einlesen — du
-            liest sie und tippst ab, was fehlt. Am besten ab und zu wiederholen.
+            Ohne Fotos und nicht wieder einlesbar — du liest sie und tippst ab,
+            was fehlt. Am besten ab und zu wiederholen.
           </p>
-        </section>
+        </Disclosure>
 
-        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
-          <h2 className="text-sm font-semibold text-ink-700">Verbindung</h2>
-          <dl className="mt-2 space-y-1.5 text-sm">
+        <Disclosure
+          title="Verbindung"
+          hint={`${online ? 'verbunden' : 'offline'} · Stand ${__BUILD_STAMP__}`}
+        >
+          <dl className="space-y-1.5 text-sm">
             <Row label="Netz" value={online ? 'verbunden' : 'offline'} />
             <Row
               label="Abgleich"
@@ -282,13 +291,10 @@ export default function SettingsPage() {
               werden die Änderungen automatisch übertragen.
             </p>
           )}
-        </section>
+        </Disclosure>
 
-        <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
-          <h2 className="text-sm font-semibold text-ink-700">
-            Von diesem Gerät abmelden
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-ink-500">
+        <Disclosure title="Von diesem Gerät abmelden">
+          <p className="text-sm leading-relaxed text-ink-500">
             {isDemo
               ? 'Die auf diesem Gerät angelegten Daten bleiben erhalten, du landest wieder bei der Auswahl.'
               : 'Die Daten bleiben im Haushalt. Mit dem Code kommst du jederzeit zurück — notier ihn dir vorher.'}
@@ -317,7 +323,7 @@ export default function SettingsPage() {
               Abmelden
             </Button>
           )}
-        </section>
+        </Disclosure>
       </div>
     </>
   )
@@ -433,12 +439,17 @@ function WordbookSection() {
   }
 
   return (
-    <section className="rounded-2xl bg-surface p-4 ring-1 ring-clay-200">
-      <h2 className="text-sm font-semibold text-ink-700">Eigene Wörter</h2>
-      <p className="mt-1 text-sm leading-relaxed text-ink-500">
-        {wordbook.length === 0
-          ? 'Noch nichts gelernt. Verbesserst du einen diktierten Zutatennamen von Hand, merkt sich die App das Paar.'
-          : `${wordbook.length} ${wordbook.length === 1 ? 'Wort wird' : 'Wörter werden'} nach dem Diktieren ausgetauscht.`}
+    <Disclosure
+      title="Eigene Wörter"
+      hint={
+        wordbook.length === 0
+          ? 'noch nichts gelernt'
+          : `${wordbook.length} ${wordbook.length === 1 ? 'Wort' : 'Wörter'} werden ausgetauscht`
+      }
+    >
+      <p className="text-sm leading-relaxed text-ink-500">
+        Verbesserst du einen diktierten Zutatennamen von Hand, merkt sich die App
+        das Paar.
       </p>
 
       {wordbook.length > 0 && (
@@ -498,7 +509,7 @@ function WordbookSection() {
       <p className="mt-3 text-xs leading-relaxed text-ink-400">
         Gilt nur auf diesem Gerät.
       </p>
-    </section>
+    </Disclosure>
   )
 }
 

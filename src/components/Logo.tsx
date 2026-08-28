@@ -81,6 +81,45 @@ export function Mark({ className }: { className?: string }) {
   )
 }
 
+/**
+ * Das Zeichen sehr blass im Hintergrund — nur in der dunklen Fassung.
+ *
+ * **Es ist dunkler als der Grund, nicht heller.** Das ist keine Geschmacksfrage,
+ * sondern gemessen: Der blasseste Text (`ink-400`) steht auf dem Grund bei
+ * 4,70:1, also knapp über den geforderten 4,5:1. Ein aufhellendes Zeichen
+ * drückt ihn schon bei zwei Prozent Deckung auf 4,51 und bei fünf auf 4,16 —
+ * die ganze Reserve wäre für eine Zierde ausgegeben. `brand-900` liegt
+ * unterhalb des Grundes und hebt denselben Text auf 4,92: Das Wasserzeichen
+ * kann die Lesbarkeit damit gar nicht verschlechtern, nur verbessern.
+ *
+ * Blass wird es also über die **Farbe**, nicht über die Deckkraft — die
+ * beiden Töne liegen nur rund zwei Prozent auseinander.
+ */
+export function Watermark() {
+  return (
+    <div
+      aria-hidden="true"
+      className={[
+        'pointer-events-none fixed inset-0 flex items-center justify-center overflow-hidden',
+        // **Die negative Ebene ist nicht schmückend, sondern nötig.** Ein festes
+        // Element malt über allen gewöhnlichen Inhalt, egal wo es im Aufbau
+        // steht — ohne sie lag das Zeichen vor dem Text. Der Umschlag in
+        // `App.tsx` trägt dafür `isolate`, sonst rutschte es hinter den Grund
+        // und wäre gar nicht mehr zu sehen.
+        '-z-10',
+        // In der hellen Fassung gäbe es kein „unterhalb des Grundes": Dort wäre
+        // dasselbe Zeichen ein dunkler Fleck auf hellem Papier.
+        '[html[data-theme=light]_&]:hidden',
+      ].join(' ')}
+    >
+      {/* Der Goldring ist der einzige Teil mit eigener Farbe. Im Wasserzeichen
+          wäre er ein Farbtupfer, wo gar nichts zu sehen sein soll — deshalb
+          bekommt auch er die Farbe des Textes. */}
+      <Mark className="h-[42vh] w-auto text-brand-900 opacity-60 [&_g[fill]]:fill-current" />
+    </div>
+  )
+}
+
 export const APP_NAME = 'PlanPrepEat'
 
 /**

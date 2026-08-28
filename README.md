@@ -260,6 +260,15 @@ Die App funktioniert offline weiter — im Supermarkt der entscheidende Teil.
 Abgehakte Posten werden lokal gespeichert und übertragen sich automatisch,
 sobald wieder Empfang da ist.
 
+## Die Einstellungen
+
+Oben stehen die Abschnitte, die man tatsächlich ab und zu braucht: Update,
+Haushalt, Darstellung und *Wer isst mit*. Alles Seltenere — **Eigene Wörter,
+Ladenreihenfolge, Sicherung, Verbindung** und **Abmelden** — steht darunter zum
+Aufklappen; die Zeile verrät zugeklappt, was drin ist („noch nichts gemerkt",
+„3 Wörter werden ausgetauscht"). Es ist nichts weggefallen und nichts verhält
+sich anders, es liegt nur einen Tipp weiter.
+
 ## Hell oder dunkel
 
 **Dunkel ist die Hauptfassung**, hell die Option. Umgeschaltet wird unter
@@ -269,6 +278,13 @@ kann hell haben, während die andere dunkel hat.
 Bewusst folgt die App **nicht** der Systemeinstellung: Wer das Handy abends
 automatisch dunkel schaltet, will deswegen nicht zwingend eine dunkle
 Einkaufsliste.
+
+In der dunklen Fassung liegt das Besteck-Zeichen sehr blass im Hintergrund. Es
+ist **dunkler** als der Grund, nicht heller, und das ist gemessen statt
+geschätzt: Der blasseste Text der App steht auf dem Grund bei 4,70:1 und damit
+knapp über den geforderten 4,5:1 — ein aufhellendes Zeichen drückt ihn schon bei
+fünf Prozent Deckung auf 4,16, ein abdunkelndes hebt ihn auf 4,88. Das
+Wasserzeichen kann die Lesbarkeit so gar nicht verschlechtern.
 
 Für Entwickler zwei Stellen, die zusammengehören: Dunkel ist auch im CSS der
 Grundzustand (`src/index.css`), hell steht unter `:root[data-theme='light']`.

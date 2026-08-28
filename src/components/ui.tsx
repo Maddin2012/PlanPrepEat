@@ -7,7 +7,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { CloseIcon } from './Icons.tsx'
+import { ChevronDownIcon, CloseIcon } from './Icons.tsx'
 
 export function cx(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
@@ -73,6 +73,52 @@ export function IconButton({
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * Ein Abschnitt zum Aufklappen.
+ *
+ * Gebaut auf `<details>` statt auf einem eigenen Zustand: Das Auf und Zu
+ * erledigt der Browser, es funktioniert vor dem ersten JavaScript, die
+ * Vorlesehilfe kennt es, und die Suche im Browser findet auch zugeklappten
+ * Text. Ein selbstgebauter Umschalter kann all das nicht.
+ */
+export function Disclosure({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  /** Steht klein neben der Überschrift, damit man zugeklappt weiß, was drin ist. */
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <details className="group rounded-2xl bg-surface ring-1 ring-clay-200">
+      <summary
+        className={cx(
+          'flex min-h-11 cursor-pointer items-center gap-3 p-4',
+          // Das Dreieck des Browsers weg — wir zeichnen selbst eines, das in
+          // beiden Fassungen zur Schrift passt.
+          'list-none [&::-webkit-details-marker]:hidden',
+        )}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-ink-700">
+            {title}
+          </span>
+          {hint && (
+            <span className="mt-0.5 block truncate text-xs text-ink-400">
+              {hint}
+            </span>
+          )}
+        </span>
+        <ChevronDownIcon className="size-5 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
+      </summary>
+
+      <div className="px-4 pb-4">{children}</div>
+    </details>
   )
 }
 
