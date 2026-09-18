@@ -83,6 +83,21 @@ weg. Menge, Einheit und Name ändert ihr, indem ihr rechts in der Zeile auf die
 Mengenangabe tippt; dort korrigiert ihr auch die aus den Rezepten berechneten
 Mengen, ohne dass sich am Rezept etwas ändert.
 
+**Beim Tippen schlägt die App vor**, was sie schon kennt — aus euren Rezepten
+und von der Liste selbst. Es genügen ein paar Buchstaben in der richtigen
+Reihenfolge: „AVC" findet „Avocado". Ein Tipp auf den Vorschlag setzt ihn auf
+die Liste.
+
+**Nichts kommt doppelt.** Tippt ihr etwas ein, das schon draufsteht, entsteht
+keine zweite Zeile: Der vorhandene Eintrag wird wieder geöffnet — auch wenn er
+längst abgehakt unter „Erledigt" lag — und kurz hervorgehoben. Das gilt auch,
+wenn er aus einem Rezept stammt und ihr denselben Namen von Hand tippt.
+
+Eine Ausnahme ist Absicht: **Dieselbe Zutat in zwei verschiedenen Einheiten**
+bleiben zwei Zeilen. „500 ml Milch" und „2 EL Milch" lassen sich nicht
+zusammenzählen, und eine Summe daraus wäre erfunden. Gramm und Kilo — oder
+Milliliter und Liter — werden dagegen zusammengerechnet.
+
 Sobald ihr einen eigenen Posten anlegt oder etwas verschiebt, steht die Liste in
 eurer Reihenfolge statt alphabetisch. Später über neue Rezepte dazukommende
 Zutaten hängen sich hinten an.

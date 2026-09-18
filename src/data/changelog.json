@@ -1,5 +1,15 @@
 [
   {
+    "datum": "2026-09-18",
+    "art": "fehler",
+    "text": "Eine Zutat kommt nicht mehr doppelt auf die Einkaufsliste. Tippst du etwas ein, das schon draufsteht, wird der vorhandene Eintrag wieder geöffnet — auch wenn er schon abgehakt unter „Erledigt“ lag — statt dass eine zweite Zeile entsteht."
+  },
+  {
+    "datum": "2026-09-18",
+    "art": "neu",
+    "text": "Beim Eintippen auf der Einkaufsliste schlägt die App Zutaten vor, die sie schon kennt. Es genügen ein paar Buchstaben in der richtigen Reihenfolge: „AVC“ findet „Avocado“. Ein Tipp auf den Vorschlag setzt ihn auf die Liste."
+  },
+  {
     "datum": "2026-08-28",
     "art": "besser",
     "text": "Die Einstellungen sind aufgeräumt: Was man selten braucht — Eigene Wörter, Ladenreihenfolge, Sicherung, Verbindung und Abmelden — steht jetzt zum Aufklappen da. Nichts ist weggefallen, es liegt nur einen Tipp weiter."

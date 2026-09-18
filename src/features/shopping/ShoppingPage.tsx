@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NO_SWIPE } from '../../lib/gesture.ts'
 import { Link } from 'react-router-dom'
 import {
@@ -72,6 +72,7 @@ import {
   ShareIcon,
   TrashIcon,
 } from '../../components/Icons.tsx'
+import { findByName, suggestNames } from '../../domain/shoppingNames.ts'
 import { shareText } from '../../lib/share.ts'
 import { parseAmount } from '../recipes/ingredientDraft.ts'
 
@@ -91,6 +92,9 @@ export default function ShoppingPage() {
   const [hideDone, setHideDone] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // Welcher Posten gerade kurz hervorgehoben wird — nach dem Versuch, ihn ein
+  // zweites Mal anzulegen.
+  const [highlight, setHighlight] = useState<string | null>(null)
 
   const planned = useMemo(
     () => collectPlanned(slots, recipesById),
@@ -100,6 +104,20 @@ export default function ShoppingPage() {
   const items = useMemo(
     () => buildShoppingList(planned, ingredients, state),
     [planned, ingredients, state],
+  )
+
+  /**
+   * Woraus die Vorschläge beim Tippen kommen: der Zutatenkatalog — alles, was
+   * je in einem Rezept stand — und die Namen, die gerade auf der Liste stehen.
+   * Der Katalog ist die eigentliche Quelle; die Liste kommt dazu, damit ein
+   * eben erst von Hand getippter Posten sofort wiedergefunden wird.
+   */
+  const knownNames = useMemo(
+    () => [
+      ...[...ingredients.values()].map((zutat) => zutat.name),
+      ...items.map((item) => item.name),
+    ],
+    [ingredients, items],
   )
 
   /**
@@ -170,6 +188,33 @@ export default function ShoppingPage() {
    */
   const addManual = useCallback(
     (name: string) => {
+      /*
+       * **Erst nachsehen, ob der Name schon dasteht.** Vorher wurde hier
+       * bedingungslos ein neuer Posten angelegt, und aus zweimal „Avocado"
+       * wurden zwei Zeilen — auch dann, wenn die erste aus einem Rezept kam:
+       * Abgeleitete und eigene Posten liegen in getrennten Schlüsselräumen, der
+       * Name ist das Einzige, was sie verbindet.
+       *
+       * Gibt es ihn schon, wird der vorhandene **wieder geöffnet**: Häkchen
+       * weg, damit er aus „Erledigt" zurück nach oben kommt. Genau das ist das
+       * Wiederverwenden, um das es geht.
+       *
+       * Weggestrichene Posten („brauche ich nicht") stehen nicht in `items` und
+       * werden hier nicht gefunden — dann entsteht ein eigener Posten mit
+       * demselben Namen. Sichtbar ist das trotzdem eine Zeile.
+       */
+      const vorhanden = findByName(items, name)
+      if (vorhanden) {
+        update((current) => ({
+          ...current,
+          checked: { ...current.checked, [vorhanden]: false },
+        }))
+        setHighlight(vorhanden)
+        setTimeout(() => setHighlight(null), 2600)
+        flash(`${name.trim()} steht schon auf der Liste.`)
+        return
+      }
+
       const entry: ManualItem = {
         id: newId(),
         name,
@@ -191,7 +236,7 @@ export default function ShoppingPage() {
         storeOrder: reorderStore(current.storeOrder, visible),
       }))
     },
-    [open, done, update],
+    [items, open, done, update],
   )
 
   function flash(message: string) {
@@ -269,11 +314,12 @@ export default function ShoppingPage() {
         <div className="space-y-2">
           <SortableList
             items={open}
+            highlight={highlight}
             onMove={move}
             onToggle={toggle}
             onEdit={setEditing}
           />
-          <AddItemRow onAdd={addManual} />
+          <AddItemRow onAdd={addManual} names={knownNames} />
         </div>
 
         {!hideDone && done.length > 0 && (
@@ -283,7 +329,7 @@ export default function ShoppingPage() {
             </h2>
             <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
               {done.map((item) => (
-                <li key={item.key}>
+                <li key={item.key} className={cx(item.key === highlight && 'ring-1 ring-accent')}>
                   <ItemRow
                     item={item}
                     onToggle={() => toggle(item)}
@@ -374,9 +420,19 @@ export default function ShoppingPage() {
  * kein Blatt, das sich über die Liste legt. Enter legt den Posten an und öffnet
  * gleich die nächste Zeile, damit man mehrere hintereinander schreiben kann.
  */
-function AddItemRow({ onAdd }: { onAdd: (name: string) => void }) {
+function AddItemRow({
+  onAdd,
+  names,
+}: {
+  onAdd: (name: string) => void
+  /** Woraus die Vorschläge kommen: Zutatenkatalog plus die aktuelle Liste. */
+  names: string[]
+}) {
   const [writing, setWriting] = useState(false)
   const [name, setName] = useState('')
+  const feld = useRef<HTMLInputElement>(null)
+
+  const vorschlaege = useMemo(() => suggestNames(names, name), [names, name])
 
   function open() {
     setName('')
@@ -410,7 +466,15 @@ function AddItemRow({ onAdd }: { onAdd: (name: string) => void }) {
     )
   }
 
+  /** Einen Vorschlag übernehmen und gleich weiterschreiben können. */
+  function take(vorschlag: string) {
+    onAdd(vorschlag)
+    setName('')
+    feld.current?.focus()
+  }
+
   return (
+    <div>
     <div className="flex items-stretch overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
       <span className="flex items-center pl-3">
         <span className="size-6 shrink-0 rounded-md border-2 border-clay-300" />
@@ -418,6 +482,7 @@ function AddItemRow({ onAdd }: { onAdd: (name: string) => void }) {
 
       <input
         autoFocus
+        ref={feld}
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder="Listeneintrag"
@@ -452,6 +517,34 @@ function AddItemRow({ onAdd }: { onAdd: (name: string) => void }) {
       >
         <CloseIcon className="size-5" />
       </button>
+    </div>
+
+      {/*
+        Vorschläge aus dem Zutatenkatalog. Sie finden auch über eine
+        Buchstabenfolge („AVC" → „Avocado"), was ein `<datalist>` wie im
+        Rezeptformular nicht kann — deshalb steht hier eine eigene Liste.
+      */}
+      {vorschlaege.length > 0 && (
+        <ul
+          aria-label="Vorschläge"
+          className="mt-1.5 flex flex-wrap gap-1.5 px-1"
+        >
+          {vorschlaege.map((vorschlag) => (
+            <li key={vorschlag}>
+              <button
+                type="button"
+                // Wie beim Verwerfen-Knopf: Ohne das liefe erst `onBlur` und
+                // legte den halb getippten Text als eigenen Posten an.
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => take(vorschlag)}
+                className="min-h-9 rounded-full bg-clay-100 px-3 text-sm text-ink-700 transition-colors active:bg-clay-200"
+              >
+                {vorschlag}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -537,10 +630,13 @@ function ItemRow({
 function SortableList({
   items,
   onMove,
+  highlight,
   onToggle,
   onEdit,
 }: {
   items: ShoppingItem[]
+  /** Der Posten, der gerade kurz hervorgehoben wird, oder `null`. */
+  highlight: string | null
   onMove: (fromKey: string, toKey: string) => void
   onToggle: (item: ShoppingItem) => void
   onEdit: (item: ShoppingItem) => void
@@ -574,6 +670,7 @@ function SortableList({
             <SortableRow
               key={item.key}
               item={item}
+              highlight={item.key === highlight}
               onToggle={() => onToggle(item)}
               onEdit={() => onEdit(item)}
             />
@@ -586,10 +683,12 @@ function SortableList({
 
 function SortableRow({
   item,
+  highlight,
   onToggle,
   onEdit,
 }: {
   item: ShoppingItem
+  highlight: boolean
   onToggle: () => void
   onEdit: () => void
 }) {
@@ -605,13 +704,21 @@ function SortableRow({
 
   return (
     <li
-      ref={setNodeRef}
+      ref={(element) => {
+        setNodeRef(element)
+        // Der wiedergefundene Posten rückt ins Bild — er kann weit unten
+        // stehen, und ohne das sähe man nur die Meldung.
+        if (highlight) {
+          element?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }
+      }}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cx(
         'bg-surface',
         // Die gezogene Zeile über die anderen legen, sonst verschwindet sie
         // beim Vorbeiziehen unter der Nachbarzeile.
         isDragging && 'relative z-10 shadow-lg ring-1 ring-accent',
+        highlight && 'relative z-10 ring-1 ring-accent',
       )}
     >
       <ItemRow
