@@ -1,6 +1,16 @@
 [
   {
     "datum": "2026-09-18",
+    "art": "fehler",
+    "text": "Der goldene Rahmen um die heutigen Felder im Essensplan war nicht zu sehen, sobald an dem Tag schon etwas eingeplant war — dann blieb er grau und wirkte nur etwas heller. Jetzt ist er da, ob das Feld belegt ist oder leer. (Angekündigt war er schon, erschienen ist er nie.)"
+  },
+  {
+    "datum": "2026-09-18",
+    "art": "fehler",
+    "text": "Ein Zubereitungsschritt, den man am Anfasser verschiebt, ist beim Ziehen golden umrandet — derselbe Fehler, nur an einer Stelle, wo er kaum auffiel."
+  },
+  {
+    "datum": "2026-09-18",
     "art": "neu",
     "text": "Beim Vorlesen lässt sich jetzt auch die Tonhöhe einstellen — Tief, Normal, Hoch. Tiefer klingt dunkler und weniger schrill. Das hilft da, wo das Handy nur eine einzige deutsche Stimme hat und es nichts auszuwählen gibt: An der einen Stimme lässt sich wenigstens drehen."
   },

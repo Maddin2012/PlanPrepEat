@@ -320,16 +320,30 @@ function DayRow({
             className={cx(
               'flex min-h-16 flex-col justify-center gap-1 rounded-lg p-2 text-left transition-colors',
               entries.length > 0
-                ? 'bg-surface ring-1 ring-clay-200 active:bg-clay-50'
-                : 'border border-dashed border-clay-200 text-ink-400 active:bg-clay-50',
-              // Beide Felder von heute bekommen einen goldenen Rahmen. Bisher
-              // war nur das Datum links hervorgehoben — beim Aufschlagen des
-              // Plans sucht man aber die zwei Felder, nicht das Datum.
-              //
-              // `ring` statt `border`, damit derselbe Rahmen auf ein belegtes
-              // wie auf ein leeres Feld passt: Der Ring liegt außen auf und
-              // verschiebt nichts, eine zweite Linie täte das.
-              day.isToday && 'ring-2 ring-accent',
+                ? 'bg-surface active:bg-clay-50'
+                : 'text-ink-400 active:bg-clay-50',
+              /*
+               * Genau **ein** Rahmen je Feld, in einer einzigen Verzweigung.
+               *
+               * Vorher stand hier ein Grundrahmen (`ring-1 ring-clay-200` am
+               * belegten Feld) und darunter für heute ein angehängtes
+               * `ring-2 ring-accent`. Beide setzen dieselbe Variable
+               * `--tw-ring-color`, beide sind einfache Klassenselektoren —
+               * also entscheidet die Reihenfolge **im Stylesheet**, und dort
+               * steht `.ring-clay-200` hinter `.ring-accent`. Das Grau gewann:
+               * Ein belegtes Feld von heute bekam einen 2 px breiten *grauen*
+               * Ring statt eines goldenen. Am Quelltext war das nicht zu
+               * sehen, gemessen schon.
+               *
+               * `ring` statt `border`, damit derselbe Rahmen auf ein belegtes
+               * wie auf ein leeres Feld passt: Der Ring liegt außen auf und
+               * verschiebt nichts, eine zweite Linie täte das.
+               */
+              day.isToday
+                ? 'ring-2 ring-accent'
+                : entries.length > 0
+                  ? 'ring-1 ring-clay-200'
+                  : 'border border-dashed border-clay-200',
               // Vergangene Tage treten zurück, ohne unbenutzbar zu werden.
               day.isPast && 'opacity-55',
               day.startsMonth && 'mt-4',

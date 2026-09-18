@@ -54,7 +54,8 @@ beide Richtungen — geladen sind ein Monat zurück und vier voraus, und wer noc
 weiter will, tippt am Ende auf „30 Tage früher" bzw. „30 Tage später". Der Knopf
 „Heute" oben rechts holt euch jederzeit zurück.
 Mittag und Abend von **heute** sind golden umrandet — beim Aufschlagen sucht man
-die beiden Felder, nicht das Datum.
+die beiden Felder, nicht das Datum. Der Rahmen sitzt an beiden Feldern gleich,
+ob dort schon etwas steht oder nicht.
 
 Ein Tippen auf ein Feld öffnet die Rezeptauswahl, danach stellt ihr die Portionen
 ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.

@@ -294,10 +294,16 @@ function SortableStep({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cx(
-        'flex items-start gap-1 rounded-xl bg-surface p-2 ring-1 ring-clay-200',
+        'flex items-start gap-1 rounded-xl bg-surface p-2',
         // Die gezogene Zeile über die anderen legen, sonst verschwindet sie
         // beim Vorbeiziehen unter der Nachbarzeile.
-        isDragging && 'relative z-10 shadow-lg ring-accent',
+        isDragging && 'relative z-10 shadow-lg',
+        // Wieder: **ein** Rahmen, eine Verzweigung. Vorher hing hier
+        // `ring-accent` unter einem `ring-clay-200` — und das Grau gewann,
+        // weil es im Stylesheet dahinter steht. Die gezogene Zeile war nie
+        // golden umrandet; beim Ziehen schaut man nur auf den Finger, deshalb
+        // ist es niemandem aufgefallen.
+        isDragging ? 'ring-1 ring-accent' : 'ring-1 ring-clay-200',
       )}
     >
       {canMove && (
