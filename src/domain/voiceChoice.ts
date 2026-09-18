@@ -1,5 +1,5 @@
 /**
- * Welche Stimme vorliest und wie schnell.
+ * Welche Stimme vorliest, wie schnell und wie tief.
  *
  * **Die App bringt keine Stimmen mit.** Sie benutzt die, die auf dem Gerät
  * liegen. Gewählt wird deshalb ein *Name*, kein Gegenstand: Die Stimmenliste
@@ -33,6 +33,38 @@ export const TEMPO_LABELS: Record<Tempo, string> = {
   zuegig: 'Zügig',
 }
 
+export type Pitch = 'tief' | 'normal' | 'hoch'
+
+/**
+ * Die drei Stufen als Werte für `utterance.pitch`.
+ *
+ * **Der Hebel, der auch mit einer einzigen Stimme wirkt.** Die meisten Handys
+ * melden dem Browser genau eine deutsche Stimme; die Auswahl darüber läuft dann
+ * ins Leere. Tiefer klingt dunkler und weniger schrill — das ist das Einzige,
+ * was die App an einer vorhandenen Stimme noch drehen kann.
+ *
+ * `normal` ist **exakt 1**, die Vorgabe des Browsers: Wer nichts umstellt, hört
+ * genau das, was bisher geklungen hat.
+ *
+ * `tief` ist bewusst 0,8 und nicht 0,5. Weiter unten fängt die Sprachausgabe an
+ * zu scheppern, und eine kaputt klingende Stimme ist kein Fortschritt gegenüber
+ * einer zu hohen.
+ */
+export const PITCH: Record<Pitch, number> = {
+  tief: 0.8,
+  normal: 1,
+  hoch: 1.2,
+}
+
+/** Die Stufen in der Reihenfolge, in der sie nebeneinanderstehen. */
+export const PITCH_ORDER: Pitch[] = ['tief', 'normal', 'hoch']
+
+export const PITCH_LABELS: Record<Pitch, string> = {
+  tief: 'Tief',
+  normal: 'Normal',
+  hoch: 'Hoch',
+}
+
 /**
  * Welche Stimme genommen wird.
  *
@@ -63,14 +95,33 @@ export function toTempo(value: unknown): Tempo {
     : 'normal'
 }
 
+/**
+ * Dasselbe für die Tonhöhe.
+ *
+ * Hier fällt zusätzlich der Stand aus der Fassung **vor** der Tonhöhe hinein:
+ * Dort gab es das Feld noch gar nicht, `undefined` kommt also im Alltag vor und
+ * ist kein Fehlerfall. Es wird zu `normal` — und niemand verliert dabei seine
+ * Stimmenwahl.
+ */
+export function toPitch(value: unknown): Pitch {
+  return value === 'tief' || value === 'hoch' || value === 'normal'
+    ? value
+    : 'normal'
+}
+
 /** Was je Gerät gespeichert wird. */
 export interface VoiceChoice {
   /** Der Name der Stimme — `null` heißt „keine Wahl getroffen". */
   name: string | null
   tempo: Tempo
+  pitch: Pitch
 }
 
-export const DEFAULT_VOICE_CHOICE: VoiceChoice = { name: null, tempo: 'normal' }
+export const DEFAULT_VOICE_CHOICE: VoiceChoice = {
+  name: null,
+  tempo: 'normal',
+  pitch: 'normal',
+}
 
 /** Einen gelesenen Stand auf die Form der Wahl bringen. */
 export function toVoiceChoice(value: unknown): VoiceChoice {
@@ -79,5 +130,5 @@ export function toVoiceChoice(value: unknown): VoiceChoice {
   const name = typeof stand.name === 'string' && stand.name.trim() !== ''
     ? stand.name
     : null
-  return { name, tempo: toTempo(stand.tempo) }
+  return { name, tempo: toTempo(stand.tempo), pitch: toPitch(stand.pitch) }
 }

@@ -196,17 +196,32 @@ Hat das Gerät keine deutsche Stimme, erscheint der Knopf gar nicht — eine
 englische Stimme, die „Zwiebeln würfeln" vorträgt, hilft niemandem. Den
 Bildschirm lässt die App weiterhin nicht an.
 
-**Welche Stimme liest.** Unter *Einstellungen → Stimme fürs Vorlesen* stehen
-alle deutschen Stimmen, die auf dem Gerät liegen. Ein Tipp darauf liest sofort
-einen Satz zur Probe vor und stellt sie ein; darunter gibt es drei Stufen fürs
-Tempo. Zugeklappt verrät die Zeile, welche Stimme gerade dran ist.
+**Wie es klingt.** Unter *Einstellungen → Stimme fürs Vorlesen* stehen drei
+Stufen fürs **Tempo**, drei für die **Tonhöhe** und darunter die Stimme. Jeder
+Tipp liest sofort einen Satz zur Probe vor — beurteilt wird nach Gehör, nicht
+nach Beschriftung. Zugeklappt verrät die Zeile, welche Stimme gerade dran ist.
 
-Die App bringt **keine** Stimmen mit — sie benutzt die des Geräts. Klingt keine
-davon gut, hilft nur, in den Handy-Einstellungen unter „Sprachausgabe" weitere
-zu laden; danach stehen sie hier zur Wahl. Die Wahl gilt je Gerät und nicht für
-den ganzen Haushalt: Die Stimmenliste ist auf jedem Handy eine andere. Fehlt
-eine einmal gewählte Stimme später (Gerätewechsel, Android-Update), wird
-stillschweigend die erste genommen — lieber eine andere Stimme als Schweigen.
+**Die Tonhöhe ist der wichtigere Regler**, auch wenn sie nach Beiwerk aussieht:
+Die meisten Handys melden dem Browser genau **eine** deutsche Stimme. Dann gibt
+es nichts auszuwählen, und die Tonhöhe ist das Einzige, was sich an dieser einen
+Stimme noch drehen lässt. Tiefer klingt dunkler und weniger schrill. „Normal"
+ist bei beiden Reglern das, was vorher geklungen hat.
+
+Gibt es nur eine Stimme, steht deshalb auch kein Auswahlknopf da, der nichts
+auswählt — nur ihr Name.
+
+Die App bringt **keine** Stimmen mit; sie benutzt die des Geräts. Weitere
+bekommt man in den Handy-Einstellungen (nach „Sprachausgabe" suchen), und zwar
+auf zwei Wegen: die **Stimme innerhalb der Google-Sprachausgabe wechseln** — es
+bleibt eine, aber sie klingt anders — oder **weitere deutsche Sprachen
+installieren**, etwa Deutsch (Österreich) und Deutsch (Schweiz); die erscheinen
+als eigene Einträge. Beides steht zum Aufklappen im Abschnitt selbst. Neu
+Installiertes bemerkt die App im Laufen, ohne Neustart.
+
+Die Wahl gilt je Gerät und nicht für den ganzen Haushalt: Die Stimmenliste ist
+auf jedem Handy eine andere. Fehlt eine einmal gewählte Stimme später
+(Gerätewechsel, Android-Update), wird stillschweigend die erste genommen —
+lieber eine andere Stimme als Schweigen.
 
 ## Diktieren
 

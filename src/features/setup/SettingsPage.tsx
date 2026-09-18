@@ -42,9 +42,12 @@ import {
 } from '../../lib/reading.ts'
 import { useVoiceChoice } from '../../lib/voice.ts'
 import {
+  PITCH_LABELS,
+  PITCH_ORDER,
   TEMPO_LABELS,
   TEMPO_ORDER,
   pickVoiceName,
+  type Pitch,
   type Tempo,
 } from '../../domain/voiceChoice.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
@@ -532,15 +535,16 @@ function WordbookSection() {
 const PROBE = 'Die Zwiebeln schälen und fein würfeln.'
 
 /**
- * Welche Stimme vorliest und wie schnell.
+ * Wie das Vorlesen klingt.
  *
  * Steht direkt hinter „Eigene Wörter": Beides betrifft das Sprechen, das eine
  * das Zuhören, das andere das Vorlesen.
  *
- * **Die App bringt keine Stimmen mit** — sie benutzt die des Geräts. Darum
- * steht unten, wo weitere herkommen, statt etwas zu versprechen, was die App
- * nicht halten kann. Gibt es gar keine deutsche, erscheint der Abschnitt nicht;
- * dann fehlt am Rezept auch der Vorlese-Knopf.
+ * **Die App bringt keine Stimmen mit** — sie benutzt die des Geräts, und die
+ * meisten Handys melden genau **eine** deutsche. Dann läuft eine Auswahl ins
+ * Leere, und das Wesentliche sind Tempo und Tonhöhe; die stehen deshalb oben
+ * und die Stimme darunter. Gibt es gar keine deutsche, erscheint der Abschnitt
+ * nicht; dann fehlt am Rezept auch der Vorlese-Knopf.
  */
 function VoiceSection() {
   const stimmen = useGermanVoices()
@@ -554,13 +558,15 @@ function VoiceSection() {
 
   const namen = stimmen.map((stimme) => stimme.name)
   const aktuell = pickVoiceName(namen, choice.name)
+  const zurWahl = stimmen.length > 1
 
-  /** Einmal hören — mit der gerade angetippten Stimme, nicht mit der alten. */
-  function probe(next: { name?: string | null; tempo?: Tempo }) {
+  /** Einmal hören — mit dem gerade Angetippten, nicht mit dem Alten. */
+  function probe(next: { name?: string; tempo?: Tempo; pitch?: Pitch }) {
     laeuft.current?.cancel()
     laeuft.current = startReading(PROBE, {
       voiceName: next.name ?? aktuell ?? undefined,
       tempo: next.tempo ?? choice.tempo,
+      pitch: next.pitch ?? choice.pitch,
     })
   }
 
@@ -574,74 +580,83 @@ function VoiceSection() {
     probe({ tempo })
   }
 
+  function choosePitch(pitch: Pitch) {
+    saveChoice({ ...choice, pitch })
+    probe({ pitch })
+  }
+
   return (
     <Disclosure title="Stimme fürs Vorlesen" hint={aktuell ?? 'keine Stimme'}>
       <p className="text-sm leading-relaxed text-ink-500">
-        Tipp eine Stimme an — sie liest sofort einen Satz zur Probe vor und
-        bleibt dann eingestellt.
+        Jeder Tipp hier liest sofort einen Satz zur Probe vor — so hörst du
+        gleich, was er ändert.
       </p>
 
-      <ul
-        role="radiogroup"
-        aria-label="Stimme"
-        className="mt-3 space-y-1.5"
-      >
-        {stimmen.map((stimme) => (
-          <li key={stimme.name}>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={stimme.name === aktuell}
-              onClick={() => chooseVoice(stimme.name)}
-              className={cx(
-                'flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm transition-colors',
-                stimme.name === aktuell
-                  ? 'bg-accent-soft ring-1 ring-accent'
-                  : 'bg-clay-100 active:bg-clay-200',
-              )}
-            >
-              <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
-                {stimme.name}
-              </span>
-              <SpeakerIcon
-                className={cx(
-                  'size-4.5 shrink-0',
-                  stimme.name === aktuell ? 'text-accent-text' : 'text-ink-400',
-                )}
-              />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <Steps
+        label="Tempo"
+        // Drei Stufen statt eines Reglers: Am Herd trifft man Flächen, keine
+        // Millimeter — und „etwas langsamer" will niemand einstellen, sondern
+        // „langsam".
+        options={TEMPO_ORDER}
+        labels={TEMPO_LABELS}
+        current={choice.tempo}
+        onChoose={chooseTempo}
+      />
+
+      {/* Der Hebel, der auch mit einer einzigen Stimme wirkt — und der Grund,
+          warum dieses Paket überhaupt gebaut wurde. */}
+      <Steps
+        label="Tonhöhe"
+        options={PITCH_ORDER}
+        labels={PITCH_LABELS}
+        current={choice.pitch}
+        onChoose={choosePitch}
+        hint="Tiefer klingt dunkler und weniger schrill."
+      />
 
       <div className="mt-4">
-        <span className="text-sm text-ink-500">Tempo</span>
-        {/* Drei Stufen statt eines Reglers: Am Herd trifft man Flächen,
-            keine Millimeter — und „etwas langsamer" will niemand einstellen,
-            sondern „langsam". */}
-        <div
-          role="radiogroup"
-          aria-label="Tempo"
-          className="mt-1.5 flex gap-2 rounded-xl bg-clay-100 p-1"
-        >
-          {TEMPO_ORDER.map((stufe) => (
-            <button
-              key={stufe}
-              type="button"
-              role="radio"
-              aria-checked={choice.tempo === stufe}
-              onClick={() => chooseTempo(stufe)}
-              className={cx(
-                'min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors',
-                choice.tempo === stufe
-                  ? 'bg-accent text-on-accent'
-                  : 'text-ink-600 active:bg-clay-200',
-              )}
-            >
-              {TEMPO_LABELS[stufe]}
-            </button>
-          ))}
-        </div>
+        <span className="text-sm text-ink-500">
+          {zurWahl ? 'Stimme' : 'Diese Stimme liest'}
+        </span>
+
+        {zurWahl ? (
+          <ul role="radiogroup" aria-label="Stimme" className="mt-1.5 space-y-1.5">
+            {stimmen.map((stimme) => (
+              <li key={stimme.name}>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={stimme.name === aktuell}
+                  onClick={() => chooseVoice(stimme.name)}
+                  className={cx(
+                    'flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm transition-colors',
+                    stimme.name === aktuell
+                      ? 'bg-accent-soft ring-1 ring-accent'
+                      : 'bg-clay-100 active:bg-clay-200',
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+                    {stimme.name}
+                  </span>
+                  <SpeakerIcon
+                    className={cx(
+                      'size-4.5 shrink-0',
+                      stimme.name === aktuell
+                        ? 'text-accent-text'
+                        : 'text-ink-400',
+                    )}
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          // Ein Auswahlknopf, der nichts auswählt, sieht nach kaputter
+          // Bedienung aus. Bei einer Stimme steht deshalb nur ihr Name da.
+          <p className="mt-1.5 truncate rounded-xl bg-clay-100 px-3 py-2.5 text-sm font-medium text-ink-900">
+            {aktuell}
+          </p>
+        )}
       </div>
 
       <Button variant="secondary" className="mt-3" block onClick={() => probe({})}>
@@ -649,13 +664,114 @@ function VoiceSection() {
         Probe hören
       </Button>
 
+      <VoiceHelp einzeln={!zurWahl} />
+
       <p className="mt-3 text-xs leading-relaxed text-ink-400">
         Gilt nur auf diesem Gerät.
-        {stimmen.length === 1 && ' Dein Gerät hat nur diese eine deutsche Stimme.'}{' '}
-        Weitere Stimmen bringt die App nicht mit — die kommen aus den
-        Einstellungen des Handys unter „Sprachausgabe" und stehen danach hier.
       </p>
     </Disclosure>
+  )
+}
+
+/**
+ * Drei Stufen nebeneinander — Tempo und Tonhöhe sind dieselbe Bauform.
+ *
+ * Eigener Baustein, weil es sonst zweimal dasselbe Dutzend Zeilen wäre und die
+ * zweite Fassung beim nächsten Anfassen von der ersten abwiche.
+ */
+function Steps<T extends string>({
+  label,
+  options,
+  labels,
+  current,
+  onChoose,
+  hint,
+}: {
+  label: string
+  options: readonly T[]
+  labels: Record<T, string>
+  current: T
+  onChoose: (value: T) => void
+  hint?: string
+}) {
+  return (
+    <div className="mt-4">
+      <span className="text-sm text-ink-500">{label}</span>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className="mt-1.5 flex gap-2 rounded-xl bg-clay-100 p-1"
+      >
+        {options.map((stufe) => (
+          <button
+            key={stufe}
+            type="button"
+            role="radio"
+            aria-checked={current === stufe}
+            onClick={() => onChoose(stufe)}
+            className={cx(
+              'min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors',
+              current === stufe
+                ? 'bg-accent text-on-accent'
+                : 'text-ink-600 active:bg-clay-200',
+            )}
+          >
+            {labels[stufe]}
+          </button>
+        ))}
+      </div>
+      {hint && <p className="mt-1.5 text-xs text-ink-400">{hint}</p>}
+    </div>
+  )
+}
+
+/**
+ * Woher weitere Stimmen kommen — und warum die App sie nicht besorgen kann.
+ *
+ * Der Satz aus der ersten Fassung („die kommen aus den Einstellungen des Handys
+ * unter Sprachausgabe") war zu dünn, um danach etwas zu finden. Hier stehen
+ * beide Wege, die auf einem Android-Gerät wirklich helfen — und der wichtigere
+ * ist der unauffälligere: Dieselbe eine Stimme lässt sich austauschen, ohne
+ * dass die App je mehr als eine zu sehen bekommt.
+ */
+function VoiceHelp({ einzeln }: { einzeln: boolean }) {
+  return (
+    <details className="group mt-3 rounded-xl bg-clay-100 px-3 py-2.5">
+      <summary className="cursor-pointer list-none text-sm font-medium text-ink-700 [&::-webkit-details-marker]:hidden">
+        Woher kommen weitere Stimmen?
+      </summary>
+
+      <div className="mt-2 space-y-2 text-xs leading-relaxed text-ink-500">
+        <p>
+          {einzeln
+            ? 'Dein Gerät meldet genau eine deutsche Stimme. Das ist der Normalfall und kein Fehler: Die Sprachausgabe von Google gibt pro Sprache nur eine heraus.'
+            : 'Die Liste zeigt, was auf diesem Gerät liegt. Weitere lassen sich nachinstallieren.'}{' '}
+          Die App kann keine mitbringen — sie darf nur benutzen, was das Handy
+          bereitstellt.
+        </p>
+        <p>
+          Such in den <strong>Handy-Einstellungen nach „Sprachausgabe"</strong>.
+          Meist steht sie unter <em>Bedienungshilfen</em>, auf manchen Geräten
+          unter <em>System → Sprachen &amp; Eingabe</em>.
+        </p>
+        <p>
+          <strong>Damit es anders klingt:</strong> beim Zahnrad neben „Google
+          Sprachausgabe" die <em>Stimme</em> wechseln. Hier steht danach
+          weiterhin eine einzige — aber sie klingt anders. Das ist der Knopf,
+          der in dieser App nicht sitzen kann.
+        </p>
+        <p>
+          <strong>Damit hier mehr zur Auswahl steht:</strong> zusätzliche
+          deutsche Sprachen installieren — <em>Deutsch (Österreich)</em> und{' '}
+          <em>Deutsch (Schweiz)</em>. Die erscheinen als eigene Einträge und
+          klingen deutlich anders.
+        </p>
+        <p>
+          Zurück in der App stehen neue Stimmen sofort hier. Falls nicht, hilft
+          einmal schließen und neu öffnen.
+        </p>
+      </div>
+    </details>
   )
 }
 
