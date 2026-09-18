@@ -15,6 +15,7 @@ import {
   DownloadIcon,
   PlusIcon,
   ShareIcon,
+  SpeakerIcon,
   UpdateIcon,
 } from '../../components/Icons.tsx'
 import { copyText, shareText } from '../../lib/share.ts'
@@ -34,6 +35,18 @@ import { CHANGELOG, KIND_LABELS, type ChangeEntry } from '../../data/changelog.t
 import { useWordbook } from '../../lib/wordbook.ts'
 import { forgetCorrection, learnCorrection } from '../../domain/corrections.ts'
 import { isDictationAvailable } from '../../lib/speech.ts'
+import {
+  startReading,
+  useGermanVoices,
+  type ReadingHandle,
+} from '../../lib/reading.ts'
+import { useVoiceChoice } from '../../lib/voice.ts'
+import {
+  TEMPO_LABELS,
+  TEMPO_ORDER,
+  pickVoiceName,
+  type Tempo,
+} from '../../domain/voiceChoice.ts'
 import { useRepository } from '../../data/RepositoryContext.tsx'
 import { backupFilename, formatRecipeBackup } from '../../domain/backup.ts'
 import { downloadText } from '../../lib/download.ts'
@@ -205,6 +218,8 @@ export default function SettingsPage() {
         <PeopleSection />
 
         <WordbookSection />
+
+        <VoiceSection />
 
         <Disclosure
           title="Ladenreihenfolge"
@@ -508,6 +523,137 @@ function WordbookSection() {
 
       <p className="mt-3 text-xs leading-relaxed text-ink-400">
         Gilt nur auf diesem Gerät.
+      </p>
+    </Disclosure>
+  )
+}
+
+/** Ein echter Rezeptsatz, kein „Dies ist ein Test" — beurteilt wird, was zählt. */
+const PROBE = 'Die Zwiebeln schälen und fein würfeln.'
+
+/**
+ * Welche Stimme vorliest und wie schnell.
+ *
+ * Steht direkt hinter „Eigene Wörter": Beides betrifft das Sprechen, das eine
+ * das Zuhören, das andere das Vorlesen.
+ *
+ * **Die App bringt keine Stimmen mit** — sie benutzt die des Geräts. Darum
+ * steht unten, wo weitere herkommen, statt etwas zu versprechen, was die App
+ * nicht halten kann. Gibt es gar keine deutsche, erscheint der Abschnitt nicht;
+ * dann fehlt am Rezept auch der Vorlese-Knopf.
+ */
+function VoiceSection() {
+  const stimmen = useGermanVoices()
+  const [choice, saveChoice] = useVoiceChoice()
+  const laeuft = useRef<ReadingHandle | null>(null)
+
+  // Nichts soll weiterreden, nachdem man die Einstellungen verlassen hat.
+  useEffect(() => () => laeuft.current?.cancel(), [])
+
+  if (stimmen.length === 0) return null
+
+  const namen = stimmen.map((stimme) => stimme.name)
+  const aktuell = pickVoiceName(namen, choice.name)
+
+  /** Einmal hören — mit der gerade angetippten Stimme, nicht mit der alten. */
+  function probe(next: { name?: string | null; tempo?: Tempo }) {
+    laeuft.current?.cancel()
+    laeuft.current = startReading(PROBE, {
+      voiceName: next.name ?? aktuell ?? undefined,
+      tempo: next.tempo ?? choice.tempo,
+    })
+  }
+
+  function chooseVoice(name: string) {
+    saveChoice({ ...choice, name })
+    probe({ name })
+  }
+
+  function chooseTempo(tempo: Tempo) {
+    saveChoice({ ...choice, tempo })
+    probe({ tempo })
+  }
+
+  return (
+    <Disclosure title="Stimme fürs Vorlesen" hint={aktuell ?? 'keine Stimme'}>
+      <p className="text-sm leading-relaxed text-ink-500">
+        Tipp eine Stimme an — sie liest sofort einen Satz zur Probe vor und
+        bleibt dann eingestellt.
+      </p>
+
+      <ul
+        role="radiogroup"
+        aria-label="Stimme"
+        className="mt-3 space-y-1.5"
+      >
+        {stimmen.map((stimme) => (
+          <li key={stimme.name}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={stimme.name === aktuell}
+              onClick={() => chooseVoice(stimme.name)}
+              className={cx(
+                'flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-left text-sm transition-colors',
+                stimme.name === aktuell
+                  ? 'bg-accent-soft ring-1 ring-accent'
+                  : 'bg-clay-100 active:bg-clay-200',
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+                {stimme.name}
+              </span>
+              <SpeakerIcon
+                className={cx(
+                  'size-4.5 shrink-0',
+                  stimme.name === aktuell ? 'text-accent-text' : 'text-ink-400',
+                )}
+              />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4">
+        <span className="text-sm text-ink-500">Tempo</span>
+        {/* Drei Stufen statt eines Reglers: Am Herd trifft man Flächen,
+            keine Millimeter — und „etwas langsamer" will niemand einstellen,
+            sondern „langsam". */}
+        <div
+          role="radiogroup"
+          aria-label="Tempo"
+          className="mt-1.5 flex gap-2 rounded-xl bg-clay-100 p-1"
+        >
+          {TEMPO_ORDER.map((stufe) => (
+            <button
+              key={stufe}
+              type="button"
+              role="radio"
+              aria-checked={choice.tempo === stufe}
+              onClick={() => chooseTempo(stufe)}
+              className={cx(
+                'min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors',
+                choice.tempo === stufe
+                  ? 'bg-accent text-on-accent'
+                  : 'text-ink-600 active:bg-clay-200',
+              )}
+            >
+              {TEMPO_LABELS[stufe]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button variant="secondary" className="mt-3" block onClick={() => probe({})}>
+        <SpeakerIcon className="size-5" />
+        Probe hören
+      </Button>
+
+      <p className="mt-3 text-xs leading-relaxed text-ink-400">
+        Gilt nur auf diesem Gerät.
+        {stimmen.length === 1 && ' Dein Gerät hat nur diese eine deutsche Stimme.'}{' '}
+        Weitere Stimmen bringt die App nicht mit — die kommen aus den
+        Einstellungen des Handys unter „Sprachausgabe" und stehen danach hier.
       </p>
     </Disclosure>
   )

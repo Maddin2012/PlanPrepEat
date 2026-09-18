@@ -196,6 +196,18 @@ Hat das Gerät keine deutsche Stimme, erscheint der Knopf gar nicht — eine
 englische Stimme, die „Zwiebeln würfeln" vorträgt, hilft niemandem. Den
 Bildschirm lässt die App weiterhin nicht an.
 
+**Welche Stimme liest.** Unter *Einstellungen → Stimme fürs Vorlesen* stehen
+alle deutschen Stimmen, die auf dem Gerät liegen. Ein Tipp darauf liest sofort
+einen Satz zur Probe vor und stellt sie ein; darunter gibt es drei Stufen fürs
+Tempo. Zugeklappt verrät die Zeile, welche Stimme gerade dran ist.
+
+Die App bringt **keine** Stimmen mit — sie benutzt die des Geräts. Klingt keine
+davon gut, hilft nur, in den Handy-Einstellungen unter „Sprachausgabe" weitere
+zu laden; danach stehen sie hier zur Wahl. Die Wahl gilt je Gerät und nicht für
+den ganzen Haushalt: Die Stimmenliste ist auf jedem Handy eine andere. Fehlt
+eine einmal gewählte Stimme später (Gerätewechsel, Android-Update), wird
+stillschweigend die erste genommen — lieber eine andere Stimme als Schweigen.
+
 ## Diktieren
 
 Zwei Sorten Mikrofon, und der Unterschied ist wichtig:
@@ -285,7 +297,8 @@ sobald wieder Empfang da ist.
 
 Oben stehen die Abschnitte, die man tatsächlich ab und zu braucht: Update,
 Haushalt, Darstellung und *Wer isst mit*. Alles Seltenere — **Eigene Wörter,
-Ladenreihenfolge, Sicherung, Verbindung** und **Abmelden** — steht darunter zum
+Stimme fürs Vorlesen, Ladenreihenfolge, Sicherung, Verbindung** und
+**Abmelden** — steht darunter zum
 Aufklappen; die Zeile verrät zugeklappt, was drin ist („noch nichts gemerkt",
 „3 Wörter werden ausgetauscht"). Es ist nichts weggefallen und nichts verhält
 sich anders, es liegt nur einen Tipp weiter.

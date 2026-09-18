@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { TEMPO, pickVoiceName, type Tempo } from '../domain/voiceChoice.ts'
+import { readVoiceChoice } from './voice.ts'
 
 /**
  * Vorlesen über die Sprachausgabe des Browsers.
@@ -25,51 +27,66 @@ export function isReadingAvailable(): boolean {
   return synthesis() !== null && typeof window.SpeechSynthesisUtterance === 'function'
 }
 
+/** Alle deutschen Stimmen, die das Gerät anbietet — in seiner Reihenfolge. */
+export function germanVoices(): SpeechSynthesisVoice[] {
+  const stimmen = synthesis()?.getVoices() ?? []
+  return stimmen.filter((stimme) => /^de/i.test(stimme.lang ?? ''))
+}
+
 /** Die erste deutsche Stimme, die das Gerät anbietet — oder `null`. */
 export function germanVoice(): SpeechSynthesisVoice | null {
-  const stimmen = synthesis()?.getVoices() ?? []
-  return stimmen.find((stimme) => /^de/i.test(stimme.lang ?? '')) ?? null
+  return germanVoices()[0] ?? null
 }
 
 /**
- * Ob eine deutsche Stimme bereitsteht.
+ * Die deutschen Stimmen des Geräts, sobald sie da sind.
  *
  * **Die Liste der Stimmen ist beim ersten Rendern regelmäßig noch leer** und
  * wird nachgereicht. Deshalb wird auf `voiceschanged` gehört — und zusätzlich
  * ein paarmal nachgesehen: Manche Browser melden das Ereignis nie, obwohl die
  * Stimmen längst da sind. Wer sich nur auf das Ereignis verlässt, bekommt auf
  * genau diesen Geräten nie einen Vorlese-Knopf.
+ *
+ * Gewartet wird nur, **bis die erste** da ist. Ob der Browser danach noch
+ * weitere nachreicht, lässt sich nicht wissen — und ein Warten „auf alle" hätte
+ * kein Ende.
  */
-export function useGermanVoice(): boolean {
-  const [vorhanden, setVorhanden] = useState(() => germanVoice() !== null)
+export function useGermanVoices(): SpeechSynthesisVoice[] {
+  const [stimmen, setStimmen] = useState<SpeechSynthesisVoice[]>(germanVoices)
 
   useEffect(() => {
-    if (vorhanden) return
-    const stimme = synthesis()
-    if (!stimme) return
+    if (stimmen.length > 0) return
+    const sprache = synthesis()
+    if (!sprache) return
 
     let versuche = 0
     const nachsehen = () => {
-      if (germanVoice()) {
-        setVorhanden(true)
+      const gefunden = germanVoices()
+      if (gefunden.length > 0) {
+        setStimmen(gefunden)
         return true
       }
       return false
     }
 
-    stimme.addEventListener?.('voiceschanged', nachsehen)
+    sprache.addEventListener?.('voiceschanged', nachsehen)
     const uhr = window.setInterval(() => {
       versuche += 1
       if (nachsehen() || versuche >= 10) window.clearInterval(uhr)
     }, 250)
 
     return () => {
-      stimme.removeEventListener?.('voiceschanged', nachsehen)
+      sprache.removeEventListener?.('voiceschanged', nachsehen)
       window.clearInterval(uhr)
     }
-  }, [vorhanden])
+  }, [stimmen.length])
 
-  return vorhanden
+  return stimmen
+}
+
+/** Ob überhaupt eine deutsche Stimme bereitsteht. */
+export function useGermanVoice(): boolean {
+  return useGermanVoices().length > 0
 }
 
 export interface ReadingHandle {
@@ -89,20 +106,43 @@ export interface ReadingHandle {
  */
 export function startReading(
   text: string,
-  options: { onEnd?: () => void; onError?: () => void } = {},
+  options: {
+    onEnd?: () => void
+    onError?: () => void
+    /**
+     * Eine bestimmte Stimme statt der gespeicherten Wahl — für „Probe hören"
+     * in den Einstellungen, wo man ja gerade eine andere antippt.
+     */
+    voiceName?: string
+    /** Ein bestimmtes Tempo statt des gespeicherten. */
+    tempo?: Tempo
+  } = {},
 ): ReadingHandle | null {
-  const stimme = synthesis()
-  if (!stimme || typeof window.SpeechSynthesisUtterance !== 'function') return null
+  const sprache = synthesis()
+  if (!sprache || typeof window.SpeechSynthesisUtterance !== 'function') return null
 
   let abgebrochen = false
 
   const utterance = new window.SpeechSynthesisUtterance(text)
   utterance.lang = 'de-DE'
-  const deutsch = germanVoice()
+
+  // Ohne Angabe gilt, was in den Einstellungen gewählt wurde. Der Umweg über
+  // `pickVoiceName` ist wichtig: Er fängt den Fall ab, dass die gewählte Stimme
+  // auf diesem Gerät gar nicht (mehr) existiert.
+  const gespeichert = readVoiceChoice()
+  const stimmen = germanVoices()
+  const gesucht = options.voiceName ?? gespeichert.name
+  const name = pickVoiceName(
+    stimmen.map((stimme) => stimme.name),
+    gesucht,
+  )
+  const deutsch = stimmen.find((stimme) => stimme.name === name)
   if (deutsch) utterance.voice = deutsch
-  // Etwas langsamer als der Vorgabewert: Vorgelesen wird beim Kochen, mit den
-  // Händen im Teig und dem Gerät zwei Schritte weiter.
-  utterance.rate = 0.95
+
+  // Vorgelesen wird beim Kochen, mit den Händen im Teig und dem Gerät zwei
+  // Schritte weiter — deshalb ist selbst „normal" etwas langsamer als der
+  // Vorgabewert des Browsers.
+  utterance.rate = TEMPO[options.tempo ?? gespeichert.tempo]
 
   utterance.onend = () => {
     if (abgebrochen) return
@@ -116,14 +156,14 @@ export function startReading(
 
   // Was noch in der Warteschlange steht, muss weg — sonst redet der vorige
   // Schritt weiter, während der nächste schon angefangen hat.
-  stimme.cancel()
-  stimme.speak(utterance)
+  sprache.cancel()
+  sprache.speak(utterance)
 
   return {
     cancel() {
       if (abgebrochen) return
       abgebrochen = true
-      stimme.cancel()
+      sprache.cancel()
     },
   }
 }
