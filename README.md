@@ -53,8 +53,14 @@ als gedacht, schiebt ihr das Gericht von dort einfach weiter. Gescrollt wird in
 beide Richtungen — geladen sind ein Monat zurück und vier voraus, und wer noch
 weiter will, tippt am Ende auf „30 Tage früher" bzw. „30 Tage später". Der Knopf
 „Heute" oben rechts holt euch jederzeit zurück.
+Mittag und Abend von **heute** sind golden umrandet — beim Aufschlagen sucht man
+die beiden Felder, nicht das Datum.
+
 Ein Tippen auf ein Feld öffnet die Rezeptauswahl, danach stellt ihr die Portionen
 ein. Auf ein Feld passen auch mehrere Rezepte, für Hauptgericht plus Beilage.
+Einen **freien Eintrag** tippt ihr unten ins Feld und drückt **Fertig** — das
+genügt. Das Pluszeichen daneben legt ebenfalls an und lässt das Feld offen, für
+mehrere hintereinander.
 
 **Wer isst mit.** Trag in den Einstellungen unter *Wer isst mit* ein, wer zum
 Haushalt gehört — einfach Namen, keine Anmeldung, also auch Kinder und Gäste

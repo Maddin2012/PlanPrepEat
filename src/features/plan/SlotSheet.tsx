@@ -59,7 +59,22 @@ export default function SlotSheet({
   const weekday = WEEKDAY_LONG[fromISODate(date).getDay()]
   const title = `${weekday}, ${formatDayShort(date)} · ${MEAL_LABELS[meal]}`
 
+  /**
+   * Schließen — und vorher anlegen, was noch im Textfeld steht.
+   *
+   * Vorher kostete ein freier Eintrag zwei Bestätigungen: erst das **+** neben
+   * dem Feld, dann unten **Fertig**. Wer nur eines von beiden drückte, stand
+   * ohne Eintrag da. Jetzt genügt „Fertig"; das + und die Eingabetaste bleiben
+   * für den, der mehrere hintereinander schreibt.
+   *
+   * Das gilt auch beim Tippen neben das Blatt: Was man sichtbar hingeschrieben
+   * hat, soll nicht verschwinden — dieselbe Regel wie beim Eintragen auf der
+   * Einkaufsliste.
+   */
   function close() {
+    const text = free.trim()
+    if (text) onSave([...entries, { text }])
+
     setPicking(false)
     setQuery('')
     setFree('')

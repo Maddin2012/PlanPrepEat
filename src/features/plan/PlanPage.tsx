@@ -322,6 +322,14 @@ function DayRow({
               entries.length > 0
                 ? 'bg-surface ring-1 ring-clay-200 active:bg-clay-50'
                 : 'border border-dashed border-clay-200 text-ink-400 active:bg-clay-50',
+              // Beide Felder von heute bekommen einen goldenen Rahmen. Bisher
+              // war nur das Datum links hervorgehoben — beim Aufschlagen des
+              // Plans sucht man aber die zwei Felder, nicht das Datum.
+              //
+              // `ring` statt `border`, damit derselbe Rahmen auf ein belegtes
+              // wie auf ein leeres Feld passt: Der Ring liegt außen auf und
+              // verschiebt nichts, eine zweite Linie täte das.
+              day.isToday && 'ring-2 ring-accent',
               // Vergangene Tage treten zurück, ohne unbenutzbar zu werden.
               day.isPast && 'opacity-55',
               day.startsMonth && 'mt-4',

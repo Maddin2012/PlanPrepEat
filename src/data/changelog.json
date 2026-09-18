@@ -1,6 +1,16 @@
 [
   {
     "datum": "2026-09-18",
+    "art": "besser",
+    "text": "Im Essensplan sind Mittag und Abend von heute golden umrandet. Vorher war nur das Datum links hervorgehoben — gesucht hat man aber die beiden Felder."
+  },
+  {
+    "datum": "2026-09-18",
+    "art": "besser",
+    "text": "Ein freier Eintrag im Essensplan braucht nur noch eine Bestätigung: eintippen und unten auf „Fertig“. Das Pluszeichen daneben bleibt für alle, die mehrere hintereinander schreiben."
+  },
+  {
+    "datum": "2026-09-18",
     "art": "fehler",
     "text": "Eine Zutat kommt nicht mehr doppelt auf die Einkaufsliste. Tippst du etwas ein, das schon draufsteht, wird der vorhandene Eintrag wieder geöffnet — auch wenn er schon abgehakt unter „Erledigt“ lag — statt dass eine zweite Zeile entsteht."
   },
