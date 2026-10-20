@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildShoppingList,
+  buildStruckItems,
   collectPlanned,
   liveShoppingKeys,
   manualKey,
@@ -16,6 +17,15 @@ import type {
   RecipeItem,
   ShoppingState,
 } from './types.ts'
+
+/**
+ * Ein fester Tag für alle Prüfungen. Häkchen und Streichungen verfallen nach
+ * einer Woche — ohne festes „heute" hingen die Tests an der Uhr des Rechners,
+ * auf dem sie laufen.
+ */
+const HEUTE = '2026-10-20'
+/** Acht Tage später: alles, was an HEUTE gesetzt wurde, ist dann abgelaufen. */
+const SPAETER = '2026-10-28'
 
 function ingredient(id: string, name: string): Ingredient {
   return { id, name, defaultUnit: 'g' }
@@ -247,11 +257,11 @@ describe('Reihenfolge der Einkaufsliste', () => {
   const platz = (...ids: string[]) => ids
 
   const namesOf = (state: ShoppingState) =>
-    buildShoppingList(planned, catalog, state).map((item) => item.name)
+    buildShoppingList(planned, catalog, state, HEUTE).map((item) => item.name)
 
   it('schiebt Abgehaktes ans Ende', () => {
     expect(
-      namesOf({ ...emptyShoppingState(), checked: { [milk]: true } }),
+      namesOf({ ...emptyShoppingState(), checked: { [milk]: HEUTE } }),
     ).toEqual(['Nudeln', 'Zwiebeln', 'Milch'])
   })
 
@@ -259,7 +269,7 @@ describe('Reihenfolge der Einkaufsliste', () => {
     expect(
       namesOf({
         ...emptyShoppingState(),
-        checked: { [pasta]: true, [milk]: true },
+        checked: { [pasta]: HEUTE, [milk]: HEUTE },
       }),
     ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
   })
@@ -302,7 +312,7 @@ describe('Reihenfolge der Einkaufsliste', () => {
       namesOf({
         ...emptyShoppingState(),
         storeOrder: platz('onion', 'milk', 'pasta'),
-        checked: { [onion]: true },
+        checked: { [onion]: HEUTE },
       }),
     ).toEqual(['Milch', 'Nudeln', 'Zwiebeln'])
   })
@@ -332,9 +342,9 @@ describe('Nutzer-Zustand über der Liste', () => {
   it('übernimmt Häkchen', () => {
     const state: ShoppingState = {
       ...emptyShoppingState(),
-      checked: { [onionKey]: true },
+      checked: { [onionKey]: HEUTE },
     }
-    expect(buildShoppingList(planned, catalog, state)[0].checked).toBe(true)
+    expect(buildShoppingList(planned, catalog, state, HEUTE)[0].checked).toBe(true)
   })
 
   it('lässt von Hand korrigierte Mengen die berechneten überschreiben', () => {
@@ -342,7 +352,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       ...emptyShoppingState(),
       overrides: { [onionKey]: 1000 },
     }
-    const item = buildShoppingList(planned, catalog, state)[0]
+    const item = buildShoppingList(planned, catalog, state, HEUTE)[0]
     expect(item.amount).toBe(1000)
     expect(item.edited).toBe(true)
   })
@@ -350,9 +360,77 @@ describe('Nutzer-Zustand über der Liste', () => {
   it('blendet gestrichene Posten aus', () => {
     const state: ShoppingState = {
       ...emptyShoppingState(),
-      removed: [onionKey],
+      removed: { [onionKey]: HEUTE },
     }
-    expect(buildShoppingList(planned, catalog, state)).toHaveLength(0)
+    expect(buildShoppingList(planned, catalog, state, HEUTE)).toHaveLength(0)
+  })
+
+  /**
+   * Der Fehler aus Martins Meldung: „Wenn ein Rezept mit Kartoffeln und
+   * Zwiebeln drin ist, überträgt er die Zutaten nicht." Eine einmal gestrichene
+   * Zutat blieb für immer verschwunden — in jedem Rezept, auch in einem, das es
+   * beim Streichen noch nicht gab, weil eine Zutat über ihren Namen gefunden
+   * wird. Und sie war nirgends zu sehen.
+   */
+  describe('eine Streichung gilt eine Woche und ist sichtbar', () => {
+    const gestrichen: ShoppingState = {
+      ...emptyShoppingState(),
+      removed: { [onionKey]: HEUTE },
+    }
+
+    it('steht solange im gestrichenen Block statt auf der Liste', () => {
+      expect(buildShoppingList(planned, catalog, gestrichen, HEUTE)).toHaveLength(0)
+      expect(
+        buildStruckItems(planned, catalog, gestrichen, HEUTE).map((i) => i.name),
+      ).toEqual(['Zwiebeln'])
+    })
+
+    it('und steht acht Tage später von selbst wieder auf der Liste', () => {
+      expect(
+        buildShoppingList(planned, catalog, gestrichen, SPAETER).map((i) => i.name),
+      ).toEqual(['Zwiebeln'])
+      expect(buildStruckItems(planned, catalog, gestrichen, SPAETER)).toHaveLength(0)
+    })
+
+    it('bleibt gestrichen, wenn ein zweites Rezept dieselbe Zutat braucht', () => {
+      // Innerhalb der Woche ändert ein neues Rezept nichts — der Posten ist
+      // aber sichtbar und mit einem Tipp zurückzuholen, nicht einfach weg.
+      const b = recipe('b', 'Suppe', 2, [
+        { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
+      ])
+      const mehr = [...planned, { recipe: b, servings: 2 }]
+      expect(buildShoppingList(mehr, catalog, gestrichen, HEUTE)).toHaveLength(0)
+      expect(buildStruckItems(mehr, catalog, gestrichen, HEUTE)).toHaveLength(1)
+    })
+
+    it('zeigt keine eigenen Posten im gestrichenen Block', () => {
+      // Eigene Posten werden gelöscht, nicht gestrichen.
+      const state: ShoppingState = {
+        ...emptyShoppingState(),
+        manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
+        removed: { [manualKey('m1')]: HEUTE },
+      }
+      expect(buildStruckItems(planned, catalog, state, HEUTE)).toHaveLength(0)
+    })
+  })
+
+  describe('ein Häkchen gilt eine Woche', () => {
+    const abgehakt: ShoppingState = {
+      ...emptyShoppingState(),
+      checked: { [onionKey]: HEUTE },
+    }
+
+    it('gilt innerhalb der Woche', () => {
+      expect(
+        buildShoppingList(planned, catalog, abgehakt, HEUTE)[0].checked,
+      ).toBe(true)
+    })
+
+    it('ist acht Tage später weg — nicht „schon erledigt" von letzter Woche', () => {
+      expect(
+        buildShoppingList(planned, catalog, abgehakt, SPAETER)[0].checked,
+      ).toBe(false)
+    })
   })
 
   it('mischt eigene Posten an der richtigen Stelle ein', () => {
@@ -360,16 +438,16 @@ describe('Nutzer-Zustand über der Liste', () => {
       ...emptyShoppingState(),
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
     }
-    const list = buildShoppingList(planned, catalog, state)
+    const list = buildShoppingList(planned, catalog, state, HEUTE)
     expect(list.map((item) => item.name)).toEqual(['Klopapier', 'Zwiebeln'])
     expect(list.find((item) => item.manual)?.name).toBe('Klopapier')
   })
 
   it('überlebt eine Änderung am Essensplan', () => {
     const state: ShoppingState = {
-      checked: { [onionKey]: true },
+      checked: { [onionKey]: HEUTE },
       overrides: {},
-      removed: [],
+      removed: {},
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
       storeOrder: [],
     }
@@ -382,6 +460,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       [...planned, { recipe: b, servings: 2 }],
       catalog,
       state,
+      HEUTE,
     )
 
     expect(erweitert.find((item) => item.name === 'Zwiebeln')?.checked).toBe(
@@ -395,9 +474,9 @@ describe('Nutzer-Zustand über der Liste', () => {
 describe('pruneShoppingState', () => {
   it('räumt Zustand weg, dessen Posten aus dem Plan geflogen ist', () => {
     const state: ShoppingState = {
-      checked: { [shoppingKey('onion', 'g')]: true, [manualKey('m1')]: true },
+      checked: { [shoppingKey('onion', 'g')]: HEUTE, [manualKey('m1')]: HEUTE },
       overrides: { [shoppingKey('weg', 'g')]: 5 },
-      removed: [shoppingKey('auch-weg', 'g')],
+      removed: { [shoppingKey('auch-weg', 'g')]: HEUTE },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['onion', 'weg', manualKey('m1')],
     }
@@ -408,11 +487,11 @@ describe('pruneShoppingState', () => {
     )
 
     expect(pruned.checked).toEqual({
-      [shoppingKey('onion', 'g')]: true,
-      [manualKey('m1')]: true,
+      [shoppingKey('onion', 'g')]: HEUTE,
+      [manualKey('m1')]: HEUTE,
     })
     expect(pruned.overrides).toEqual({})
-    expect(pruned.removed).toEqual([])
+    expect(pruned.removed).toEqual({})
     expect(pruned.manual).toHaveLength(1)
   })
 

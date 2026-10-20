@@ -1,5 +1,6 @@
 import { toPeople } from './people.ts'
 import { orderKey } from './shoppingKeys.ts'
+import { toMarkMap, type MarkMap } from './shoppingMarks.ts'
 
 /** Datum im Format YYYY-MM-DD, immer als lokales Kalenderdatum gemeint. */
 export type ISODate = string
@@ -178,12 +179,20 @@ export interface ManualItem {
  * gesetzte Häkchen oder eigene Einträge verloren gehen.
  */
 export interface ShoppingState {
-  /** Abgehakte Posten, Schlüssel siehe `shoppingKey()`. */
-  checked: Record<string, boolean>
+  /**
+   * Abgehakte Posten: Schlüssel (siehe `shoppingKey()`) → der Tag, an dem das
+   * Häkchen gesetzt wurde. Es gilt eine Woche, siehe `shoppingMarks.ts`.
+   */
+  checked: MarkMap
   /** Von Hand korrigierte Mengen, überschreiben den berechneten Wert. */
   overrides: Record<string, number>
-  /** Weggestrichene abgeleitete Posten („hab ich noch da"). */
-  removed: string[]
+  /**
+   * Weggestrichene abgeleitete Posten („brauche ich diese Woche nicht"), mit
+   * dem Tag des Streichens. Auch das gilt eine Woche — vorher stand hier eine
+   * unbefristete Liste, und eine einmal gestrichene Zutat fehlte danach
+   * lautlos in jedem Rezept.
+   */
+  removed: MarkMap
   manual: ManualItem[]
   /**
    * Die **Ladenreihenfolge**: die Runde durch den Laden, so wie man sie geht.
@@ -219,7 +228,7 @@ export interface ShoppingItem {
 export const emptyShoppingState = (): ShoppingState => ({
   checked: {},
   overrides: {},
-  removed: [],
+  removed: {},
   manual: [],
   storeOrder: [],
 })
@@ -239,13 +248,13 @@ export function normalizeShoppingState(value: unknown): ShoppingState {
   if (!isRecord(value)) return empty
 
   return {
-    checked: isRecord(value.checked)
-      ? pickBy(value.checked, (entry) => entry === true)
-      : empty.checked,
+    // Beide Marken-Felder über `toMarkMap`: Ein Stand ohne Datum stammt aus
+    // der Zeit vor der Wochenregel und ist damit sicher abgelaufen.
+    checked: toMarkMap(value.checked),
     overrides: isRecord(value.overrides)
       ? pickBy(value.overrides, (entry) => typeof entry === 'number')
       : empty.overrides,
-    removed: onlyStrings(value.removed),
+    removed: toMarkMap(value.removed),
     manual: Array.isArray(value.manual)
       ? value.manual.filter(isManualItem)
       : empty.manual,

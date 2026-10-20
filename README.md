@@ -79,16 +79,31 @@ rückwirkend anders lauten.
 **Einkaufsliste.** Ergibt sich automatisch aus den Rezepten der 12 Tage um heute
 herum, zusammengefasst und zunächst alphabetisch sortiert. Zweimal 200 g Zwiebeln
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.
-Ihr könnt abhaken, Posten streichen („hab ich noch da") und am Griff rechts alles
+Ihr könnt abhaken, Posten streichen und am Griff rechts alles
 in eure Ladenreihenfolge ziehen — die merkt sich die App dann dauerhaft.
 Abgehaktes rutscht durchgestrichen unter „Erledigt".
+
+**Häkchen und Streichungen gelten für eine Woche.** Beides sind Notizen für
+*einen* Einkauf, keine Eigenschaft der Zutat: Was letzte Woche schon im Haus
+war, ist diese Woche wieder eine offene Frage. Nach sieben Tagen verfallen sie
+deshalb von selbst.
+
+Ein gestrichener Posten („hab ich noch da") verschwindet **nicht** aus der App,
+sondern rutscht unten in den Block **„Brauche ich diese Woche nicht"** — dort
+steht er durchgestrichen, und ein Tipp holt ihn sofort zurück nach oben. Das ist
+mit Absicht so: Vorher war eine gestrichene Zutat dauerhaft und unsichtbar
+gesperrt, und weil eine Zutat über ihren **Namen** erkannt wird, fehlte sie
+danach auch in Rezepten, die es beim Streichen noch gar nicht gab. Tippt man
+einen gestrichenen Namen von Hand ein, wird die Streichung aufgehoben, statt
+eine zweite Zeile mit demselben Namen anzulegen.
 
 Eigene Sachen wie Klopapier kommen über die Zeile **„+ Listeneintrag"** unter der
 Liste dazu, so wie in Google Notizen: antippen, Namen schreiben, Enter — und die
 nächste Zeile steht schon bereit. Das **X** am Ende der Zeile wirft sie wieder
 weg. Menge, Einheit und Name ändert ihr, indem ihr rechts in der Zeile auf die
 Mengenangabe tippt; dort korrigiert ihr auch die aus den Rezepten berechneten
-Mengen, ohne dass sich am Rezept etwas ändert.
+Mengen, ohne dass sich am Rezept etwas ändert. Ein eigener Posten wird
+**gelöscht**, nicht gestrichen — der kommt nicht wieder.
 
 **Beim Tippen schlägt die App vor**, was sie schon kennt — aus euren Rezepten
 und von der Liste selbst. Es genügen ein paar Buchstaben in der richtigen

@@ -1,5 +1,25 @@
 [
   {
+    "datum": "2026-10-20",
+    "art": "fehler",
+    "text": "Zutaten, die du einmal mit „Brauche ich nicht“ weggestrichen hattest, kamen nie wieder auf die Einkaufsliste — auch nicht aus einem neuen Rezept. Genau das ist mit Kartoffeln und Zwiebeln passiert. Sie fehlten lautlos, und es gab keinen Weg zurück. Jetzt stehen sie nach dem Update wieder da."
+  },
+  {
+    "datum": "2026-10-20",
+    "art": "besser",
+    "text": "Häkchen und Streichungen gelten jetzt für eine Woche und verfallen dann von selbst. Beides sind Notizen für einen Einkauf, keine Eigenschaft der Zutat — was letzte Woche schon im Haus war, ist diese Woche wieder eine Frage."
+  },
+  {
+    "datum": "2026-10-20",
+    "art": "neu",
+    "text": "Weggestrichene Zutaten stehen unten in einem eigenen Block „Brauche ich diese Woche nicht“, durchgestrichen. Ein Tipp holt eine davon sofort zurück auf die Liste. Nichts verschwindet mehr, ohne dass du es siehst."
+  },
+  {
+    "datum": "2026-10-20",
+    "art": "besser",
+    "text": "Einmaliger Nebeneffekt dieses Updates: Die Häkchen, die gerade gesetzt sind, sind weg und die Liste steht wieder vollständig offen da. Ab jetzt räumt sie sich jede Woche selbst auf."
+  },
+  {
     "datum": "2026-09-18",
     "art": "fehler",
     "text": "Der goldene Rahmen um die heutigen Felder im Essensplan war nicht zu sehen, sobald an dem Tag schon etwas eingeplant war — dann blieb er grau und wirkte nur etwas heller. Jetzt ist er da, ob das Feld belegt ist oder leer — angekündigt war er schon, erschienen ist er nie."

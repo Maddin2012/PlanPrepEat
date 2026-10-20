@@ -1,5 +1,6 @@
 import type {
   Ingredient,
+  ISODate,
   PlanSlot,
   Recipe,
   ShoppingItem,
@@ -13,6 +14,8 @@ import {
   parseManualKey,
   shoppingKey,
 } from './shoppingKeys.ts'
+import { dropExpired, isMarkActive } from './shoppingMarks.ts'
+import { todayISO } from './planWindow.ts'
 import { normalize, roundForShopping } from './units.ts'
 import { scaleAmount } from './scaling.ts'
 
@@ -60,16 +63,17 @@ interface Bucket {
 }
 
 /**
- * Baut die Einkaufsliste aus den eingeplanten Rezepten und legt den
- * Nutzer-Zustand darüber: Häkchen, korrigierte Mengen, gestrichene Posten und
- * eigene Einträge. Die berechneten Posten selbst werden nirgends gespeichert,
- * deshalb übersteht der Zustand jede Änderung am Essensplan.
+ * Rechnet die Posten aus den eingeplanten Rezepten zusammen.
+ *
+ * Eigener Schritt, weil zwei Sichten darauf aufsetzen: die Liste selbst und die
+ * gestrichenen Posten. Stünde das Zusammenrechnen zweimal da, liefen die beiden
+ * irgendwann auseinander — und dann fehlte eine gestrichene Zutat wieder
+ * lautlos, weil sie in der einen Rechnung vorkommt und in der anderen nicht.
  */
-export function buildShoppingList(
+function collectBuckets(
   planned: PlannedRecipe[],
   ingredients: Map<string, Ingredient>,
-  state: ShoppingState,
-): ShoppingItem[] {
+): Map<string, Bucket> {
   const buckets = new Map<string, Bucket>()
 
   for (const { recipe, servings } of planned) {
@@ -95,29 +99,55 @@ export function buildShoppingList(
     }
   }
 
-  const removed = new Set(state.removed)
+  return buckets
+}
+
+/** Einen zusammengerechneten Posten in die Form der Liste bringen. */
+function toItem(
+  bucket: Bucket,
+  state: ShoppingState,
+  today: ISODate,
+): ShoppingItem {
+  const override = state.overrides[bucket.key]
+  const hasOverride = typeof override === 'number' && Number.isFinite(override)
+  const amount = hasOverride
+    ? override
+    : roundForShopping(bucket.amount, bucket.unit)
+
+  return {
+    key: bucket.key,
+    name: bucket.name,
+    // Menge 0 heißt „ohne Mengenangabe" (z.B. Salz nach Geschmack) und wird
+    // in der Liste nur mit dem Namen dargestellt.
+    amount: amount === 0 ? null : amount,
+    unit: amount === 0 ? null : bucket.unit,
+    checked: isMarkActive(state.checked[bucket.key], today),
+    edited: hasOverride,
+    manual: false,
+    sources: [...bucket.sources].sort((a, b) => a.localeCompare(b, 'de')),
+  }
+}
+
+/**
+ * Baut die Einkaufsliste aus den eingeplanten Rezepten und legt den
+ * Nutzer-Zustand darüber: Häkchen, korrigierte Mengen, gestrichene Posten und
+ * eigene Einträge. Die berechneten Posten selbst werden nirgends gespeichert,
+ * deshalb übersteht der Zustand jede Änderung am Essensplan.
+ *
+ * Häkchen und Streichungen gelten eine Woche (`shoppingMarks.ts`); `today`
+ * entscheidet, welche davon noch zählen.
+ */
+export function buildShoppingList(
+  planned: PlannedRecipe[],
+  ingredients: Map<string, Ingredient>,
+  state: ShoppingState,
+  today: ISODate = todayISO(),
+): ShoppingItem[] {
   const items: ShoppingItem[] = []
 
-  for (const bucket of buckets.values()) {
-    if (removed.has(bucket.key)) continue
-    const override = state.overrides[bucket.key]
-    const hasOverride = typeof override === 'number' && Number.isFinite(override)
-    const amount = hasOverride
-      ? override
-      : roundForShopping(bucket.amount, bucket.unit)
-
-    items.push({
-      key: bucket.key,
-      name: bucket.name,
-      // Menge 0 heißt „ohne Mengenangabe" (z.B. Salz nach Geschmack) und wird
-      // in der Liste nur mit dem Namen dargestellt.
-      amount: amount === 0 ? null : amount,
-      unit: amount === 0 ? null : bucket.unit,
-      checked: state.checked[bucket.key] === true,
-      edited: hasOverride,
-      manual: false,
-      sources: [...bucket.sources].sort((a, b) => a.localeCompare(b, 'de')),
-    })
+  for (const bucket of collectBuckets(planned, ingredients).values()) {
+    if (isMarkActive(state.removed[bucket.key], today)) continue
+    items.push(toItem(bucket, state, today))
   }
 
   for (const entry of state.manual) {
@@ -127,11 +157,35 @@ export function buildShoppingList(
       name: entry.name,
       amount: entry.amount,
       unit: entry.unit,
-      checked: state.checked[key] === true,
+      checked: isMarkActive(state.checked[key], today),
       edited: false,
       manual: true,
       sources: [],
     })
+  }
+
+  return items.sort(shoppingComparator(state.storeOrder))
+}
+
+/**
+ * Die Posten, die wegen einer gültigen Streichung **nicht** auf der Liste
+ * stehen.
+ *
+ * Damit sie nicht lautlos fehlen: Die Oberfläche zeigt sie in einem eigenen
+ * Block, aus dem man sie mit einem Tipp zurückholt. Eigene Posten kommen hier
+ * nicht vor — die werden gelöscht, nicht gestrichen.
+ */
+export function buildStruckItems(
+  planned: PlannedRecipe[],
+  ingredients: Map<string, Ingredient>,
+  state: ShoppingState,
+  today: ISODate = todayISO(),
+): ShoppingItem[] {
+  const items: ShoppingItem[] = []
+
+  for (const bucket of collectBuckets(planned, ingredients).values()) {
+    if (!isMarkActive(state.removed[bucket.key], today)) continue
+    items.push(toItem(bucket, state, today))
   }
 
   return items.sort(shoppingComparator(state.storeOrder))
@@ -180,10 +234,14 @@ export function shoppingComparator(
  * irgendwo. Eine Zutat behält ihren Platz im Laden, ob sie diese Woche auf der
  * Liste steht oder nicht. Nur eigene Posten fliegen raus, wenn es sie nicht
  * mehr gibt — die kommen nicht wieder.
+ *
+ * Verfallene Marken fliegen hier ebenfalls raus. Nötig ist das nicht — beim
+ * Rechnen werden sie ohnehin übergangen —, es hält nur das Dokument klein.
  */
 export function pruneShoppingState(
   state: ShoppingState,
   liveKeys: Set<string>,
+  today: ISODate = todayISO(),
 ): ShoppingState {
   const manualKeys = new Set(state.manual.map((entry) => manualKey(entry.id)))
   const isLive = (key: string) => liveKeys.has(key) || manualKeys.has(key)
@@ -191,9 +249,9 @@ export function pruneShoppingState(
     parseManualKey(key) === null || manualKeys.has(key)
 
   return {
-    checked: pickKeys(state.checked, isLive),
+    checked: dropExpired(pickKeys(state.checked, isLive), today),
     overrides: pickKeys(state.overrides, isLive),
-    removed: state.removed.filter(isLive),
+    removed: dropExpired(pickKeys(state.removed, isLive), today),
     manual: state.manual,
     storeOrder: capStoreOrder(state.storeOrder.filter(keepsPlace)),
   }

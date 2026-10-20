@@ -1,0 +1,99 @@
+import type { ISODate } from './types.ts'
+import { addDays } from './planWindow.ts'
+
+/**
+ * Häkchen und Streichungen auf der Einkaufsliste — und wann sie verfallen.
+ *
+ * **Beides sind Notizen für einen Einkauf, keine Eigenschaften der Zutat.**
+ * Vorher waren sie unbefristet: Ein Haken blieb gesetzt und eine Streichung
+ * galt weiter, solange die Zutat überhaupt noch irgendwo eingeplant war. Bei
+ * Kartoffeln und Zwiebeln heißt das praktisch für immer — und weil eine Zutat
+ * über ihren **Namen** gefunden wird, wirkte eine einmal gestrichene Zutat auch
+ * in Rezepten, die es beim Streichen noch gar nicht gab. Sie fehlte dann
+ * lautlos auf der Liste.
+ *
+ * Deshalb trägt jede Marke den Tag, an dem sie gesetzt wurde, und gilt eine
+ * Woche. Das ist der Rhythmus, in dem eingekauft wird: Was letzte Woche schon
+ * im Haus war, ist diese Woche eine offene Frage.
+ */
+
+/** Schlüssel der Einkaufsliste → der Tag, an dem die Marke gesetzt wurde. */
+export type MarkMap = Record<string, ISODate>
+
+/**
+ * Wie lange eine Marke gilt.
+ *
+ * Eine Woche, nicht ein Tag: Man schreibt die Liste nicht am Einkaufstag,
+ * sondern über die Woche verteilt. Und nicht einen Monat: Dann wäre man wieder
+ * bei „gilt praktisch immer".
+ */
+export const MARK_DAYS = 7
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Gilt die Marke heute noch?
+ *
+ * Ein Datum in der **Zukunft** gilt. Das ist kein Schönheitsfehler, sondern
+ * nötig: Im Haushalt hängen zwei Geräte an derselben Liste, und geht die Uhr
+ * des anderen vor, dürfte eine gerade gesetzte Marke nicht sofort verfallen.
+ *
+ * ISO-Daten werden als Text verglichen — `'2026-10-20' < '2026-10-21'` stimmt,
+ * weil Jahr, Monat und Tag in dieser Reihenfolge und mit führenden Nullen
+ * dastehen. Deshalb braucht es hier keine Datumsrechnung.
+ */
+export function isMarkActive(
+  set: ISODate | undefined,
+  today: ISODate,
+): boolean {
+  if (!set || !ISO_DATE.test(set)) return false
+  return addDays(set, MARK_DAYS) > today
+}
+
+/** Eine Marke setzen. Die übergebene Sammlung bleibt unberührt. */
+export function setMark(marks: MarkMap, key: string, today: ISODate): MarkMap {
+  return { ...marks, [key]: today }
+}
+
+/** Eine Marke wieder loswerden. */
+export function clearMark(marks: MarkMap, key: string): MarkMap {
+  const { [key]: _weg, ...rest } = marks
+  return rest
+}
+
+/**
+ * Verfallene Marken wegräumen.
+ *
+ * Fürs Rechnen nicht nötig — `isMarkActive` übergeht sie ohnehin. Es hält nur
+ * das gespeicherte Dokument klein, das sonst über Jahre mit jeder je
+ * abgehakten Zutat wächst.
+ */
+export function dropExpired(marks: MarkMap, today: ISODate): MarkMap {
+  const result: MarkMap = {}
+  for (const [key, set] of Object.entries(marks)) {
+    if (isMarkActive(set, today)) result[key] = set
+  }
+  return result
+}
+
+/**
+ * Einen gelesenen Stand auf die Form der Marken bringen.
+ *
+ * Nimmt nur `{ schlüssel: 'JJJJ-MM-TT' }` an. Die beiden **alten** Formen —
+ * `removed` war eine Liste von Schlüsseln, `checked` eine Zuordnung auf `true`
+ * — ergeben nichts, und das ist so gewollt: Ein Haken oder eine Streichung
+ * ohne Datum stammt aus der Zeit vor dieser Regel, ist also mit Sicherheit
+ * älter als eine Woche. Beim ersten Start nach dem Update steht die Liste
+ * deshalb einmal wieder vollständig offen da — und genau dadurch kommen die
+ * Zutaten zurück, die unterwegs verschwunden waren.
+ */
+export function toMarkMap(value: unknown): MarkMap {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return {}
+  }
+  const result: MarkMap = {}
+  for (const [key, set] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof set === 'string' && ISO_DATE.test(set)) result[key] = set
+  }
+  return result
+}

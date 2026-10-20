@@ -5,9 +5,9 @@ import { buildShoppingList } from './aggregate.ts'
 describe('normalizeShoppingState', () => {
   it('lässt einen gültigen Zustand unverändert', () => {
     const state = {
-      checked: { a: true },
+      checked: { a: '2026-10-20' },
       overrides: { a: 500 },
-      removed: ['b'],
+      removed: { b: '2026-10-19' },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['a', 'b'],
     }
@@ -33,28 +33,57 @@ describe('normalizeShoppingState', () => {
   it('ergänzt fehlende Felder einzeln', () => {
     // Ein Stand von vor der freien Sortierung kennt die Ladenrunde nicht.
     const ohneOrder = {
-      checked: { a: true },
+      checked: { a: '2026-10-20' },
       overrides: {},
-      removed: [],
+      removed: {},
       manual: [],
     }
     expect(normalizeShoppingState(ohneOrder).storeOrder).toEqual([])
-    expect(normalizeShoppingState(ohneOrder).checked).toEqual({ a: true })
+    expect(normalizeShoppingState(ohneOrder).checked).toEqual({
+      a: '2026-10-20',
+    })
+  })
+
+  /**
+   * Der Stand aus der Zeit vor der Wochenregel: `checked` war eine Zuordnung
+   * auf `true`, `removed` eine Liste von Schlüsseln. Beides hatte kein Datum
+   * und ist damit sicher älter als eine Woche — es wird verworfen.
+   *
+   * **Das ist die Reparatur selbst**, nicht ein Nebeneffekt davon: Genau so
+   * kommen die Zutaten zurück, die unter der alten Fassung dauerhaft von der
+   * Liste verschwunden waren.
+   */
+  it('verwirft Häkchen und Streichungen ohne Datum', () => {
+    const alt = {
+      checked: { kartoffeln: true },
+      overrides: { kartoffeln: 1000 },
+      removed: ['zutat-kartoffeln|stk', 'zutat-zwiebeln|stk'],
+      manual: [],
+      storeOrder: ['kartoffeln'],
+    }
+    const sauber = normalizeShoppingState(alt)
+
+    expect(sauber.checked).toEqual({})
+    expect(sauber.removed).toEqual({})
+    // Was kein Häkchen ist, bleibt erhalten: korrigierte Mengen und die
+    // Ladenreihenfolge hat man sich erarbeitet.
+    expect(sauber.overrides).toEqual({ kartoffeln: 1000 })
+    expect(sauber.storeOrder).toEqual(['kartoffeln'])
   })
 
   it('wirft kaputte Einträge einzeln weg, statt alles zu verwerfen', () => {
     const gemischt = {
-      checked: { gut: true, kaputt: 'ja' },
+      checked: { gut: '2026-10-20', kaputt: 'ja' },
       overrides: { gut: 5, kaputt: 'viel' },
-      removed: ['gut', 7],
+      removed: { gut: '2026-10-19', kaputt: 7 },
       manual: [{ id: 'm1', name: 'Klopapier' }, { name: 'ohne Kennung' }],
       order: ['gut|g', null],
     }
     const sauber = normalizeShoppingState(gemischt)
 
-    expect(sauber.checked).toEqual({ gut: true })
+    expect(sauber.checked).toEqual({ gut: '2026-10-20' })
     expect(sauber.overrides).toEqual({ gut: 5 })
-    expect(sauber.removed).toEqual(['gut'])
+    expect(sauber.removed).toEqual({ gut: '2026-10-19' })
     expect(sauber.manual).toHaveLength(1)
     // Der alte Schlüssel „gut|g" wird dabei auf seine Zutat zurückgeführt.
     expect(sauber.storeOrder).toEqual(['gut'])
