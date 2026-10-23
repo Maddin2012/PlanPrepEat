@@ -1,0 +1,10 @@
+{
+  "name": "planprepeat-probes",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Playwright nur für die Prüfskripte — bewusst getrennt von der App, damit der Veröffentlichungslauf es nicht mitlädt.",
+  "dependencies": {
+    "playwright": "^1.56.0"
+  }
+}

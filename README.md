@@ -499,7 +499,27 @@ npm run dev        # Entwicklungsserver
 npm test           # Unit-Tests der Rechenlogik
 npm run build      # Produktionsbau samt Service Worker
 npm run typecheck  # nur die Typprüfung
+npm run probe      # Browserproben gegen den Produktionsbau
 ```
+
+### Zwei Arten von Prüfung
+
+`npm test` prüft die **Rechenlogik** in `src/domain` — Mengen zusammenfassen,
+Einheiten umrechnen, Marken verfallen lassen. Schnell, ohne Browser, läuft im
+Veröffentlichungslauf mit.
+
+`npm run probe` öffnet die App in einem **echten Browser**, klickt sich durch
+und misst, was wirklich gezeichnet wurde: Rahmenfarben, Zeilenzahlen, welche
+Stimme an der Sprachausgabe ankam. Das erreicht, was Unit-Tests nicht können —
+beide bisher gemeldeten Fehler sind durch `npm test` geschlüpft und erst hier
+aufgefallen.
+
+Die Proben laufen **nicht** im Veröffentlichungslauf: Sie warten an vielen
+Stellen feste Zeitspannen ab, und auf einem fremden Rechner würde daraus
+gelegentlich ein falsches Rot, das ein gutes Update blockiert. Sie werden vor
+einer Auslieferung von Hand gestartet. Playwright hängt deshalb bewusst nicht
+in dieser `package.json`, sondern in `probes/package.json` — Einzelheiten in
+[`probes/README.md`](probes/README.md).
 
 ### Aufbau
 
@@ -512,6 +532,9 @@ src/
   lib/        Bildverkleinerung, Teilen, Spracherkennung, Hell/Dunkel
 scripts/
   icons.mjs   Zeichnet das App-Symbol und rendert public/icon-*.png
+probes/
+  lauf.mjs    Läufer: baut, startet die Vorschau, lässt alle Proben laufen
+  helfer.mjs  Das Gemeinsame — hier stehen die Knopfnamen einmal richtig
 ```
 
 Zwei Entscheidungen, die beim Weiterbauen wichtig sind:
