@@ -1,5 +1,15 @@
 [
   {
+    "datum": "2026-10-23",
+    "art": "neu",
+    "text": "Die Einkaufsliste hat einen Rückgängig-Knopf. Er steht oben in der Kopfzeile, sobald es etwas zurückzunehmen gibt, und jeder Tipp nimmt einen Schritt zurück — versehentlich abgehakt, gestrichen, einen eigenen Posten gelöscht oder die Reihenfolge verschoben. Danach sagt die Meldung, was wiederhergestellt wurde."
+  },
+  {
+    "datum": "2026-10-23",
+    "art": "besser",
+    "text": "Der Rückgängig-Knopf bleibt stehen, auch wenn du zwischendurch im Rezeptbuch oder im Essensplan warst. Erst wenn du die App ganz schließt, fängt er von vorn an. Ändert die andere Person im Haushalt etwas an der Liste, verschwindet er — sonst würdest du mit einem Tipp ihre Arbeit mitlöschen."
+  },
+  {
     "datum": "2026-10-20",
     "art": "fehler",
     "text": "Zutaten, die du einmal mit „Brauche ich nicht“ weggestrichen hattest, kamen nie wieder auf die Einkaufsliste — auch nicht aus einem neuen Rezept. Genau das ist mit Kartoffeln und Zwiebeln passiert. Sie fehlten lautlos, und es gab keinen Weg zurück. Jetzt stehen sie nach dem Update wieder da."

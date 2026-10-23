@@ -97,6 +97,19 @@ danach auch in Rezepten, die es beim Streichen noch gar nicht gab. Tippt man
 einen gestrichenen Namen von Hand ein, wird die Streichung aufgehoben, statt
 eine zweite Zeile mit demselben Namen anzulegen.
 
+**Verdrückt? Rückgängig.** Oben in der Kopfzeile steht **Rückgängig**, sobald es
+etwas zurückzunehmen gibt. Jeder Tipp nimmt **einen** Schritt zurück — ein
+versehentliches Häkchen, eine Streichung, einen gelöschten eigenen Posten, eine
+verschobene Reihenfolge. Danach sagt die Meldung unten, was wiederhergestellt
+wurde. Die Kopfzeile wandert beim Scrollen mit, der Knopf ist also immer
+erreichbar.
+
+Er bleibt stehen, auch wenn ihr zwischendurch im Rezeptbuch wart; erst beim
+Schließen der App fängt er von vorn an. Das ist Absicht: Rückgängig ist für
+„gerade eben vertippt", nicht für vorgestern. Und er **verschwindet**, sobald
+die andere Person im Haushalt etwas an der Liste ändert — sonst würde ein Tipp
+deren Arbeit mitlöschen. Im Zweifel ist der Knopf weg, statt das Falsche zu tun.
+
 Eigene Sachen wie Klopapier kommen über die Zeile **„+ Listeneintrag"** unter der
 Liste dazu, so wie in Google Notizen: antippen, Namen schreiben, Enter — und die
 nächste Zeile steht schon bereit. Das **X** am Ende der Zeile wirft sie wieder

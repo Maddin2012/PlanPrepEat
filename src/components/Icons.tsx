@@ -124,6 +124,19 @@ export const UpdateIcon = (props: IconProps) => (
   </Icon>
 )
 
+/**
+ * Pfeil im Bogen nach links — das übliche Zeichen für „einen Schritt zurück".
+ *
+ * Spiegelbildlich zu `UpdateIcon`: Dasselbe Bogenstück, aber gegen den
+ * Uhrzeigersinn, damit die beiden nicht zu verwechseln sind.
+ */
+export const UndoIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 12a8 8 0 1 0 2.3-5.6" />
+    <path d="M4 4v4h4" />
+  </Icon>
+)
+
 /** Pfeil nach unten in eine Ablage — das Gegenstück zu ShareIcon. */
 export const DownloadIcon = (props: IconProps) => (
   <Icon {...props}>

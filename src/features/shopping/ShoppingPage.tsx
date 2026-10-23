@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { NO_SWIPE } from '../../lib/gesture.ts'
 import { Link } from 'react-router-dom'
 import {
@@ -45,6 +45,15 @@ import {
   reorderStore,
 } from '../../domain/aggregate.ts'
 import { clearMark, setMark } from '../../domain/shoppingMarks.ts'
+import { canonical } from '../../domain/undoHistory.ts'
+import {
+  clearUndo,
+  isOwnEcho,
+  popUndo,
+  pushUndo,
+  rememberEcho,
+  useUndo,
+} from '../../lib/undoStore.ts'
 import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
 import { formatShoppingListText } from '../../domain/exportList.ts'
 import {
@@ -74,6 +83,7 @@ import {
   PlusIcon,
   ShareIcon,
   TrashIcon,
+  UndoIcon,
 } from '../../components/Icons.tsx'
 import { findByName, suggestNames } from '../../domain/shoppingNames.ts'
 import { shareText } from '../../lib/share.ts'
@@ -95,6 +105,11 @@ export default function ShoppingPage() {
   const [hideDone, setHideDone] = useState(false)
   const [editing, setEditing] = useState<ShoppingItem | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  /**
+   * Der Rückgängig-Stapel. Er liegt außerhalb dieser Seite und übersteht
+   * deshalb einen Wechsel auf einen anderen Reiter — siehe `lib/undoStore.ts`.
+   */
+  const undoStack = useUndo()
   // Welcher Posten gerade kurz hervorgehoben wird — nach dem Versuch, ihn ein
   // zweites Mal anzulegen.
   const [highlight, setHighlight] = useState<string | null>(null)
@@ -140,26 +155,65 @@ export default function ShoppingPage() {
    * Jede Änderung schreibt den ganzen Zustand zurück und räumt dabei auf, was
    * zu keinem Posten mehr gehört — sonst sammelten sich Häkchen von Rezepten an,
    * die längst nicht mehr im Plan stehen.
+   *
+   * **Hier hängt auch das Rückgängig.** Weil alles auf dieser Seite durch
+   * diesen einen Trichter läuft, genügt es, davor den Stand wegzusichern. Die
+   * Beschriftung sagt, was zurückgenommen würde; sie steht später in der
+   * Meldung, damit man liest, was wiederhergestellt wurde.
    */
   const update = useCallback(
-    (change: (current: ShoppingState) => ShoppingState) => {
-      const next = change(state)
-      const live = liveShoppingKeys(planned)
-      void repository.saveShoppingState(pruneShoppingState(next, live))
+    (label: string, change: (current: ShoppingState) => ShoppingState) => {
+      const next = pruneShoppingState(change(state), liveShoppingKeys(planned))
+      pushUndo(label, state)
+      rememberEcho(canonical(next))
+      void repository.saveShoppingState(next)
     },
     [state, planned, repository],
   )
 
+  /**
+   * Hat jemand **anderes** die Liste geändert, fliegt der Stapel weg.
+   *
+   * Der Haushalt hängt an derselben Liste. Käme über die Verbindung die
+   * Änderung der anderen Person an und Martin tippte danach auf Rückgängig,
+   * würde er ihre Arbeit mitlöschen. Erkannt wird das daran, dass der
+   * ankommende Stand nicht das eigene Echo ist.
+   *
+   * Im Zweifel verschwindet der Knopf, statt falsch zu handeln.
+   *
+   * **Solange noch geladen wird, wird nicht geurteilt.** Beim Wechsel auf
+   * diesen Reiter wird die Seite neu aufgebaut und steht einen Augenblick mit
+   * einem leeren Zustand da, bevor der echte eintrifft. Ohne diese Zeile hielte
+   * die App diesen leeren Stand für eine fremde Änderung und würfe den Stapel
+   * weg — genau der Fall, für den Martin ihn haben wollte.
+   */
+  useEffect(() => {
+    if (stateLoading) return
+    if (!isOwnEcho(canonical(state))) clearUndo()
+  }, [state, stateLoading])
+
+  /** Einen Schritt zurück. */
+  const undo = useCallback(() => {
+    const letzter = popUndo()
+    if (!letzter) return
+    rememberEcho(canonical(letzter.state))
+    void repository.saveShoppingState(letzter.state)
+    flash(`Rückgängig: ${letzter.label}`)
+  }, [repository])
+
   const toggle = useCallback(
     (item: ShoppingItem) => {
-      update((current) => ({
-        ...current,
-        // Das Häkchen trägt den Tag, an dem es gesetzt wurde, und gilt eine
-        // Woche. Wegnehmen heißt: die Marke löschen, nicht `false` hinschreiben.
-        checked: item.checked
-          ? clearMark(current.checked, item.key)
-          : setMark(current.checked, item.key, todayISO()),
-      }))
+      update(
+        item.checked ? `${item.name} wieder offen` : `${item.name} abgehakt`,
+        (current) => ({
+          ...current,
+          // Das Häkchen trägt den Tag, an dem es gesetzt wurde, und gilt eine
+          // Woche. Wegnehmen heißt: die Marke löschen, nicht `false` hinschreiben.
+          checked: item.checked
+            ? clearMark(current.checked, item.key)
+            : setMark(current.checked, item.key, todayISO()),
+        }),
+      )
     },
     [update],
   )
@@ -167,7 +221,7 @@ export default function ShoppingPage() {
   /** Eine Streichung aufheben — der Posten steht gleich wieder oben. */
   const restore = useCallback(
     (item: ShoppingItem) => {
-      update((current) => ({
+      update(`${item.name} zurück auf die Liste`, (current) => ({
         ...current,
         removed: clearMark(current.removed, item.key),
       }))
@@ -201,7 +255,7 @@ export default function ShoppingPage() {
 
       keys.splice(to, 0, ...keys.splice(from, 1))
       const visible = [...new Set(keys.map(orderKey))]
-      update((current) => ({
+      update('Reihenfolge geändert', (current) => ({
         ...current,
         storeOrder: reorderStore(current.storeOrder, visible),
       }))
@@ -238,7 +292,7 @@ export default function ShoppingPage() {
        */
       const gestrichenerPosten = findByName(struck, name)
       if (gestrichenerPosten) {
-        update((current) => ({
+        update(`${name.trim()} zurück auf die Liste`, (current) => ({
           ...current,
           removed: clearMark(current.removed, gestrichenerPosten),
           checked: clearMark(current.checked, gestrichenerPosten),
@@ -251,7 +305,7 @@ export default function ShoppingPage() {
 
       const vorhanden = findByName(items, name)
       if (vorhanden) {
-        update((current) => ({
+        update(`${name.trim()} wieder offen`, (current) => ({
           ...current,
           checked: clearMark(current.checked, vorhanden),
         }))
@@ -276,7 +330,7 @@ export default function ShoppingPage() {
           ].map(orderKey),
         ),
       ]
-      update((current) => ({
+      update(`${name} angelegt`, (current) => ({
         ...current,
         manual: [...current.manual, entry],
         storeOrder: reorderStore(current.storeOrder, visible),
@@ -322,20 +376,44 @@ export default function ShoppingPage() {
           </IconButton>
         }
         below={
-          items.length > 0 ? (
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-ink-500">
-                {openCount === 0
-                  ? 'Alles erledigt'
-                  : `${openCount} von ${items.length} offen`}
+          // Auch bei leerer Liste: Wer seinen einzigen eigenen Posten gelöscht
+          // hat, braucht den Rückgängig-Knopf gerade dann.
+          items.length > 0 || undoStack.length > 0 ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-xs text-ink-500">
+                {items.length === 0
+                  ? ''
+                  : openCount === 0
+                    ? 'Alles erledigt'
+                    : `${openCount} von ${items.length} offen`}
               </span>
-              <button
-                type="button"
-                onClick={() => setHideDone(!hideDone)}
-                className="text-xs font-medium text-accent-text"
-              >
-                {hideDone ? 'Erledigte einblenden' : 'Erledigte ausblenden'}
-              </button>
+
+              <div className="flex shrink-0 items-center gap-3">
+                {undoStack.length > 0 && (
+                  // Die Beschriftung steht nicht im Knopf — bei 390 px wäre
+                  // „Rückgängig: Kartoffeln abgehakt" neben allem anderen nicht
+                  // unterzubringen. Sie steht in der Vorlesehilfe und nach dem
+                  // Tippen in der Meldung.
+                  <button
+                    type="button"
+                    onClick={undo}
+                    aria-label={`Rückgängig: ${undoStack[0].label}`}
+                    className="flex items-center gap-1 text-xs font-medium text-accent-text"
+                  >
+                    <UndoIcon className="size-4" />
+                    Rückgängig
+                  </button>
+                )}
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setHideDone(!hideDone)}
+                    className="text-xs font-medium text-accent-text"
+                  >
+                    {hideDone ? 'Erledigte einblenden' : 'Erledigte ausblenden'}
+                  </button>
+                )}
+              </div>
             </div>
           ) : undefined
         }
@@ -434,7 +512,7 @@ export default function ShoppingPage() {
             const item = editing
             const id = parseManualKey(item.key)
 
-            update((current) =>
+            update(`${item.name} geändert`, (current) =>
               // Bei einem eigenen Posten wird der Posten selbst geändert, bei
               // einem aus dem Rezept berechneten nur die Menge überschrieben.
               id
@@ -464,7 +542,7 @@ export default function ShoppingPage() {
           }}
           onReset={() => {
             const key = editing.key
-            update((current) => {
+            update(`${editing.name} auf die berechnete Menge zurück`, (current) => {
               const { [key]: _dropped, ...rest } = current.overrides
               return { ...current, overrides: rest }
             })
@@ -472,7 +550,11 @@ export default function ShoppingPage() {
           }}
           onRemove={() => {
             const item = editing
-            update((current) =>
+            update(
+              item.manual
+                ? `${item.name} gelöscht`
+                : `${item.name} gestrichen`,
+              (current) =>
               item.manual
                 ? {
                     ...current,
