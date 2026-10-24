@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSpokenIngredient, splitSpokenSteps } from './dictation.ts'
+import { parseSpokenIngredient, cleanSpokenStep } from './dictation.ts'
 
 describe('parseSpokenIngredient', () => {
   it('liest Ziffern mit ausgeschriebener Einheit', () => {
@@ -98,28 +98,35 @@ describe('parseSpokenIngredient', () => {
   })
 })
 
-describe('splitSpokenSteps', () => {
+describe('cleanSpokenStep', () => {
   it('macht aus einem Satz einen Schritt', () => {
-    expect(splitSpokenSteps('Zwiebeln würfeln und anbraten')).toEqual([
+    expect(cleanSpokenStep('Zwiebeln würfeln und anbraten')).toBe(
       'Zwiebeln würfeln und anbraten',
-    ])
+    )
   })
 
-  it('trennt an Satzenden', () => {
-    expect(
-      splitSpokenSteps('Zwiebeln würfeln. Dann anbraten! Und würzen?'),
-    ).toEqual(['Zwiebeln würfeln.', 'Dann anbraten!', 'Und würzen?'])
+  /**
+   * Die Entscheidung aus Martins Meldung: Ein Punkt trennt **nicht** mehr.
+   * Die Grenze zwischen zwei Schritten zieht sein Tipp auf „Nächster Schritt".
+   */
+  it('trennt nicht an Satzenden', () => {
+    expect(cleanSpokenStep('Zwiebeln würfeln. Dann anbraten! Und würzen?')).toBe(
+      'Zwiebeln würfeln. Dann anbraten! Und würzen?',
+    )
   })
 
-  it('schreibt jeden Schritt groß', () => {
-    expect(splitSpokenSteps('zwiebeln würfeln. dann anbraten.')).toEqual([
-      'Zwiebeln würfeln.',
-      'Dann anbraten.',
-    ])
+  it('schreibt den Schritt groß', () => {
+    expect(cleanSpokenStep('zwiebeln würfeln')).toBe('Zwiebeln würfeln')
+  })
+
+  it('räumt Leerzeichen auf — auch die mitten im Text', () => {
+    // Beim Zusammensetzen aus mehreren Äußerungen entstehen leicht doppelte.
+    expect(cleanSpokenStep('  Zwiebeln   würfeln  ')).toBe('Zwiebeln würfeln')
   })
 
   it('liefert nichts zurück, wenn nichts gesagt wurde', () => {
-    expect(splitSpokenSteps('   ')).toEqual([])
+    expect(cleanSpokenStep('   ')).toBe('')
+    expect(cleanSpokenStep('')).toBe('')
   })
 })
 

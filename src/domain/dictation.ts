@@ -229,16 +229,15 @@ function capitalize(name: string): string {
 }
 
 /**
- * Zerlegt einen gesprochenen Abschnitt in Zubereitungsschritte.
+ * Bringt einen diktierten Zubereitungsschritt in Form: trimmen, groß anfangen.
  *
- * In aller Regel liefert die Erkennung ohnehin einen Abschnitt je Sprechpause,
- * also einen Schritt. Wer aber am Stück durchspricht, bekommt einen Klumpen mit
- * mehreren Sätzen — der wird an den Satzenden getrennt.
+ * **Getrennt wird hier nicht mehr.** Vorher zerlegte diese Stelle an Satzenden,
+ * „Zwiebeln würfeln. Dann anbraten." ergab also zwei Stichpunkte. Die Grenze
+ * zwischen zwei Schritten zieht jetzt der Mensch mit einem Tipp auf „Nächster
+ * Schritt" — ein Punkt mitten im Satz soll einen langen Schritt nicht in
+ * Stücke schneiden.
  */
-export function splitSpokenSteps(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+/u)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map(capitalize)
+export function cleanSpokenStep(text: string): string {
+  const sauber = text.trim().replace(/\s+/gu, ' ')
+  return sauber ? capitalize(sauber) : ''
 }

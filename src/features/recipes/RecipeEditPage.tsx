@@ -346,8 +346,8 @@ export default function RecipeEditPage() {
           </Field>
           <MicButton
             label="Name"
-            hint="Wie heißt das Gericht?"
-            onChunk={(text) => setName(text)}
+            hint={'Wie heißt das Gericht? Danach auf „Fertig".'}
+            onItem={(text) => setName(text)}
             className="mb-1"
           />
         </div>
@@ -674,8 +674,9 @@ function IngredientEditor({
           </span>
           <MicButton
             label="Zutaten"
-            hint={'Eine Zutat nach der anderen, z. B. „500 Gramm Mehl".'}
-            onChunk={addSpoken}
+            hint={'Sprich eine Zutat, z. B. „500 Gramm Mehl". Pausen sind erlaubt.'}
+            nextLabel="Nächste Zutat"
+            onItem={addSpoken}
           />
         </div>
       </div>
@@ -712,10 +713,9 @@ function IngredientEditor({
               />
               <MicButton
                 small
-                once
                 label="Diese Zutat"
-                hint={'Eine Zutat, z. B. „300 Gramm Nudeln".'}
-                onChunk={(text) => fillSpoken(item.key, text)}
+                hint={'Eine Zutat, z. B. „300 Gramm Nudeln". Dann „Fertig".'}
+                onItem={(text) => fillSpoken(item.key, text)}
               />
             </div>
 

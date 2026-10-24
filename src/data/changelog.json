@@ -1,5 +1,20 @@
 [
   {
+    "datum": "2026-10-24",
+    "art": "besser",
+    "text": "Beim Diktieren bestimmst du jetzt selbst, wo eine Zutat endet. Vorher fing die App nach einer kurzen Sprechpause von selbst eine neue an — wer mitten im Sprechen überlegt hat, bekam aus einer Zutat zwei. Jetzt sammelt sie alles, bis du unten auf „Nächste Zutat“ oder „Fertig“ tippst. Pausen darfst du machen, so lange du willst."
+  },
+  {
+    "datum": "2026-10-24",
+    "art": "besser",
+    "text": "Das gilt überall: auch beim kleinen Mikrofon an einer einzelnen Zeile und beim Namen des Rezepts. Dort wurde bisher nach einer Pause nur die zweite Hälfte übernommen."
+  },
+  {
+    "datum": "2026-10-24",
+    "art": "besser",
+    "text": "Beim Diktieren der Zubereitung zerlegt ein Punkt im Satz keinen Schritt mehr. „Zwiebeln würfeln. Dann anbraten.“ ist ein Stichpunkt — der nächste fängt erst an, wenn du auf „Nächster Schritt“ tippst."
+  },
+  {
     "datum": "2026-10-23",
     "art": "neu",
     "text": "Die Einkaufsliste hat einen Rückgängig-Knopf. Er steht oben in der Kopfzeile, sobald es etwas zurückzunehmen gibt, und jeder Tipp nimmt einen Schritt zurück — versehentlich abgehakt, gestrichen, einen eigenen Posten gelöscht oder die Reihenfolge verschoben. Danach sagt die Meldung, was wiederhergestellt wurde."

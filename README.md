@@ -254,18 +254,34 @@ lieber eine andere Stimme als Schweigen.
 
 ## Diktieren
 
-Zwei Sorten Mikrofon, und der Unterschied ist wichtig:
+**Die Grenzen setzt du, nicht die Uhr.** Das Mikrofon sammelt alles, was du
+sprichst, und wartet auf deinen Tipp. Pausen darfst du machen, so lange du
+willst — es schneidet dich nicht mehr ab. (Früher galt ein Abschnitt nach 1,2
+Sekunden Stille als fertig; wer mitten in der Zutat überlegte, bekam zwei
+daraus.)
 
-- **Oben neben „Zutaten" bzw. „Zubereitung"** — es *legt an*. Jede Sprechpause
-  wird eine neue Zutat bzw. ein neuer Schritt. Es hört zu, bis man „Fertig"
-  drückt. Gut, wenn man ein Rezept am Stück herunterspricht.
-- **Klein in der Zeile** — es *füllt genau diese Zeile* und schaltet sich nach
-  einem Satz von selbst ab. Gut, wenn man zwischendurch überlegen muss: Es läuft
-  nicht mit, während man nachdenkt.
+Zwei Sorten Mikrofon, und der Unterschied ist nur, wie viel sie anlegen:
+
+- **Oben neben „Zutaten" bzw. „Zubereitung"** — es *legt an*. Unten erscheinen
+  zwei Flächen: **„Nächste Zutat"** (bzw. „Nächster Schritt") schließt den
+  Eintrag ab und hört weiter zu, **„Fertig"** schließt ab und hört auf. Gut,
+  wenn man ein Rezept am Stück herunterspricht.
+- **Klein in der Zeile** — es *füllt genau diese Zeile*. Dort gibt es nur
+  „Fertig", denn es ist nur eine Zeile.
+
+Während du sprichst, steht in der Leiste der **ganze** gesammelte Text — du
+siehst also vorher, was in die Zeile wandert.
 
 Bei einer Zutat wird in beiden Fällen mitzerlegt: „300 Gramm Nudeln" setzt Name,
-Menge und Einheit — und „Nudeln 300 Gramm" genauso, die Wortstellung ist egal. Bei einem Schritt hängt das kleine Mikrofon an, was schon
-dasteht — Getipptes geht also nicht verloren.
+Menge und Einheit — und „Nudeln 300 Gramm" genauso, die Wortstellung ist egal.
+Bei einem Schritt hängt das kleine Mikrofon an, was schon dasteht — Getipptes
+geht also nicht verloren. Ein Punkt im Satz trennt **keinen** Schritt: „Zwiebeln
+würfeln. Dann anbraten." ist ein Stichpunkt.
+
+Setzt du zwei Stücke über eine Pause hinweg zusammen, kommt ein Leerzeichen
+dazwischen — aus „Kartoffel" … „auflauf" wird „Kartoffel auflauf". Das ist der
+Preis dafür, dass nichts mehr verlorengeht: Ob zwei Äußerungen ein Wort oder
+zwei sind, kann die App nicht wissen.
 
 Wo der Browser keine Spracherkennung hat (Firefox etwa), erscheint gar kein
 Mikrofon, statt beim Antippen ins Leere zu laufen.

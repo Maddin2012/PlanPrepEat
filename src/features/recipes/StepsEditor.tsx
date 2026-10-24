@@ -23,7 +23,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Button, IconButton, cx } from '../../components/ui.tsx'
 import { CloseIcon, GripIcon, PlusIcon } from '../../components/Icons.tsx'
 import { MicButton } from '../../components/MicButton.tsx'
-import { splitSpokenSteps } from '../../domain/dictation.ts'
+import { cleanSpokenStep } from '../../domain/dictation.ts'
 import { newId } from '../../data/ids.ts'
 
 /**
@@ -155,15 +155,20 @@ export function StepsEditor({
   }
 
   /**
-   * Ein diktierter Abschnitt wird ein Schritt — bei mehreren Sätzen am Stück
-   * entsprechend mehrere. Ein noch leerer letzter Schritt wird dabei aufgefüllt
-   * statt übersprungen.
+   * Ein diktierter Abschnitt wird **ein** Schritt.
+   *
+   * Vorher wurde an Satzenden getrennt: „Zwiebeln würfeln. Dann anbraten."
+   * ergab zwei Stichpunkte. Die Grenze zieht jetzt der Tipp auf „Nächster
+   * Schritt" — ein Punkt mitten im Satz soll einen langen Schritt nicht
+   * zerlegen.
+   *
+   * Ein noch leerer letzter Schritt wird aufgefüllt statt übersprungen.
    */
   function addSpoken(text: string) {
-    const spoken = splitSpokenSteps(text)
-    if (spoken.length === 0) return
+    const spoken = cleanSpokenStep(text)
+    if (!spoken) return
     const base = steps.at(-1)?.text.trim() ? steps : steps.slice(0, -1)
-    onChange([...base, ...spoken.map((part) => emptyStep(part))])
+    onChange([...base, emptyStep(spoken)])
   }
 
   function move(fromKey: string, toKey: string) {
@@ -183,8 +188,9 @@ export function StepsEditor({
           </span>
           <MicButton
             label="Zubereitung"
-            hint="Ein Schritt nach dem anderen, mit kurzer Pause dazwischen."
-            onChunk={addSpoken}
+            hint={'Sprich einen Schritt. Mit „Nächster Schritt" fängst du den nächsten an.'}
+            nextLabel="Nächster Schritt"
+            onItem={addSpoken}
           />
         </div>
       </div>
@@ -337,15 +343,14 @@ function SortableStep({
         placeholder={index === 0 ? 'Zwiebeln würfeln und anbraten.' : ''}
       />
 
-      {/* Füllt genau diesen Schritt und hört nach einem Satz von selbst auf —
-          anders als der Knopf oben, der neue Schritte anlegt. */}
+      {/* Füllt genau diesen Schritt — anders als der Knopf oben, der neue
+          Schritte anlegt. Beendet wird auch hier von Hand. */}
       <MicButton
         small
-        once
         label={`Schritt ${index + 1}`}
-        hint="Ein Satz für diesen Schritt."
+        hint={'Dieser Schritt — sprich los, dann „Fertig".'}
         className="mt-1"
-        onChunk={onSpoken}
+        onItem={onSpoken}
       />
 
       <IconButton

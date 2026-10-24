@@ -1,3 +1,5 @@
+import { dictationBuffer } from '../domain/dictationBuffer.ts'
+
 /**
  * Diktat über die Spracherkennung des Browsers.
  *
@@ -62,12 +64,24 @@ export type DictationError = 'denied' | 'offline' | 'other'
 export interface DictationHandle {
   /** Beendet das Zuhören. Mehrfach aufzurufen ist harmlos. */
   stop(): void
+  /**
+   * Schließt den laufenden Abschnitt ab und hört **weiter** zu.
+   *
+   * Das ist die Grenze zwischen zwei Zutaten — und sie kommt von einem Tipp,
+   * nicht von einer Uhr.
+   */
+  next(): void
 }
 
 export interface DictationOptions {
-  /** Ein fertig erkannter Abschnitt — in der Regel ein Satz je Sprechpause. */
-  onChunk: (text: string) => void
-  /** Was gerade gehört wird, noch nicht endgültig. */
+  /**
+   * Ein abgeschlossener Eintrag — eine Zutat, ein Schritt, ein Feldinhalt.
+   *
+   * Kommt **nur** auf `next()` oder `stop()`. Früher hieß das `onChunk` und
+   * kam nach jeder Sprechpause von selbst; genau das war der gemeldete Fehler.
+   */
+  onItem: (text: string) => void
+  /** Was gerade gehört wird, samt dem schon Gesammelten. */
   onInterim?: (text: string) => void
   onError?: (kind: DictationError) => void
   /** Wird genau einmal gerufen, wenn nicht mehr zugehört wird. */
@@ -84,6 +98,9 @@ export interface DictationOptions {
  *    jedem Ende neu gestartet, bis der Benutzer wirklich auf Stopp drückt.
  * 2. Ein sofortiger Neustart im `onend`-Aufruf wirft „InvalidStateError". Der
  *    Umweg über einen Zeitgeber vermeidet das.
+ *
+ * Das Zusammensetzen der Äußerungen steht in `domain/dictationBuffer.ts` —
+ * dort ist es ohne Browser prüfbar.
  */
 export function startDictation(options: DictationOptions): DictationHandle | null {
   const Recognition = constructor()
@@ -96,62 +113,15 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
 
   let stopped = false
   let restarts = 0
+  const puffer = dictationBuffer()
 
-  /**
-   * Die Äußerung, die gerade gesprochen wird.
-   *
-   * **Chrome auf Android markiert Zwischenstände fälschlich als endgültig** und
-   * liefert sie wachsend nach — erst „500", dann „500 g", dann „500 g Hack".
-   * Wer jedes davon durchreicht, bekommt aus einer Zutat drei.
-   *
-   * Ob dabei die Ergebnis-Nummer hochgezählt wird oder zwischen den Teilstücken
-   * die Sitzung endet, ist von Gerät zu Gerät verschieden — und ein erster
-   * Anlauf, der sich auf beides verlassen hat, ging genau deshalb schief.
-   * Verlässlich ist nur der Text selbst: Ist eine Fassung der Anfang der
-   * anderen, ist es dieselbe Äußerung.
-   */
-  let buffer = ''
-  let timer: number | undefined
-
-  /** So lange muss der Text unverändert bleiben, um als fertig zu gelten. */
-  const SILENCE_MS = 1200
-
-  /**
-   * Zwei Fassungen derselben Äußerung? Auch die kürzere zählt: Nach einem
-   * Neustart meldet Android den Satz mitunter wieder verkürzt, und ohne diese
-   * Richtung entstünde daraus ein zusätzlicher Eintrag.
-   */
-  function sameUtterance(a: string, b: string): boolean {
-    const one = a.trim().toLocaleLowerCase('de')
-    const two = b.trim().toLocaleLowerCase('de')
-    return one.startsWith(two) || two.startsWith(one)
-  }
-
+  /** Den gesammelten Text abgeben, wenn etwas drinsteht. */
   function commit() {
-    if (timer !== undefined) window.clearTimeout(timer)
-    timer = undefined
-    const text = buffer.trim()
-    buffer = ''
-    if (text) options.onChunk(text)
+    const text = puffer.take()
+    if (text) options.onItem(text)
   }
 
-  function absorb(text: string) {
-    const next = text.trim()
-    if (!next) return
-
-    // Nicht verwandt heißt: Die vorige Äußerung war fertig.
-    if (buffer && !sameUtterance(buffer, next)) commit()
-
-    // Dieselbe Äußerung, nur kürzer gemeldet — der längere Stand bleibt stehen.
-    if (next.length <= buffer.trim().length) return
-
-    buffer = next
-    // Die Uhr nur bei einer echten Änderung neu stellen: Wird derselbe Text
-    // wiederholt gemeldet, liefe sie sonst endlos weiter.
-    if (timer !== undefined) window.clearTimeout(timer)
-    timer = window.setTimeout(commit, SILENCE_MS)
-  }
-
+  /** Von innen beenden — wenn die Erkennung nicht mehr wiederkommt. */
   function finish() {
     if (stopped) return
     stopped = true
@@ -160,16 +130,19 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
   }
 
   recognition.onresult = (event) => {
+    // Es kommt etwas an — die Neustartzählung fängt von vorn an. Sie soll „es
+    // kommt nichts mehr" abfangen, nicht „das Diktat dauert lange".
+    restarts = 0
     let interim = ''
 
     for (let index = event.resultIndex; index < event.results.length; index++) {
       const result = event.results[index]
       const text = result[0]?.transcript ?? ''
-      if (result.isFinal) absorb(text)
+      if (result.isFinal) puffer.absorb(text)
       else interim += text
     }
 
-    options.onInterim?.(`${buffer} ${interim}`.trim())
+    options.onInterim?.(`${puffer.text()} ${interim}`.trim())
   }
 
   recognition.onerror = (event) => {
@@ -224,8 +197,8 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
     stop() {
       if (stopped) return
       stopped = true
-      // Erst abgeben, dann beenden: Der zuletzt gesprochene Satz wartet sonst
-      // noch auf seine Ruhefrist und ginge beim Stoppen verloren.
+      // Erst abgeben, dann beenden: Was gesprochen wurde, soll nicht beim
+      // Beenden verlorengehen.
       commit()
       try {
         recognition.stop()
@@ -233,6 +206,12 @@ export function startDictation(options: DictationOptions): DictationHandle | nul
         // Schon beendet — nichts zu tun.
       }
       options.onStopped?.()
+    },
+
+    next() {
+      if (stopped) return
+      commit()
+      options.onInterim?.('')
     },
   }
 }
