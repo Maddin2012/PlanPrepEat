@@ -196,10 +196,15 @@ export function buildStruckItems(
  *
  * 1. Offene Posten vor abgehakten — Erledigtes rutscht nach unten und bleibt
  *    dort durchgestrichen stehen, statt zwischen dem zu stören, was noch fehlt.
- * 2. Innerhalb dessen die **Ladenreihenfolge**: die Runde, die man einmal von
- *    Hand geschoben hat und die seitdem gemerkt wird.
- * 3. Was dort nicht vorkommt, alphabetisch und hinten dran — alles, was neu
- *    dazugekommen und noch nie einsortiert worden ist.
+ * 2. **Offene** Posten in der **Ladenreihenfolge**: die Runde, die man einmal
+ *    von Hand geschoben hat und die seitdem gemerkt wird. Was dort nicht
+ *    vorkommt, alphabetisch und hinten dran.
+ * 3. **Abgehakte** Posten rein alphabetisch. Die Ladenreihenfolge ist eine
+ *    Laufreihenfolge für das, was noch fehlt — was schon im Wagen liegt, sucht
+ *    man nach dem Namen, nicht nach dem Regal.
+ *
+ * Die Runde bleibt für die Abgehakten trotzdem **gemerkt**: Nimmt man ein
+ * Häkchen zurück, springt der Posten wieder an seinen Platz in der Runde.
  *
  * Der Index wird einmal als Map vorgebaut, statt bei jedem Vergleich durch das
  * Array zu suchen.
@@ -207,19 +212,46 @@ export function buildStruckItems(
 export function shoppingComparator(
   storeOrder: readonly string[] = [],
 ): (a: ShoppingItem, b: ShoppingItem) => number {
-  const position = new Map(storeOrder.map((key, index) => [key, index]))
-  const rank = (item: ShoppingItem) => position.get(orderKey(item.key)) ?? Infinity
+  const nachRunde = byStoreOrder(storeOrder)
 
   return (a, b) => {
     if (a.checked !== b.checked) return a.checked ? 1 : -1
 
+    // Nur für die offenen Posten: Im Wagen zählt allein der Name.
+    if (!a.checked) {
+      const runde = nachRunde(a, b)
+      if (runde !== 0) return runde
+    }
+
+    return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+  }
+}
+
+/**
+ * Vergleicht zwei Posten **nur** nach der gemerkten Ladenreihenfolge.
+ *
+ * `0` heißt „die Runde weiß hier nichts" — dann entscheidet der Aufrufer
+ * weiter, in der Liste also der Name.
+ *
+ * Eigener Baustein, damit der Vergleich oben in drei lesbaren Stufen steht —
+ * und damit diese `0` hier eigene Tests bekommt: Sie ist die stillste Stelle
+ * der ganzen Sortierung. Würde man stattdessen die Ränge voneinander abziehen,
+ * ergäben zwei unbekannte Posten `Infinity - Infinity`, also `NaN`, und die
+ * Liste stünde nach Zufall da.
+ */
+export function byStoreOrder(
+  storeOrder: readonly string[],
+): (a: ShoppingItem, b: ShoppingItem) => number {
+  const position = new Map(storeOrder.map((key, index) => [key, index]))
+  const rank = (item: ShoppingItem) => position.get(orderKey(item.key)) ?? Infinity
+
+  return (a, b) => {
     // Ränge direkt vergleichen statt zu subtrahieren: Bei zwei unbekannten
     // Posten wäre die Differenz NaN, bei bekannt gegen unbekannt unendlich.
     const rankA = rank(a)
     const rankB = rank(b)
-    if (rankA !== rankB) return rankA < rankB ? -1 : 1
-
-    return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' })
+    if (rankA === rankB) return 0
+    return rankA < rankB ? -1 : 1
   }
 }
 

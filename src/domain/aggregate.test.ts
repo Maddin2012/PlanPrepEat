@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildShoppingList,
   buildStruckItems,
+  byStoreOrder,
   collectPlanned,
   liveShoppingKeys,
   manualKey,
@@ -12,6 +13,7 @@ import {
 import { emptyShoppingState } from './types.ts'
 import type {
   Ingredient,
+  ShoppingItem,
   PlanSlot,
   Recipe,
   RecipeItem,
@@ -272,6 +274,48 @@ describe('Reihenfolge der Einkaufsliste', () => {
         checked: { [pasta]: HEUTE, [milk]: HEUTE },
       }),
     ).toEqual(['Zwiebeln', 'Milch', 'Nudeln'])
+  })
+
+  /**
+   * Martins Wunsch — und die Prüfung, die es vorher nicht gab.
+   *
+   * Entscheidend ist eine Ladenreihenfolge, die der alphabetischen
+   * **widerspricht**. Ohne sie beweist der Test nichts: Bei leerer Runde sind
+   * alle Ränge gleich, und dann sortierte schon die alte Fassung nach Namen.
+   */
+  describe('Abgehaktes gegen eine widersprechende Ladenreihenfolge', () => {
+    // Die Runde sagt Nudeln, Zwiebeln, Milch — das Alphabet sagt Milch,
+    // Nudeln, Zwiebeln.
+    const runde = platz('pasta', 'onion', 'milk')
+
+    it('folgt bei offenen Posten der Runde', () => {
+      expect(namesOf({ ...emptyShoppingState(), storeOrder: runde })).toEqual([
+        'Nudeln',
+        'Zwiebeln',
+        'Milch',
+      ])
+    })
+
+    it('sortiert Abgehaktes nach dem Namen, nicht nach der Runde', () => {
+      expect(
+        namesOf({
+          ...emptyShoppingState(),
+          storeOrder: runde,
+          checked: { [pasta]: HEUTE, [onion]: HEUTE, [milk]: HEUTE },
+        }),
+      ).toEqual(['Milch', 'Nudeln', 'Zwiebeln'])
+    })
+
+    it('hält beides auseinander, wenn nur ein Teil abgehakt ist', () => {
+      // Oben die Runde, unten das Alphabet.
+      expect(
+        namesOf({
+          ...emptyShoppingState(),
+          storeOrder: runde,
+          checked: { [onion]: HEUTE, [milk]: HEUTE },
+        }),
+      ).toEqual(['Nudeln', 'Milch', 'Zwiebeln'])
+    })
   })
 
   it('folgt der Ladenreihenfolge', () => {
@@ -570,5 +614,52 @@ describe('collectPlanned', () => {
     const planned = collectPlanned(slots, recipesById)
     expect(planned).toHaveLength(1)
     expect(planned[0].recipe.id).toBe('a')
+  })
+})
+
+describe('byStoreOrder', () => {
+  const posten = (key: string, name: string): ShoppingItem => ({
+    key,
+    name,
+    amount: null,
+    unit: null,
+    checked: false,
+    edited: false,
+    manual: false,
+    sources: [],
+  })
+
+  const runde = byStoreOrder(['onion', 'milk'])
+  const zwiebel = posten(shoppingKey('onion', 'g'), 'Zwiebeln')
+  const milch = posten(shoppingKey('milk', 'ml'), 'Milch')
+  const nudeln = posten(shoppingKey('pasta', 'g'), 'Nudeln')
+
+  it('sortiert nach der Position in der Runde', () => {
+    expect(runde(zwiebel, milch)).toBeLessThan(0)
+    expect(runde(milch, zwiebel)).toBeGreaterThan(0)
+  })
+
+  it('stellt Bekanntes vor Unbekanntes', () => {
+    expect(runde(milch, nudeln)).toBeLessThan(0)
+    expect(runde(nudeln, milch)).toBeGreaterThan(0)
+  })
+
+  it('gibt bei zwei Unbekannten 0 zurück — dann entscheidet der Name', () => {
+    // Nicht NaN: Unendlich minus Unendlich wäre genau das, und eine Sortierung
+    // mit NaN liefert eine zufällige Reihenfolge.
+    const mehl = posten(shoppingKey('flour', 'g'), 'Mehl')
+    expect(runde(nudeln, mehl)).toBe(0)
+  })
+
+  it('kennt ohne Runde keine Rangfolge', () => {
+    const ohne = byStoreOrder([])
+    expect(ohne(zwiebel, milch)).toBe(0)
+  })
+
+  it('macht die Einheit nicht zum Unterschied', () => {
+    // Die Runde merkt sich die Zutat, nicht den Listenschlüssel: Milch in ml
+    // und Milch in EL haben denselben Platz im Laden.
+    const milchEL = posten(shoppingKey('milk', 'el'), 'Milch')
+    expect(runde(milch, milchEL)).toBe(0)
   })
 })

@@ -81,7 +81,8 @@ herum, zusammengefasst und zunächst alphabetisch sortiert. Zweimal 200 g Zwiebe
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.
 Ihr könnt abhaken, Posten streichen und am Griff rechts alles
 in eure Ladenreihenfolge ziehen — die merkt sich die App dann dauerhaft.
-Abgehaktes rutscht durchgestrichen unter „Erledigt".
+Abgehaktes rutscht durchgestrichen unter „Erledigt" und steht dort
+alphabetisch.
 
 **Häkchen und Streichungen gelten für eine Woche.** Beides sind Notizen für
 *einen* Einkauf, keine Eigenschaft der Zutat: Was letzte Woche schon im Haus
@@ -341,7 +342,18 @@ gleich aus welchem Rezept sie diesmal kommen und in welcher Einheit.
 
 Es gibt nichts einzurichten: Die Liste lernt beim Benutzen. Zutaten, die noch nie
 einsortiert wurden, hängen alphabetisch hinten an, bis man sie einmal an ihren
-Platz schiebt. Abgehaktes rutscht weiterhin ans Ende, unabhängig von der Runde.
+Platz schiebt.
+
+**Im „Erledigt"-Block gilt die Runde nicht.** Sie ist eine Laufreihenfolge für
+das, was noch fehlt; was schon im Wagen liegt, sucht man nach dem Namen. Dort
+steht deshalb alles alphabetisch, in drei Stufen also: offen vor abgehakt,
+offen in der Runde, abgehakt nach dem Alphabet.
+
+Gemerkt bleibt die Runde für die abgehakten Posten trotzdem. Nimmt man ein
+Häkchen zurück, springt der Posten wieder an seinen Platz in der Runde, nicht
+alphabetisch nach oben. Und weil der Anfasser nur bei den offenen Posten sitzt,
+verschiebt ein Zug oben nichts an den gemerkten Plätzen von dem, was im Wagen
+liegt.
 
 Unter *Einstellungen → Ladenreihenfolge* steht, wie viele Zutaten einen festen
 Platz haben, und dort lässt sich die Runde auch zurücksetzen — sinnvoll beim

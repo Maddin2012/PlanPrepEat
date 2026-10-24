@@ -245,10 +245,17 @@ export default function ShoppingPage() {
    * Gemerkt wird über `orderKey`, also je Zutat statt je Listenschlüssel — und
    * über `reorderStore`, damit Zutaten, die gerade nicht auf der Liste stehen,
    * ihren Platz behalten. Ein schlichtes Ersetzen hätte sie verloren.
+   *
+   * **Die abgehakten Posten fließen hier nicht ein.** Sie hingen früher hinten
+   * dran, und zwar mit dem Ziel, ihre Position zu behalten — erreicht wurde das
+   * Gegenteil: `reorderStore` füllt jeden sichtbaren Platz neu, also auch den
+   * von Zucker, wenn man oben Mehl verschiebt. Lässt man sie weg, bleibt ihr
+   * Platz unberührt, und das Verschieben ordnet nur das um, was man gerade
+   * sehen und anfassen kann.
    */
   const move = useCallback(
     (fromKey: string, toKey: string) => {
-      const keys = [...open.map((item) => item.key), ...done.map((item) => item.key)]
+      const keys = open.map((item) => item.key)
       const from = keys.indexOf(fromKey)
       const to = keys.indexOf(toKey)
       if (from === -1 || to === -1 || from === to) return
@@ -260,7 +267,7 @@ export default function ShoppingPage() {
         storeOrder: reorderStore(current.storeOrder, visible),
       }))
     },
-    [open, done, update],
+    [open, update],
   )
 
   /**
@@ -323,11 +330,7 @@ export default function ShoppingPage() {
       }
       const visible = [
         ...new Set(
-          [
-            ...open.map((item) => item.key),
-            manualKey(entry.id),
-            ...done.map((item) => item.key),
-          ].map(orderKey),
+          [...open.map((item) => item.key), manualKey(entry.id)].map(orderKey),
         ),
       ]
       update(`${name} angelegt`, (current) => ({
@@ -336,7 +339,7 @@ export default function ShoppingPage() {
         storeOrder: reorderStore(current.storeOrder, visible),
       }))
     },
-    [items, open, done, update],
+    [items, open, update],
   )
 
   function flash(message: string) {

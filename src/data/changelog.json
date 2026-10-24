@@ -2,6 +2,16 @@
   {
     "datum": "2026-10-24",
     "art": "besser",
+    "text": "Im „Erledigt“-Block der Einkaufsliste stehen die Posten jetzt alphabetisch. Bisher galt dort dieselbe Ladenreihenfolge wie oben — die ist aber eine Laufreihenfolge für das, was noch fehlt. Was schon im Wagen liegt, sucht man nach dem Namen. Oben ändert sich nichts, und nimmst du ein Häkchen zurück, springt der Posten wieder an seinen gewohnten Platz in der Runde."
+  },
+  {
+    "datum": "2026-10-24",
+    "art": "fehler",
+    "text": "Ein Posten, der abgehakt im Wagen lag, konnte seinen gemerkten Platz in der Ladenreihenfolge verlieren, wenn du oben etwas anderes verschoben hast. Nächste Woche stand er dann woanders. Das Verschieben ordnet jetzt nur noch das um, was du gerade sehen und anfassen kannst."
+  },
+  {
+    "datum": "2026-10-24",
+    "art": "besser",
     "text": "Beim Diktieren bestimmst du jetzt selbst, wo eine Zutat endet. Vorher fing die App nach einer kurzen Sprechpause von selbst eine neue an — wer mitten im Sprechen überlegt hat, bekam aus einer Zutat zwei. Jetzt sammelt sie alles, bis du unten auf „Nächste Zutat“ oder „Fertig“ tippst. Pausen darfst du machen, so lange du willst."
   },
   {
