@@ -6,12 +6,45 @@ describe('normalizeShoppingState', () => {
   it('lässt einen gültigen Zustand unverändert', () => {
     const state = {
       checked: { a: '2026-10-20' },
+      checkedAmount: { a: 500 },
       overrides: { a: 500 },
       removed: { b: '2026-10-19' },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['a', 'b'],
     }
     expect(normalizeShoppingState(state)).toEqual(state)
+  })
+
+  /**
+   * Der Stand, der am Tag des Updates auf Martins Handy liegt: Häkchen ja,
+   * gemerkte Mengen nein. Die Häkchen müssen stehen bleiben — ein Update darf
+   * keinen fertigen Einkauf wieder aufmachen.
+   */
+  it('nimmt einen Stand ohne gemerkte Mengen an und behält die Häkchen', () => {
+    const alt = {
+      checked: { a: '2026-10-20' },
+      overrides: {},
+      removed: {},
+      manual: [],
+      storeOrder: [],
+    }
+    const neu = normalizeShoppingState(alt)
+    expect(neu.checked).toEqual({ a: '2026-10-20' })
+    expect(neu.checkedAmount).toEqual({})
+  })
+
+  it('wirft unbrauchbare Mengen weg, statt damit zu rechnen', () => {
+    const neu = normalizeShoppingState({
+      checked: { a: '2026-10-20' },
+      checkedAmount: { a: 'viel', b: NaN, c: 300 },
+      overrides: {},
+      removed: {},
+      manual: [],
+      storeOrder: [],
+    })
+    // `NaN > x` ist immer falsch — ein solcher Wert hielte das Häkchen still
+    // für immer fest.
+    expect(neu.checkedAmount).toEqual({ c: 300 })
   })
 
   it('macht aus dem alten Format einen leeren Zustand', () => {

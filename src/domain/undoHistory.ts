@@ -56,6 +56,7 @@ export function pushEntry(
 export function canonical(state: ShoppingState): string {
   return JSON.stringify({
     checked: sortedEntries(state.checked),
+    checkedAmount: sortedEntries(state.checkedAmount),
     overrides: sortedEntries(state.overrides),
     removed: sortedEntries(state.removed),
     manual: state.manual.map((entry) => [

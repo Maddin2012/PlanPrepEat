@@ -97,3 +97,35 @@ export function toMarkMap(value: unknown): MarkMap {
   }
   return result
 }
+
+/**
+ * Die Menge, die beim Abhaken nötig war — neben dem Häkchen.
+ *
+ * Zwei Felder statt eines, weil `MarkMap` auch `removed` trägt und dort keine
+ * Menge zu suchen hat. Zusammengehalten werden sie an den drei Stellen, an
+ * denen ein Häkchen entsteht, verschwindet oder verfällt; `pruneShoppingState`
+ * wirft zusätzlich jede Menge weg, deren Häkchen nicht mehr da ist.
+ */
+export type AmountMap = Record<string, number>
+
+/**
+ * Die Menge zum Häkchen merken.
+ *
+ * **Ein Posten ohne Mengenangabe bekommt keinen Eintrag.** Salz hat keine Zahl,
+ * die wachsen könnte, und `undefined` nähme Firestore ohnehin nicht an.
+ */
+export function rememberAmount(
+  amounts: AmountMap,
+  key: string,
+  amount: number | null,
+): AmountMap {
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) return amounts
+  return { ...amounts, [key]: amount }
+}
+
+/** Die gemerkte Menge loswerden — das Häkchen geht gerade mit weg. */
+export function dropAmount(amounts: AmountMap, key: string): AmountMap {
+  if (!(key in amounts)) return amounts
+  const { [key]: _weg, ...rest } = amounts
+  return rest
+}

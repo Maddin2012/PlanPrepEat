@@ -12,6 +12,7 @@ function item(key: string, name: string): ShoppingItem {
     edited: false,
     manual: key.startsWith('manual|'),
     sources: [],
+    remaining: null,
   }
 }
 

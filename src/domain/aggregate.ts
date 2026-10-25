@@ -102,7 +102,20 @@ function collectBuckets(
   return buckets
 }
 
-/** Einen zusammengerechneten Posten in die Form der Liste bringen. */
+/**
+ * Einen zusammengerechneten Posten in die Form der Liste bringen.
+ *
+ * Hier fällt auch die Entscheidung, ob ein gesetztes Häkchen **noch gilt**.
+ * Es klebt an der Zutat, nicht an der Menge — wird später mehr nötig, weil ein
+ * weiteres Rezept dieselbe Zutat braucht, war der Posten bisher trotzdem
+ * abgehakt und lag unten im Erledigt-Block, nur mit größerer Zahl. Dort sieht
+ * niemand nach, wenn der Einkauf als fertig gilt.
+ *
+ * Deshalb wird die gebrauchte Menge mit der verglichen, die beim Abhaken
+ * dastand. Ist sie gewachsen, fällt das Häkchen weg und `remaining` sagt, was
+ * noch fehlt. Umgekehrt nicht: Wird **weniger** nötig, weil ein Rezept aus dem
+ * Plan verschwindet, bleibt das Häkchen — gekauft ist gekauft.
+ */
 function toItem(
   bucket: Bucket,
   state: ShoppingState,
@@ -114,6 +127,15 @@ function toItem(
     ? override
     : roundForShopping(bucket.amount, bucket.unit)
 
+  const marked = isMarkActive(state.checked[bucket.key], today)
+  const bought = state.checkedAmount[bucket.key]
+  // Ohne hinterlegte Menge gibt es nichts zu vergleichen: ein Häkchen aus der
+  // Zeit vor diesem Feld, oder ein Posten ohne Mengenangabe wie Salz. Beide
+  // bleiben abgehakt.
+  const comparable =
+    marked && typeof bought === 'number' && Number.isFinite(bought)
+  const nachschlag = comparable && amount > bought
+
   return {
     key: bucket.key,
     name: bucket.name,
@@ -121,10 +143,14 @@ function toItem(
     // in der Liste nur mit dem Namen dargestellt.
     amount: amount === 0 ? null : amount,
     unit: amount === 0 ? null : bucket.unit,
-    checked: isMarkActive(state.checked[bucket.key], today),
+    checked: marked && !nachschlag,
     edited: hasOverride,
     manual: false,
     sources: [...bucket.sources].sort((a, b) => a.localeCompare(b, 'de')),
+    // Gerundet wie jede andere Menge auch — 333,333 g Mehl kauft niemand.
+    remaining: nachschlag
+      ? roundForShopping(amount - bought, bucket.unit)
+      : null,
   }
 }
 
@@ -161,6 +187,9 @@ export function buildShoppingList(
       edited: false,
       manual: true,
       sources: [],
+      // Ein eigener Posten wächst nicht von selbst — seine Menge steht da,
+      // weil jemand sie hingeschrieben hat.
+      remaining: null,
     })
   }
 
@@ -280,8 +309,14 @@ export function pruneShoppingState(
   const keepsPlace = (key: string) =>
     parseManualKey(key) === null || manualKeys.has(key)
 
+  const checked = dropExpired(pickKeys(state.checked, isLive), today)
+
   return {
-    checked: dropExpired(pickKeys(state.checked, isLive), today),
+    checked,
+    // An `checked` gebunden statt nur an `isLive`: Eine hinterlegte Menge ohne
+    // Häkchen hat keine Bedeutung mehr und würde beim nächsten Abhaken gegen
+    // einen alten Stand verglichen. So kann sie ihr Häkchen nicht überleben.
+    checkedAmount: pickKeys(state.checkedAmount, (key) => key in checked),
     overrides: pickKeys(state.overrides, isLive),
     removed: dropExpired(pickKeys(state.removed, isLive), today),
     manual: state.manual,

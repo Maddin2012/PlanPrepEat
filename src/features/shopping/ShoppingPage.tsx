@@ -44,7 +44,12 @@ import {
   pruneShoppingState,
   reorderStore,
 } from '../../domain/aggregate.ts'
-import { clearMark, setMark } from '../../domain/shoppingMarks.ts'
+import {
+  clearMark,
+  dropAmount,
+  rememberAmount,
+  setMark,
+} from '../../domain/shoppingMarks.ts'
 import { canonical } from '../../domain/undoHistory.ts'
 import {
   clearUndo,
@@ -212,6 +217,11 @@ export default function ShoppingPage() {
           checked: item.checked
             ? clearMark(current.checked, item.key)
             : setMark(current.checked, item.key, todayISO()),
+          // Dazu die Menge, die gerade auf der Zeile stand. Daran erkennt die
+          // Liste später, ob durch ein neues Rezept mehr nötig geworden ist.
+          checkedAmount: item.checked
+            ? dropAmount(current.checkedAmount, item.key)
+            : rememberAmount(current.checkedAmount, item.key, item.amount),
         }),
       )
     },
@@ -303,6 +313,7 @@ export default function ShoppingPage() {
           ...current,
           removed: clearMark(current.removed, gestrichenerPosten),
           checked: clearMark(current.checked, gestrichenerPosten),
+          checkedAmount: dropAmount(current.checkedAmount, gestrichenerPosten),
         }))
         setHighlight(gestrichenerPosten)
         setTimeout(() => setHighlight(null), 2600)
@@ -315,6 +326,7 @@ export default function ShoppingPage() {
         update(`${name.trim()} wieder offen`, (current) => ({
           ...current,
           checked: clearMark(current.checked, vorhanden),
+          checkedAmount: dropAmount(current.checkedAmount, vorhanden),
         }))
         setHighlight(vorhanden)
         setTimeout(() => setHighlight(null), 2600)
@@ -763,6 +775,17 @@ function ItemRow({
           >
             {item.name}
           </span>
+          {/*
+            Der Nachschlag steht vor den Rezeptnamen: Er ist der Grund, warum
+            die Zeile überhaupt wieder oben steht, und die Zahl, die im Laden
+            gebraucht wird. `amount` daneben bleibt die Gesamtmenge.
+          */}
+          {item.remaining !== null && (
+            <span className="block truncate text-xs font-medium text-accent">
+              noch {formatAmount(item.remaining, item.unit)} — ein Rezept ist
+              dazugekommen
+            </span>
+          )}
           {item.sources.length > 1 && !item.checked && (
             <span className="block truncate text-xs text-ink-400">
               {item.sources.join(' · ')}

@@ -89,6 +89,20 @@ alphabetisch.
 war, ist diese Woche wieder eine offene Frage. Nach sieben Tagen verfallen sie
 deshalb von selbst.
 
+**Kommt nach dem Einkauf ein Rezept dazu, meldet sich die Zutat zurück.** Ein
+Häkchen merkt sich nicht nur *dass*, sondern auch *wie viel* erledigt war.
+Wächst die nötige Menge — weil ein weiteres Rezept dieselbe Zutat braucht, weil
+die Portionen steigen oder weil sich das Rezept ändert —, fällt das Häkchen weg
+und der Posten steht wieder oben, mit dem Zusatz „noch 500 g". Die große Zahl
+daneben bleibt die Gesamtmenge; die kleine ist die, die man im Laden braucht.
+Umgekehrt passiert nichts: Fliegt ein Rezept aus dem Plan, bleibt das Häkchen —
+gekauft ist gekauft. Zutaten ohne Mengenangabe (Salz) bleiben ebenfalls
+abgehakt, denn da gibt es keine Menge, die wachsen könnte.
+
+Ein Haken, der noch aus der Zeit vor dieser Regel stammt, bleibt unangetastet:
+Zu ihm ist nicht bekannt, wie viel damals nötig war, und eine geratene Zahl
+wäre schlimmer als keine.
+
 Ein gestrichener Posten („hab ich noch da") verschwindet **nicht** aus der App,
 sondern rutscht unten in den Block **„Brauche ich diese Woche nicht"** — dort
 steht er durchgestrichen, und ein Tipp holt ihn sofort zurück nach oben. Das ist

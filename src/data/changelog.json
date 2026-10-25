@@ -1,5 +1,15 @@
 [
   {
+    "datum": "2026-10-25",
+    "art": "fehler",
+    "text": "Wenn du nach dem Einkauf noch ein Rezept einplanst, stehen die zusätzlich nötigen Zutaten wieder oben auf der Liste. Bisher blieben sie abgehakt unten unter „Erledigt“ liegen — mit stillschweigend erhöhter Menge, an einer Stelle, an der man nicht mehr nachsieht. Genau so fehlten die Nudeln für das dritte One Pot Pasta."
+  },
+  {
+    "datum": "2026-10-25",
+    "art": "neu",
+    "text": "Dabei steht gleich dran, wie viel noch fehlt: „Nudeln · 1,5 kg · noch 500 g“. Die App merkt sich beim Abhaken, wie viel damals nötig war, und zieht das ab — du musst im Laden nicht rechnen. Salz, Pfeffer und anderes ohne Mengenangabe bleibt abgehakt; da gibt es nichts nachzukaufen."
+  },
+  {
     "datum": "2026-10-24",
     "art": "besser",
     "text": "Im „Erledigt“-Block der Einkaufsliste stehen die Posten jetzt alphabetisch. Bisher galt dort dieselbe Ladenreihenfolge wie oben — die ist aber eine Laufreihenfolge für das, was noch fehlt. Was schon im Wagen liegt, sucht man nach dem Namen. Oben ändert sich nichts, und nimmst du ein Häkchen zurück, springt der Posten wieder an seinen gewohnten Platz in der Runde."

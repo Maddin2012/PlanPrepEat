@@ -10,6 +10,7 @@ function item(partial: Partial<ShoppingItem> & { name: string }): ShoppingItem {
     checked: false,
     edited: false,
     manual: false,
+    remaining: null,
     sources: [],
     ...partial,
   }

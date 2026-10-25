@@ -490,6 +490,7 @@ describe('Nutzer-Zustand über der Liste', () => {
   it('überlebt eine Änderung am Essensplan', () => {
     const state: ShoppingState = {
       checked: { [onionKey]: HEUTE },
+      checkedAmount: {},
       overrides: {},
       removed: {},
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
@@ -519,6 +520,7 @@ describe('pruneShoppingState', () => {
   it('räumt Zustand weg, dessen Posten aus dem Plan geflogen ist', () => {
     const state: ShoppingState = {
       checked: { [shoppingKey('onion', 'g')]: HEUTE, [manualKey('m1')]: HEUTE },
+      checkedAmount: { [shoppingKey('onion', 'g')]: 200 },
       overrides: { [shoppingKey('weg', 'g')]: 5 },
       removed: { [shoppingKey('auch-weg', 'g')]: HEUTE },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
@@ -623,6 +625,7 @@ describe('byStoreOrder', () => {
     name,
     amount: null,
     unit: null,
+    remaining: null,
     checked: false,
     edited: false,
     manual: false,
@@ -661,5 +664,116 @@ describe('byStoreOrder', () => {
     // und Milch in EL haben denselben Platz im Laden.
     const milchEL = posten(shoppingKey('milk', 'el'), 'Milch')
     expect(runde(milch, milchEL)).toBe(0)
+  })
+})
+
+/**
+ * Martins Fall vom 25.10.: Der Wocheneinkauf war erledigt und abgehakt, dann
+ * kam ein drittes One Pot Pasta in den Plan. Die Nudelmenge wuchs — das
+ * Häkchen blieb, und die Zeile lag weiter unten im Erledigt-Block. Dort sieht
+ * niemand nach, wenn der Einkauf als fertig gilt.
+ */
+describe('Nachschlag: mehr nötig als beim Abhaken', () => {
+  const nudelKey = shoppingKey('pasta', 'g')
+  const pasta = (id: string, gramm: number) =>
+    recipe(id, 'One Pot Pasta', 2, [
+      { ingredientId: 'pasta', name: 'Nudeln', amount: gramm, unit: 'g' },
+    ])
+
+  /** Zwei Mal eingeplant, 1000 g gekauft und abgehakt. */
+  const nachDemEinkauf: ShoppingState = {
+    ...emptyShoppingState(),
+    checked: { [nudelKey]: HEUTE },
+    checkedAmount: { [nudelKey]: 1000 },
+  }
+
+  const liste = (anzahl: number, state: ShoppingState) =>
+    buildShoppingList(
+      Array.from({ length: anzahl }, (_, i) => ({
+        recipe: pasta(`r${i}`, 500),
+        servings: 2,
+      })),
+      catalog,
+      state,
+      HEUTE,
+    )
+
+  it('öffnet den Posten wieder und sagt, wie viel noch fehlt', () => {
+    const [nudeln] = liste(3, nachDemEinkauf)
+    expect(nudeln.checked).toBe(false)
+    // Die Gesamtmenge bleibt stehen, der Nachschlag kommt dazu.
+    expect(nudeln.amount).toBe(1500)
+    expect(nudeln.remaining).toBe(500)
+  })
+
+  it('lässt das Häkchen stehen, solange nicht mehr nötig ist', () => {
+    const [nudeln] = liste(2, nachDemEinkauf)
+    expect(nudeln.checked).toBe(true)
+    expect(nudeln.remaining).toBeNull()
+  })
+
+  it('lässt das Häkchen auch stehen, wenn weniger nötig wird', () => {
+    // Ein Rezept fliegt aus dem Plan. Gekauft ist gekauft.
+    const [nudeln] = liste(1, nachDemEinkauf)
+    expect(nudeln.checked).toBe(true)
+    expect(nudeln.remaining).toBeNull()
+  })
+
+  /**
+   * Der Stand am Tag des Updates: Häkchen aus der Zeit vor diesem Feld. Ohne
+   * hinterlegte Menge gibt es nichts zu vergleichen — und ein geratener Wert
+   * wäre schlimmer als keiner, weil er einen fertigen Einkauf aufmachte.
+   */
+  it('lässt ein Häkchen ohne hinterlegte Menge in Ruhe', () => {
+    const alt: ShoppingState = {
+      ...emptyShoppingState(),
+      checked: { [nudelKey]: HEUTE },
+    }
+    const [nudeln] = liste(3, alt)
+    expect(nudeln.checked).toBe(true)
+    expect(nudeln.remaining).toBeNull()
+  })
+
+  it('rührt Zutaten ohne Mengenangabe nicht an', () => {
+    // Salz hat keine Zahl, die wachsen könnte — und es ist im Haus.
+    const salzig = (id: string) =>
+      recipe(id, 'Suppe', 2, [
+        { ingredientId: 'salt', name: 'Salz', amount: 0, unit: 'g' },
+      ])
+    const state: ShoppingState = {
+      ...emptyShoppingState(),
+      checked: { [shoppingKey('salt', 'g')]: HEUTE },
+    }
+    const [salz] = buildShoppingList(
+      [
+        { recipe: salzig('s1'), servings: 2 },
+        { recipe: salzig('s2'), servings: 2 },
+      ],
+      catalog,
+      state,
+      HEUTE,
+    )
+    expect(salz.amount).toBeNull()
+    expect(salz.checked).toBe(true)
+    expect(salz.remaining).toBeNull()
+  })
+
+  it('wirft die gemerkte Menge weg, sobald das Häkchen weg ist', () => {
+    const gekuerzt = pruneShoppingState(
+      { ...nachDemEinkauf, checked: {} },
+      new Set([nudelKey]),
+      HEUTE,
+    )
+    expect(gekuerzt.checkedAmount).toEqual({})
+  })
+
+  it('wirft sie auch weg, wenn das Häkchen verfallen ist', () => {
+    const gekuerzt = pruneShoppingState(
+      nachDemEinkauf,
+      new Set([nudelKey]),
+      SPAETER,
+    )
+    expect(gekuerzt.checked).toEqual({})
+    expect(gekuerzt.checkedAmount).toEqual({})
   })
 })

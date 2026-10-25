@@ -184,6 +184,21 @@ export interface ShoppingState {
    * Häkchen gesetzt wurde. Es gilt eine Woche, siehe `shoppingMarks.ts`.
    */
   checked: MarkMap
+  /**
+   * Wie viel beim Abhaken nötig war — Schlüssel → die Menge, die damals auf
+   * der Zeile stand.
+   *
+   * **Ohne das weiß ein Häkchen nur „erledigt", nicht „wie viel erledigt".**
+   * Wird später mehr nötig, weil ein weiteres Rezept dieselbe Zutat braucht,
+   * blieb der Posten bisher abgehakt unten liegen — mit stillschweigend
+   * erhöhter Menge, an einer Stelle, an der man nicht mehr nachsieht. Genau so
+   * fehlten die Nudeln für das dritte One Pot Pasta.
+   *
+   * Posten ohne Mengenangabe (Salz) stehen hier nicht: Da gibt es nichts zu
+   * vergleichen, und ein weiteres Rezept ändert nichts daran, dass Salz im
+   * Haus ist.
+   */
+  checkedAmount: Record<string, number>
   /** Von Hand korrigierte Mengen, überschreiben den berechneten Wert. */
   overrides: Record<string, number>
   /**
@@ -223,10 +238,20 @@ export interface ShoppingItem {
   manual: boolean
   /** Aus welchen Rezepten sich der Posten zusammensetzt (für die Anzeige). */
   sources: string[]
+  /**
+   * Was seit dem Abhaken dazugekommen ist, in der Einheit des Postens — sonst
+   * `null`.
+   *
+   * Gesetzt nur bei einem Posten, dessen Häkchen deshalb gerade weggefallen
+   * ist. `amount` bleibt die **Gesamtmenge**; hier steht die Zahl, die man im
+   * Laden braucht.
+   */
+  remaining: number | null
 }
 
 export const emptyShoppingState = (): ShoppingState => ({
   checked: {},
+  checkedAmount: {},
   overrides: {},
   removed: {},
   manual: [],
@@ -251,6 +276,15 @@ export function normalizeShoppingState(value: unknown): ShoppingState {
     // Beide Marken-Felder über `toMarkMap`: Ein Stand ohne Datum stammt aus
     // der Zeit vor der Wochenregel und ist damit sicher abgelaufen.
     checked: toMarkMap(value.checked),
+    // Fehlt das Feld, stammt der Stand aus der Zeit davor: Dann ist zu jedem
+    // Häkchen unbekannt, wie viel damals nötig war, und es bleibt stehen. Ein
+    // geratener Wert wäre schlimmer als keiner.
+    checkedAmount: isRecord(value.checkedAmount)
+      ? pickBy(
+          value.checkedAmount,
+          (entry) => typeof entry === 'number' && Number.isFinite(entry),
+        )
+      : empty.checkedAmount,
     overrides: isRecord(value.overrides)
       ? pickBy(value.overrides, (entry) => typeof entry === 'number')
       : empty.overrides,
