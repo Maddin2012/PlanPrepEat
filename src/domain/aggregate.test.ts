@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildShoppingList,
-  buildStruckItems,
   byStoreOrder,
   collectPlanned,
   liveShoppingKeys,
@@ -401,63 +400,6 @@ describe('Nutzer-Zustand über der Liste', () => {
     expect(item.edited).toBe(true)
   })
 
-  it('blendet gestrichene Posten aus', () => {
-    const state: ShoppingState = {
-      ...emptyShoppingState(),
-      removed: { [onionKey]: HEUTE },
-    }
-    expect(buildShoppingList(planned, catalog, state, HEUTE)).toHaveLength(0)
-  })
-
-  /**
-   * Der Fehler aus Martins Meldung: „Wenn ein Rezept mit Kartoffeln und
-   * Zwiebeln drin ist, überträgt er die Zutaten nicht." Eine einmal gestrichene
-   * Zutat blieb für immer verschwunden — in jedem Rezept, auch in einem, das es
-   * beim Streichen noch nicht gab, weil eine Zutat über ihren Namen gefunden
-   * wird. Und sie war nirgends zu sehen.
-   */
-  describe('eine Streichung gilt eine Woche und ist sichtbar', () => {
-    const gestrichen: ShoppingState = {
-      ...emptyShoppingState(),
-      removed: { [onionKey]: HEUTE },
-    }
-
-    it('steht solange im gestrichenen Block statt auf der Liste', () => {
-      expect(buildShoppingList(planned, catalog, gestrichen, HEUTE)).toHaveLength(0)
-      expect(
-        buildStruckItems(planned, catalog, gestrichen, HEUTE).map((i) => i.name),
-      ).toEqual(['Zwiebeln'])
-    })
-
-    it('und steht acht Tage später von selbst wieder auf der Liste', () => {
-      expect(
-        buildShoppingList(planned, catalog, gestrichen, SPAETER).map((i) => i.name),
-      ).toEqual(['Zwiebeln'])
-      expect(buildStruckItems(planned, catalog, gestrichen, SPAETER)).toHaveLength(0)
-    })
-
-    it('bleibt gestrichen, wenn ein zweites Rezept dieselbe Zutat braucht', () => {
-      // Innerhalb der Woche ändert ein neues Rezept nichts — der Posten ist
-      // aber sichtbar und mit einem Tipp zurückzuholen, nicht einfach weg.
-      const b = recipe('b', 'Suppe', 2, [
-        { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
-      ])
-      const mehr = [...planned, { recipe: b, servings: 2 }]
-      expect(buildShoppingList(mehr, catalog, gestrichen, HEUTE)).toHaveLength(0)
-      expect(buildStruckItems(mehr, catalog, gestrichen, HEUTE)).toHaveLength(1)
-    })
-
-    it('zeigt keine eigenen Posten im gestrichenen Block', () => {
-      // Eigene Posten werden gelöscht, nicht gestrichen.
-      const state: ShoppingState = {
-        ...emptyShoppingState(),
-        manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
-        removed: { [manualKey('m1')]: HEUTE },
-      }
-      expect(buildStruckItems(planned, catalog, state, HEUTE)).toHaveLength(0)
-    })
-  })
-
   describe('ein Häkchen gilt eine Woche', () => {
     const abgehakt: ShoppingState = {
       ...emptyShoppingState(),
@@ -492,7 +434,6 @@ describe('Nutzer-Zustand über der Liste', () => {
       checked: { [onionKey]: HEUTE },
       checkedAmount: {},
       overrides: {},
-      removed: {},
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
       storeOrder: [],
     }
@@ -522,7 +463,6 @@ describe('pruneShoppingState', () => {
       checked: { [shoppingKey('onion', 'g')]: HEUTE, [manualKey('m1')]: HEUTE },
       checkedAmount: { [shoppingKey('onion', 'g')]: 200 },
       overrides: { [shoppingKey('weg', 'g')]: 5 },
-      removed: { [shoppingKey('auch-weg', 'g')]: HEUTE },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['onion', 'weg', manualKey('m1')],
     }
@@ -537,7 +477,6 @@ describe('pruneShoppingState', () => {
       [manualKey('m1')]: HEUTE,
     })
     expect(pruned.overrides).toEqual({})
-    expect(pruned.removed).toEqual({})
     expect(pruned.manual).toHaveLength(1)
   })
 

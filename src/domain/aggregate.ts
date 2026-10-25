@@ -65,10 +65,9 @@ interface Bucket {
 /**
  * Rechnet die Posten aus den eingeplanten Rezepten zusammen.
  *
- * Eigener Schritt, weil zwei Sichten darauf aufsetzen: die Liste selbst und die
- * gestrichenen Posten. Stünde das Zusammenrechnen zweimal da, liefen die beiden
- * irgendwann auseinander — und dann fehlte eine gestrichene Zutat wieder
- * lautlos, weil sie in der einen Rechnung vorkommt und in der anderen nicht.
+ * Eigener Schritt, damit das Zusammenrechnen an **einer** Stelle steht: Welche
+ * Zutat in welcher Einheit wie oft vorkommt, entscheidet sich hier und nirgends
+ * sonst.
  */
 function collectBuckets(
   planned: PlannedRecipe[],
@@ -156,12 +155,12 @@ function toItem(
 
 /**
  * Baut die Einkaufsliste aus den eingeplanten Rezepten und legt den
- * Nutzer-Zustand darüber: Häkchen, korrigierte Mengen, gestrichene Posten und
- * eigene Einträge. Die berechneten Posten selbst werden nirgends gespeichert,
- * deshalb übersteht der Zustand jede Änderung am Essensplan.
+ * Nutzer-Zustand darüber: Häkchen, die Menge beim Abhaken, korrigierte Mengen
+ * und eigene Einträge. Die berechneten Posten selbst werden nirgends
+ * gespeichert, deshalb übersteht der Zustand jede Änderung am Essensplan.
  *
- * Häkchen und Streichungen gelten eine Woche (`shoppingMarks.ts`); `today`
- * entscheidet, welche davon noch zählen.
+ * Ein Häkchen gilt eine Woche (`shoppingMarks.ts`); `today` entscheidet,
+ * welche noch zählen.
  */
 export function buildShoppingList(
   planned: PlannedRecipe[],
@@ -172,7 +171,6 @@ export function buildShoppingList(
   const items: ShoppingItem[] = []
 
   for (const bucket of collectBuckets(planned, ingredients).values()) {
-    if (isMarkActive(state.removed[bucket.key], today)) continue
     items.push(toItem(bucket, state, today))
   }
 
@@ -191,30 +189,6 @@ export function buildShoppingList(
       // weil jemand sie hingeschrieben hat.
       remaining: null,
     })
-  }
-
-  return items.sort(shoppingComparator(state.storeOrder))
-}
-
-/**
- * Die Posten, die wegen einer gültigen Streichung **nicht** auf der Liste
- * stehen.
- *
- * Damit sie nicht lautlos fehlen: Die Oberfläche zeigt sie in einem eigenen
- * Block, aus dem man sie mit einem Tipp zurückholt. Eigene Posten kommen hier
- * nicht vor — die werden gelöscht, nicht gestrichen.
- */
-export function buildStruckItems(
-  planned: PlannedRecipe[],
-  ingredients: Map<string, Ingredient>,
-  state: ShoppingState,
-  today: ISODate = todayISO(),
-): ShoppingItem[] {
-  const items: ShoppingItem[] = []
-
-  for (const bucket of collectBuckets(planned, ingredients).values()) {
-    if (!isMarkActive(state.removed[bucket.key], today)) continue
-    items.push(toItem(bucket, state, today))
   }
 
   return items.sort(shoppingComparator(state.storeOrder))
@@ -318,7 +292,6 @@ export function pruneShoppingState(
     // einen alten Stand verglichen. So kann sie ihr Häkchen nicht überleben.
     checkedAmount: pickKeys(state.checkedAmount, (key) => key in checked),
     overrides: pickKeys(state.overrides, isLive),
-    removed: dropExpired(pickKeys(state.removed, isLive), today),
     manual: state.manual,
     storeOrder: capStoreOrder(state.storeOrder.filter(keepsPlace)),
   }
@@ -386,8 +359,10 @@ function pickKeys<T>(
 }
 
 /**
- * Alle Schlüssel, die der aktuelle Plan erzeugt — inklusive der gestrichenen,
- * denn „hab ich noch da" muss ja erhalten bleiben, solange das Rezept im Plan ist.
+ * Alle Schlüssel, die der aktuelle Plan erzeugt.
+ *
+ * Daran hängt das Aufräumen: Was hier nicht vorkommt, ist aus dem Plan
+ * verschwunden, und sein Häkchen hat keinen Posten mehr, zu dem es gehört.
  */
 export function liveShoppingKeys(planned: PlannedRecipe[]): Set<string> {
   const keys = new Set<string>()

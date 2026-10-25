@@ -46,7 +46,7 @@ export function pushEntry(
  *
  * Gebraucht für die Frage „hat das jemand **anderes** geändert?". Ein
  * schlichtes `JSON.stringify` taugt dafür nicht: Die Reihenfolge der Schlüssel
- * in `checked`, `removed` und `overrides` kann nach dem Weg durch Firestore
+ * in `checked`, `checkedAmount` und `overrides` kann nach dem Weg durch Firestore
  * eine andere sein als beim Hinschreiben, und dann hielte man das eigene Echo
  * für eine fremde Änderung.
  *
@@ -58,7 +58,6 @@ export function canonical(state: ShoppingState): string {
     checked: sortedEntries(state.checked),
     checkedAmount: sortedEntries(state.checkedAmount),
     overrides: sortedEntries(state.overrides),
-    removed: sortedEntries(state.removed),
     manual: state.manual.map((entry) => [
       entry.id,
       entry.name,

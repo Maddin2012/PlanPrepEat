@@ -19,10 +19,8 @@ const zurListe = () => zumReiter(page, 'Einkauf')
 async function istOffen(name) {
   return page.evaluate((gesucht) => {
     const abschnitte = [...document.querySelectorAll('main section')]
-    const erledigt = abschnitte.find((s) => s.textContent.includes('Erledigt ('))
-    const gestrichen = abschnitte.find((s) =>
-      s.textContent.includes('Brauche ich diese Woche nicht'))
-    const unten = [erledigt, gestrichen].filter(Boolean)
+    const unten = abschnitte.filter((s) =>
+      s.textContent.includes('Erledigt ('))
     const obenText = [...document.querySelectorAll('main')]
       .map((m) => m.textContent)
       .join(' ')
@@ -86,18 +84,27 @@ await page.waitForTimeout(800)
 pruefe('der zweite Tipp auch den davor', await istOffen('Kartoffeln'))
 pruefe('und dann ist der Stapel leer', (await knopf().count()) === 0)
 
-// === 6 · Streichen zurücknehmen =========================================
+// === 6 · Eine korrigierte Menge zurücknehmen ============================
+/*
+ * Hier stand früher das Streichen. Seit es das nicht mehr gibt, prüft dieser
+ * Abschnitt die andere Änderung, die über das Blatt läuft: die Menge von Hand.
+ */
 await page.getByRole('button', { name: 'Kartoffeln bearbeiten' }).click()
 await page.waitForTimeout(600)
-await page.getByRole('button', { name: 'Brauche ich diese Woche nicht' }).click()
+// 777 statt einer runden Zahl: Die Liste rechnet Gramm ab 1000 in Kilo um,
+// „1234" stünde dort als „1,23 kg" und die Prüfung ginge aus dem falschen
+// Grund schief.
+await page.getByLabel('Menge').fill('777')
+await page.getByRole('button', { name: 'Übernehmen' }).click()
 await page.waitForTimeout(900)
-pruefe('gestrichen: Kartoffeln sind nicht mehr offen', !(await istOffen('Kartoffeln')))
+await abbruch(page)
+pruefe('die Menge steht von Hand auf 777 g', (await haupt()).includes('777 g'))
 await knopf().click()
 await page.waitForTimeout(900)
 await abbruch(page)
-pruefe('Rückgängig holt eine Streichung zurück', await istOffen('Kartoffeln'))
-pruefe('der gestrichene Block ist wieder weg',
-  !(await haupt()).includes('Brauche ich diese Woche nicht'))
+pruefe('Rückgängig nimmt die Mengenänderung zurück',
+  !(await haupt()).includes('777 g'))
+pruefe('und Kartoffeln stehen weiter offen da', await istOffen('Kartoffeln'))
 
 // === 7 · Eigenen Posten löschen und zurückholen =========================
 await page.getByRole('button', { name: /Listeneintrag/ }).click()

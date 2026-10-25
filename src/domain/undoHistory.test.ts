@@ -42,7 +42,6 @@ describe('canonical', () => {
     checked: { 'a|g': '2026-10-23', 'b|g': '2026-10-22' },
     checkedAmount: { 'a|g': 500 },
     overrides: { 'a|g': 500 },
-    removed: { 'c|stk': '2026-10-21' },
     manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
     storeOrder: ['a', 'b', 'c'],
   }

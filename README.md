@@ -79,15 +79,22 @@ rückwirkend anders lauten.
 **Einkaufsliste.** Ergibt sich automatisch aus den Rezepten der 12 Tage um heute
 herum, zusammengefasst und zunächst alphabetisch sortiert. Zweimal 200 g Zwiebeln
 werden zu 400 g, ein halber Liter Milch und 250 ml addieren sich zu 750 ml.
-Ihr könnt abhaken, Posten streichen und am Griff rechts alles
+Ihr könnt abhaken und am Griff rechts alles
 in eure Ladenreihenfolge ziehen — die merkt sich die App dann dauerhaft.
 Abgehaktes rutscht durchgestrichen unter „Erledigt" und steht dort
 alphabetisch.
 
-**Häkchen und Streichungen gelten für eine Woche.** Beides sind Notizen für
-*einen* Einkauf, keine Eigenschaft der Zutat: Was letzte Woche schon im Haus
-war, ist diese Woche wieder eine offene Frage. Nach sieben Tagen verfallen sie
-deshalb von selbst.
+**Ein Häkchen gilt für eine Woche.** Es ist eine Notiz für *einen* Einkauf,
+keine Eigenschaft der Zutat: Was letzte Woche schon im Haus war, ist diese
+Woche wieder eine offene Frage. Nach sieben Tagen verfällt es deshalb von
+selbst.
+
+**Abhaken ist der einzige Weg, einen Posten von der Liste zu bekommen.** Was
+ihr nicht braucht, weil es schon im Haus ist, hakt ihr ab wie alles andere.
+Früher gab es dafür „Brauche ich diese Woche nicht" mit einem eigenen Block
+unten — das ist weg. Eine Zutat steht auf der Liste, weil ihr Rezept im Plan
+steht; wollt ihr sie wirklich loswerden, gehört das in den Plan, nicht in die
+Liste. Eigene Posten lassen sich weiterhin löschen.
 
 **Kommt nach dem Einkauf ein Rezept dazu, meldet sich die Zutat zurück.** Ein
 Häkchen merkt sich nicht nur *dass*, sondern auch *wie viel* erledigt war.
@@ -103,19 +110,10 @@ Ein Haken, der noch aus der Zeit vor dieser Regel stammt, bleibt unangetastet:
 Zu ihm ist nicht bekannt, wie viel damals nötig war, und eine geratene Zahl
 wäre schlimmer als keine.
 
-Ein gestrichener Posten („hab ich noch da") verschwindet **nicht** aus der App,
-sondern rutscht unten in den Block **„Brauche ich diese Woche nicht"** — dort
-steht er durchgestrichen, und ein Tipp holt ihn sofort zurück nach oben. Das ist
-mit Absicht so: Vorher war eine gestrichene Zutat dauerhaft und unsichtbar
-gesperrt, und weil eine Zutat über ihren **Namen** erkannt wird, fehlte sie
-danach auch in Rezepten, die es beim Streichen noch gar nicht gab. Tippt man
-einen gestrichenen Namen von Hand ein, wird die Streichung aufgehoben, statt
-eine zweite Zeile mit demselben Namen anzulegen.
-
 **Verdrückt? Rückgängig.** Oben in der Kopfzeile steht **Rückgängig**, sobald es
 etwas zurückzunehmen gibt. Jeder Tipp nimmt **einen** Schritt zurück — ein
-versehentliches Häkchen, eine Streichung, einen gelöschten eigenen Posten, eine
-verschobene Reihenfolge. Danach sagt die Meldung unten, was wiederhergestellt
+versehentliches Häkchen, eine geänderte Menge, einen gelöschten eigenen Posten,
+eine verschobene Reihenfolge. Danach sagt die Meldung unten, was wiederhergestellt
 wurde. Die Kopfzeile wandert beim Scrollen mit, der Knopf ist also immer
 erreichbar.
 
@@ -130,8 +128,9 @@ Liste dazu, so wie in Google Notizen: antippen, Namen schreiben, Enter — und d
 nächste Zeile steht schon bereit. Das **X** am Ende der Zeile wirft sie wieder
 weg. Menge, Einheit und Name ändert ihr, indem ihr rechts in der Zeile auf die
 Mengenangabe tippt; dort korrigiert ihr auch die aus den Rezepten berechneten
-Mengen, ohne dass sich am Rezept etwas ändert. Ein eigener Posten wird
-**gelöscht**, nicht gestrichen — der kommt nicht wieder.
+Mengen, ohne dass sich am Rezept etwas ändert. Ein eigener Posten lässt sich
+dort auch **löschen** — der kommt dann nicht wieder. Bei einer Zutat aus einem
+Rezept gibt es den Knopf nicht.
 
 **Beim Tippen schlägt die App vor**, was sie schon kennt — aus euren Rezepten
 und von der Liste selbst. Es genügen ein paar Buchstaben in der richtigen

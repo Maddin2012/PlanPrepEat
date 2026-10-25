@@ -35,7 +35,6 @@ import type {
 } from '../../domain/types.ts'
 import {
   buildShoppingList,
-  buildStruckItems,
   collectPlanned,
   liveShoppingKeys,
   manualKey,
@@ -130,19 +129,6 @@ export default function ShoppingPage() {
   )
 
   /**
-   * Die gestrichenen Posten — die sollen **sichtbar** sein.
-   *
-   * Vorher verschwand ein gestrichener Posten lautlos und für immer. Dass hier
-   * eine zweite Liste steht, ist der Kern der Reparatur: Was nicht auf der
-   * Einkaufsliste landet, muss irgendwo stehen, wo man es sieht und
-   * zurückholen kann.
-   */
-  const struck = useMemo(
-    () => buildStruckItems(planned, ingredients, state),
-    [planned, ingredients, state],
-  )
-
-  /**
    * Woraus die Vorschläge beim Tippen kommen: der Zutatenkatalog — alles, was
    * je in einem Rezept stand — und die Namen, die gerade auf der Liste stehen.
    * Der Katalog ist die eigentliche Quelle; die Liste kommt dazu, damit ein
@@ -228,18 +214,6 @@ export default function ShoppingPage() {
     [update],
   )
 
-  /** Eine Streichung aufheben — der Posten steht gleich wieder oben. */
-  const restore = useCallback(
-    (item: ShoppingItem) => {
-      update(`${item.name} zurück auf die Liste`, (current) => ({
-        ...current,
-        removed: clearMark(current.removed, item.key),
-      }))
-      flash(`${item.name} steht wieder auf der Liste.`)
-    },
-    [update],
-  )
-
   // Die Liste kommt schon sortiert an: offene zuerst, dann die abgehakten.
   const open = items.filter((item) => !item.checked)
   const done = items.filter((item) => item.checked)
@@ -301,26 +275,7 @@ export default function ShoppingPage() {
        * Gibt es ihn schon, wird der vorhandene **wieder geöffnet**: Häkchen
        * weg, damit er aus „Erledigt" zurück nach oben kommt. Genau das ist das
        * Wiederverwenden, um das es geht.
-       *
-       * Auch ein **gestrichener** Posten zählt als vorhanden: Dessen Streichung
-       * wird aufgehoben, statt daneben einen eigenen Posten mit demselben Namen
-       * anzulegen. Sonst stünde „Kartoffeln" zweimal in der App — einmal
-       * gestrichen und einmal von Hand.
        */
-      const gestrichenerPosten = findByName(struck, name)
-      if (gestrichenerPosten) {
-        update(`${name.trim()} zurück auf die Liste`, (current) => ({
-          ...current,
-          removed: clearMark(current.removed, gestrichenerPosten),
-          checked: clearMark(current.checked, gestrichenerPosten),
-          checkedAmount: dropAmount(current.checkedAmount, gestrichenerPosten),
-        }))
-        setHighlight(gestrichenerPosten)
-        setTimeout(() => setHighlight(null), 2600)
-        flash(`${name.trim()} steht wieder auf der Liste.`)
-        return
-      }
-
       const vorhanden = findByName(items, name)
       if (vorhanden) {
         update(`${name.trim()} wieder offen`, (current) => ({
@@ -480,43 +435,6 @@ export default function ShoppingPage() {
           </section>
         )}
 
-        {/*
-          Die gestrichenen Posten — der Block, an dem dieser Fehler gescheitert
-          wäre. Vorher waren sie weg, ohne Spur: kein Hinweis, keine Liste, kein
-          Weg zurück, und das auf Dauer und in jedem Rezept. Jetzt stehen sie
-          hier, durchgestrichen, und ein Tipp holt einen zurück.
-
-          Bewusst **nicht** von „Erledigte ausblenden" betroffen: Erledigtes hat
-          man gekauft, Gestrichenes fehlt — das soll man sehen.
-        */}
-        {struck.length > 0 && (
-          <section>
-            <h2 className="mb-1.5 px-1 text-xs font-semibold tracking-wide text-ink-400 uppercase">
-              Brauche ich diese Woche nicht ({struck.length})
-            </h2>
-            <ul className="divide-y divide-clay-200/70 overflow-hidden rounded-2xl bg-surface ring-1 ring-clay-200">
-              {struck.map((item) => (
-                <li key={item.key}>
-                  <button
-                    type="button"
-                    onClick={() => restore(item)}
-                    className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors active:bg-clay-100"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm text-ink-400 line-through">
-                      {item.name}
-                    </span>
-                    <span className="shrink-0 text-xs font-medium text-accent-text">
-                      Zurück auf die Liste
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-1.5 px-1 text-xs leading-relaxed text-ink-400">
-              Nach einer Woche stehen sie von selbst wieder oben.
-            </p>
-          </section>
-        )}
       </div>
 
       {editing && (
@@ -563,27 +481,16 @@ export default function ShoppingPage() {
             })
             setEditing(null)
           }}
+          // Nur eigene Posten lassen sich löschen; bei einer Rezeptzutat bietet
+          // das Blatt den Knopf gar nicht erst an.
           onRemove={() => {
             const item = editing
-            update(
-              item.manual
-                ? `${item.name} gelöscht`
-                : `${item.name} gestrichen`,
-              (current) =>
-              item.manual
-                ? {
-                    ...current,
-                    manual: current.manual.filter(
-                      (entry) => manualKey(entry.id) !== item.key,
-                    ),
-                  }
-                : {
-                    ...current,
-                    // Die Streichung gilt eine Woche und ist unten im eigenen
-                    // Block sichtbar — nicht mehr eine stille Sperre auf Dauer.
-                    removed: setMark(current.removed, item.key, todayISO()),
-                  },
-            )
+            update(`${item.name} gelöscht`, (current) => ({
+              ...current,
+              manual: current.manual.filter(
+                (entry) => manualKey(entry.id) !== item.key,
+              ),
+            }))
             setEditing(null)
           }}
         />
@@ -1070,18 +977,17 @@ function EditItemSheet({
             Auf die berechnete Menge zurücksetzen
           </Button>
         )}
-        <Button variant="ghost" block className="text-red-600" onClick={onRemove}>
-          <TrashIcon className="size-5" />
-          {item.manual ? 'Posten löschen' : 'Brauche ich diese Woche nicht'}
-        </Button>
-        {!item.manual && (
-          // Der Knopf soll sagen, was er tut. Vorher hieß er „Brauche ich
-          // nicht" und sperrte die Zutat dauerhaft — in jedem Rezept, ohne
-          // Hinweis und ohne Weg zurück.
-          <p className="px-1 text-xs leading-relaxed text-ink-400">
-            Der Posten rutscht unten in einen eigenen Block und steht nach einer
-            Woche von selbst wieder auf der Liste.
-          </p>
+        {/*
+          Löschen gibt es nur bei eigenen Posten. Eine Rezeptzutat steht auf der
+          Liste, weil das Rezept im Plan steht — sie hier wegzunehmen hieße, der
+          Liste zu widersprechen, statt den Plan zu ändern. Was man nicht
+          braucht, hakt man ab.
+        */}
+        {item.manual && (
+          <Button variant="ghost" block className="text-red-600" onClick={onRemove}>
+            <TrashIcon className="size-5" />
+            Posten löschen
+          </Button>
         )}
       </div>
     </Sheet>

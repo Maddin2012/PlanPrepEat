@@ -25,10 +25,8 @@ const { browser, page } = await starteApp({ pruefe })
 const offeneNamen = () =>
   page.evaluate(() => {
     const abschnitte = [...document.querySelectorAll('main section')]
-    const unten = abschnitte.filter(
-      (s) =>
-        s.textContent.includes('Erledigt (') ||
-        s.textContent.includes('Brauche ich diese Woche nicht'),
+    const unten = abschnitte.filter((s) =>
+      s.textContent.includes('Erledigt ('),
     )
     const haupt = document.querySelector('main')
     return [...haupt.querySelectorAll('button[aria-label$=" bearbeiten"]')]

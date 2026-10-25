@@ -8,7 +8,6 @@ describe('normalizeShoppingState', () => {
       checked: { a: '2026-10-20' },
       checkedAmount: { a: 500 },
       overrides: { a: 500 },
-      removed: { b: '2026-10-19' },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['a', 'b'],
     }
@@ -79,14 +78,14 @@ describe('normalizeShoppingState', () => {
 
   /**
    * Der Stand aus der Zeit vor der Wochenregel: `checked` war eine Zuordnung
-   * auf `true`, `removed` eine Liste von Schlüsseln. Beides hatte kein Datum
-   * und ist damit sicher älter als eine Woche — es wird verworfen.
+   * auf `true`. Das hatte kein Datum und ist damit sicher älter als eine Woche
+   * — es wird verworfen.
    *
-   * **Das ist die Reparatur selbst**, nicht ein Nebeneffekt davon: Genau so
-   * kommen die Zutaten zurück, die unter der alten Fassung dauerhaft von der
-   * Liste verschwunden waren.
+   * Das alte `removed` darf im Stand stehen bleiben; seit das Streichen weg
+   * ist, wird es schlicht nicht mehr gelesen. Ein Stand von einem Gerät, das
+   * noch nicht aktualisiert ist, darf die Liste nicht umwerfen.
    */
-  it('verwirft Häkchen und Streichungen ohne Datum', () => {
+  it('verwirft Häkchen ohne Datum und übergeht altes Gestrichenes', () => {
     const alt = {
       checked: { kartoffeln: true },
       overrides: { kartoffeln: 1000 },
@@ -97,7 +96,7 @@ describe('normalizeShoppingState', () => {
     const sauber = normalizeShoppingState(alt)
 
     expect(sauber.checked).toEqual({})
-    expect(sauber.removed).toEqual({})
+    expect('removed' in sauber).toBe(false)
     // Was kein Häkchen ist, bleibt erhalten: korrigierte Mengen und die
     // Ladenreihenfolge hat man sich erarbeitet.
     expect(sauber.overrides).toEqual({ kartoffeln: 1000 })
@@ -116,10 +115,48 @@ describe('normalizeShoppingState', () => {
 
     expect(sauber.checked).toEqual({ gut: '2026-10-20' })
     expect(sauber.overrides).toEqual({ gut: 5 })
-    expect(sauber.removed).toEqual({ gut: '2026-10-19' })
     expect(sauber.manual).toHaveLength(1)
     // Der alte Schlüssel „gut|g" wird dabei auf seine Zutat zurückgeführt.
     expect(sauber.storeOrder).toEqual(['gut'])
+  })
+
+  /**
+   * Der Fall am Tag des Updates: Auf dem Gerät liegen noch Streichungen. Es
+   * gibt den unteren Block nicht mehr, in dem sie zu sehen wären — bliebe eine
+   * Streichung wirksam, fehlte die Zutat lautlos und ohne jeden Weg zurück.
+   * Also muss sie auf der Liste stehen.
+   */
+  it('lässt eine alte Streichung keine Zutat mehr verstecken', () => {
+    const mitStreichung = normalizeShoppingState({
+      checked: {},
+      overrides: {},
+      removed: { 'onion|g': '2026-10-24' },
+      manual: [],
+      storeOrder: [],
+    })
+    const liste = buildShoppingList(
+      [
+        {
+          recipe: {
+            id: 'r1',
+            name: 'Suppe',
+            servings: 2,
+            minutes: 0,
+            steps: '',
+            items: [
+              { ingredientId: 'onion', name: 'Zwiebeln', amount: 200, unit: 'g' },
+            ],
+            createdAt: 0,
+            updatedAt: 0,
+          },
+          servings: 2,
+        },
+      ],
+      new Map(),
+      mitStreichung,
+      '2026-10-25',
+    )
+    expect(liste.map((item) => item.name)).toEqual(['Zwiebeln'])
   })
 
   it('liefert einen Zustand, mit dem die Einkaufsliste rechnen kann', () => {

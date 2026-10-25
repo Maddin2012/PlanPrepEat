@@ -1,6 +1,11 @@
 [
   {
     "datum": "2026-10-25",
+    "art": "besser",
+    "text": "„Brauche ich diese Woche nicht“ gibt es nicht mehr. Der Knopf im Blatt einer Zutat ist weg, und der Block unten auf der Einkaufsliste auch. Was du nicht brauchst, hakst du ab — das ist ab jetzt der einzige Weg, und nach sieben Tagen steht es von selbst wieder offen da. Eigene Posten kannst du weiterhin löschen. Falls bei dir noch etwas gestrichen war: Es steht jetzt wieder auf der Liste."
+  },
+  {
+    "datum": "2026-10-25",
     "art": "fehler",
     "text": "Wenn du nach dem Einkauf noch ein Rezept einplanst, stehen die zusätzlich nötigen Zutaten wieder oben auf der Liste. Bisher blieben sie abgehakt unten unter „Erledigt“ liegen — mit stillschweigend erhöhter Menge, an einer Stelle, an der man nicht mehr nachsieht. Genau so fehlten die Nudeln für das dritte One Pot Pasta."
   },

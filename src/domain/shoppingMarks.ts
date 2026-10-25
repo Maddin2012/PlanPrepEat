@@ -2,19 +2,18 @@ import type { ISODate } from './types.ts'
 import { addDays } from './planWindow.ts'
 
 /**
- * Häkchen und Streichungen auf der Einkaufsliste — und wann sie verfallen.
+ * Häkchen auf der Einkaufsliste — und wann sie verfallen.
  *
- * **Beides sind Notizen für einen Einkauf, keine Eigenschaften der Zutat.**
- * Vorher waren sie unbefristet: Ein Haken blieb gesetzt und eine Streichung
- * galt weiter, solange die Zutat überhaupt noch irgendwo eingeplant war. Bei
- * Kartoffeln und Zwiebeln heißt das praktisch für immer — und weil eine Zutat
- * über ihren **Namen** gefunden wird, wirkte eine einmal gestrichene Zutat auch
- * in Rezepten, die es beim Streichen noch gar nicht gab. Sie fehlte dann
- * lautlos auf der Liste.
+ * **Ein Haken ist eine Notiz für einen Einkauf, keine Eigenschaft der Zutat.**
+ * Früher war er unbefristet und galt, solange die Zutat überhaupt noch
+ * irgendwo eingeplant war. Bei Kartoffeln und Zwiebeln heißt das praktisch für
+ * immer.
  *
  * Deshalb trägt jede Marke den Tag, an dem sie gesetzt wurde, und gilt eine
  * Woche. Das ist der Rhythmus, in dem eingekauft wird: Was letzte Woche schon
- * im Haus war, ist diese Woche eine offene Frage.
+ * im Haus war, ist diese Woche eine offene Frage. Seit das Streichen weg ist,
+ * ist der Haken der einzige Weg, einen Posten von der Liste zu bekommen — und
+ * diese Frist damit das Einzige, was ihn wieder aufmacht.
  */
 
 /** Schlüssel der Einkaufsliste → der Tag, an dem die Marke gesetzt wurde. */
@@ -79,9 +78,8 @@ export function dropExpired(marks: MarkMap, today: ISODate): MarkMap {
 /**
  * Einen gelesenen Stand auf die Form der Marken bringen.
  *
- * Nimmt nur `{ schlüssel: 'JJJJ-MM-TT' }` an. Die beiden **alten** Formen —
- * `removed` war eine Liste von Schlüsseln, `checked` eine Zuordnung auf `true`
- * — ergeben nichts, und das ist so gewollt: Ein Haken oder eine Streichung
+ * Nimmt nur `{ schlüssel: 'JJJJ-MM-TT' }` an. Die **alte** Form — `checked`
+ * als Zuordnung auf `true` — ergibt nichts, und das ist so gewollt: Ein Haken
  * ohne Datum stammt aus der Zeit vor dieser Regel, ist also mit Sicherheit
  * älter als eine Woche. Beim ersten Start nach dem Update steht die Liste
  * deshalb einmal wieder vollständig offen da — und genau dadurch kommen die
@@ -101,10 +99,10 @@ export function toMarkMap(value: unknown): MarkMap {
 /**
  * Die Menge, die beim Abhaken nötig war — neben dem Häkchen.
  *
- * Zwei Felder statt eines, weil `MarkMap` auch `removed` trägt und dort keine
- * Menge zu suchen hat. Zusammengehalten werden sie an den drei Stellen, an
- * denen ein Häkchen entsteht, verschwindet oder verfällt; `pruneShoppingState`
- * wirft zusätzlich jede Menge weg, deren Häkchen nicht mehr da ist.
+ * Zwei Felder statt eines, weil eine `MarkMap` ein Datum trägt und sonst
+ * nichts. Zusammengehalten werden sie an den drei Stellen, an denen ein
+ * Häkchen entsteht, verschwindet oder verfällt; `pruneShoppingState` wirft
+ * zusätzlich jede Menge weg, deren Häkchen nicht mehr da ist.
  */
 export type AmountMap = Record<string, number>
 

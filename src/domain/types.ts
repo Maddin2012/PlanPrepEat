@@ -201,13 +201,6 @@ export interface ShoppingState {
   checkedAmount: Record<string, number>
   /** Von Hand korrigierte Mengen, überschreiben den berechneten Wert. */
   overrides: Record<string, number>
-  /**
-   * Weggestrichene abgeleitete Posten („brauche ich diese Woche nicht"), mit
-   * dem Tag des Streichens. Auch das gilt eine Woche — vorher stand hier eine
-   * unbefristete Liste, und eine einmal gestrichene Zutat fehlte danach
-   * lautlos in jedem Rezept.
-   */
-  removed: MarkMap
   manual: ManualItem[]
   /**
    * Die **Ladenreihenfolge**: die Runde durch den Laden, so wie man sie geht.
@@ -253,7 +246,6 @@ export const emptyShoppingState = (): ShoppingState => ({
   checked: {},
   checkedAmount: {},
   overrides: {},
-  removed: {},
   manual: [],
   storeOrder: [],
 })
@@ -288,7 +280,9 @@ export function normalizeShoppingState(value: unknown): ShoppingState {
     overrides: isRecord(value.overrides)
       ? pickBy(value.overrides, (entry) => typeof entry === 'number')
       : empty.overrides,
-    removed: toMarkMap(value.removed),
+    // `removed` wird nicht mehr gelesen — das Streichen gibt es nicht mehr.
+    // In der Ablage darf das Feld stehen bleiben; ein ungelesenes Feld kostet
+    // nichts, und das Wegräumen fremder Daten wäre die riskantere Tat.
     manual: Array.isArray(value.manual)
       ? value.manual.filter(isManualItem)
       : empty.manual,

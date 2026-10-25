@@ -45,8 +45,8 @@ Playwright, sagt der Läufer genau diesen Befehl.
 | `wischen.mjs` | Wischen zwischen den Reitern, mit echten Berührungen. Hier stecken zwei Browser-Eigenheiten, die man nur so trifft. |
 | `vorlesen.mjs` | Vorlesen samt Stimme, Tempo und Tonhöhe — mit einer Attrappe für die Sprachausgabe, weil im Prüfbehälter keine Stimme liegt. |
 | `kosmetik.mjs` | Das Wasserzeichen: gemessen **dunkler** als der Grund, damit es die Lesbarkeit nicht verschlechtern kann. Dazu die aufgeräumten Einstellungen. |
-| `gestrichen.mjs` | „Brauche ich diese Woche nicht" — sichtbar und rücknehmbar, statt lautlos und dauerhaft. |
-| `rueckgaengig.mjs` | Der Rückgängig-Knopf, inklusive Reiterwechsel und einer Messung der Kopfzeilenbreite. |
+| `ohne-streichen.mjs` | Das Streichen ist fort — und daneben ist nichts kaputt: Menge ändern geht weiter, eigene Posten bleiben löschbar. |
+| `rueckgaengig.mjs` | Der Rückgängig-Knopf über Häkchen, Menge, gelöschten Posten und Reiterwechsel, mit einer Messung der Kopfzeilenbreite. |
 | `erledigt.mjs` | Der Erledigt-Block steht alphabetisch, während oben die geschobene Ladenreihenfolge gilt. Schiebt dafür erst eine Runde, die dem Alphabet widerspricht. |
 | `nachschlag.mjs` | Kommt nach dem Abhaken ein Rezept dazu, steht die Zutat wieder **oben** — gemessen wird die Stelle im Baum, nicht nur die Zahl. |
 
