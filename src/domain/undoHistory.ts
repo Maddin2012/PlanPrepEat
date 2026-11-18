@@ -57,6 +57,7 @@ export function canonical(state: ShoppingState): string {
   return JSON.stringify({
     checked: sortedEntries(state.checked),
     checkedAmount: sortedEntries(state.checkedAmount),
+    checkedPlan: sortedEntries(state.checkedPlan),
     overrides: sortedEntries(state.overrides),
     manual: state.manual.map((entry) => [
       entry.id,

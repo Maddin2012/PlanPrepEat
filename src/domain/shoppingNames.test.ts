@@ -13,6 +13,7 @@ function item(key: string, name: string): ShoppingItem {
     manual: key.startsWith('manual|'),
     sources: [],
     remaining: null,
+    positions: [],
   }
 }
 

@@ -96,19 +96,41 @@ unten — das ist weg. Eine Zutat steht auf der Liste, weil ihr Rezept im Plan
 steht; wollt ihr sie wirklich loswerden, gehört das in den Plan, nicht in die
 Liste. Eigene Posten lassen sich weiterhin löschen.
 
-**Kommt nach dem Einkauf ein Rezept dazu, meldet sich die Zutat zurück.** Ein
-Häkchen merkt sich nicht nur *dass*, sondern auch *wie viel* erledigt war.
-Wächst die nötige Menge — weil ein weiteres Rezept dieselbe Zutat braucht, weil
-die Portionen steigen oder weil sich das Rezept ändert —, fällt das Häkchen weg
-und der Posten steht wieder oben, mit dem Zusatz „noch 500 g". Die große Zahl
-daneben bleibt die Gesamtmenge; die kleine ist die, die man im Laden braucht.
-Umgekehrt passiert nichts: Fliegt ein Rezept aus dem Plan, bleibt das Häkchen —
-gekauft ist gekauft. Zutaten ohne Mengenangabe (Salz) bleiben ebenfalls
-abgehakt, denn da gibt es keine Menge, die wachsen könnte.
+**Ein eingeplantes Rezept bringt seine Zutaten auf die Liste. Immer.** Ein
+Häkchen merkt sich nicht nur *dass* erledigt war, sondern auch, **welche
+Gerichte** die Zutat damals verlangt haben. Kommt eines dazu, fällt das Häkchen
+und der Posten steht wieder oben — ganz gleich, wie die Mengen stehen.
 
-Ein Haken, der noch aus der Zeit vor dieser Regel stammt, bleibt unangetastet:
-Zu ihm ist nicht bekannt, wie viel damals nötig war, und eine geratene Zahl
-wäre schlimmer als keine.
+Das ist wichtiger, als es klingt. Vorher verglich die App nur Mengen, und
+„500 g gebraucht, 500 g abgehakt" hieß: alles erledigt. Dass die gekauften
+Nudeln zwischendurch gegessen worden waren, konnte eine Menge nicht wissen —
+der Plan weiß es. Zutaten sind deshalb schon lautlos auf der Liste gefehlt.
+
+Daneben zählt weiter die Menge: Wächst sie, weil die Portionen steigen oder
+sich ein Rezept ändert, steht der Posten ebenfalls wieder oben, mit dem Zusatz
+„noch 500 g". Die große Zahl ist die Gesamtmenge, die kleine die, die man im
+Laden braucht. Abgezogen wird nur, wenn kein Gericht aus dem Plan verschwunden
+ist — sonst wurde der Einkauf vermutlich verbraucht, und dann steht die volle
+Menge da.
+
+Ein Gericht, das **nur wegfällt**, lässt die Häkchen in Ruhe: gegessen oder
+abbestellt, gekauft ist es trotzdem. Zutaten ohne Mengenangabe (Salz) bleiben
+ebenfalls abgehakt, solange kein neues Gericht dazukommt.
+
+**Verschoben? Dann fragt die Liste nach.** Ein Gericht, das von einem Tag auf
+einen anderen wandert, sieht für die App genauso aus wie eines, das gegessen
+und neu eingeplant wurde — im ersten Fall liegen die Zutaten noch im Schrank,
+im zweiten sind sie weg. Statt zu raten, steht oben auf der Einkaufsliste eine
+Frage: *„Spaghetti steht jetzt am Mittwoch, Abendbrot statt am Montag,
+Mittagessen. Zutaten wieder auf die Liste?"* — **Ja, wieder drauf** holt sie
+zurück, **Nein, hab ich noch** lässt die Häkchen stehen und beantwortet die
+Frage endgültig. Sie steht auf der Einkaufsliste und nicht im Plan, weil
+verschoben haben kann auch die andere Person: Die Frage muss den erreichen, der
+einkaufen geht.
+
+Ein Haken, der noch aus der Zeit vor diesen Regeln stammt, bleibt unangetastet:
+Zu ihm ist nicht bekannt, was damals dahinterstand, und Geraten wäre schlimmer
+als Stehenlassen.
 
 **Verdrückt? Rückgängig.** Oben in der Kopfzeile steht **Rückgängig**, sobald es
 etwas zurückzunehmen gibt. Jeder Tipp nimmt **einen** Schritt zurück — ein

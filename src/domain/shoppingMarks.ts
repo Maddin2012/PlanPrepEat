@@ -121,9 +121,34 @@ export function rememberAmount(
   return { ...amounts, [key]: amount }
 }
 
-/** Die gemerkte Menge loswerden — das Häkchen geht gerade mit weg. */
-export function dropAmount(amounts: AmountMap, key: string): AmountMap {
-  if (!(key in amounts)) return amounts
-  const { [key]: _weg, ...rest } = amounts
+/**
+ * Eine Notiz zum Häkchen loswerden — das Häkchen geht gerade mit weg.
+ *
+ * Einer für beide Begleiter (Menge und Plan-Stellen): Es ist derselbe
+ * Handgriff, und zwei Fassungen davon liefen irgendwann auseinander.
+ */
+export function dropNote<T>(
+  notes: Record<string, T>,
+  key: string,
+): Record<string, T> {
+  if (!(key in notes)) return notes
+  const { [key]: _weg, ...rest } = notes
   return rest
+}
+
+/**
+ * Die Stellen im Plan merken, die diese Zutat beim Abhaken verlangt haben.
+ *
+ * **Eine leere Liste wird nicht abgelegt.** Sie wäre nicht dasselbe wie „nichts
+ * gemerkt": Nichts gemerkt lässt ein Häkchen in Ruhe, eine leere Liste hieße
+ * „damals stand kein Gericht dahinter" — dann sähe jedes Gericht wie neu aus.
+ * Eigene Posten hängen an keinem Rezept und landen deshalb hier nie.
+ */
+export function rememberPositions(
+  plan: Record<string, string[]>,
+  key: string,
+  positions: readonly string[],
+): Record<string, string[]> {
+  if (positions.length === 0) return dropNote(plan, key)
+  return { ...plan, [key]: [...positions] }
 }

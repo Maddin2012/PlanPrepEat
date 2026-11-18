@@ -7,6 +7,7 @@ describe('normalizeShoppingState', () => {
     const state = {
       checked: { a: '2026-10-20' },
       checkedAmount: { a: 500 },
+      checkedPlan: { a: ['2026-10-20_dinner|r1|0'] },
       overrides: { a: 500 },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['a', 'b'],
@@ -150,6 +151,7 @@ describe('normalizeShoppingState', () => {
             updatedAt: 0,
           },
           servings: 2,
+          position: '2026-11-18_dinner|r1|0',
         },
       ],
       new Map(),

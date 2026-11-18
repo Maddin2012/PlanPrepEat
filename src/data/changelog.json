@@ -1,5 +1,15 @@
 [
   {
+    "datum": "2026-11-18",
+    "art": "fehler",
+    "text": "Planst du ein Rezept ein, stehen seine Zutaten jetzt auf der Einkaufsliste — immer. Bisher konnten sie fehlen, wenn du dieselbe Zutat kurz davor schon einmal abgehakt hattest: Die App verglich nur Mengen und wusste nicht, dass die gekauften Nudeln inzwischen gegessen waren. Genau so fehlten die Nudeln f\u00fcr das neue Gericht nach den Spaghetti."
+  },
+  {
+    "datum": "2026-11-18",
+    "art": "neu",
+    "text": "Verschiebst du ein Gericht, f\u00fcr das du schon eingekauft hast, auf einen anderen Tag, fragt die Einkaufsliste oben nach: \u201eZutaten wieder auf die Liste?\u201c \u2014 mit \u201eJa, wieder drauf\u201c und \u201eNein, hab ich noch\u201c. Verschoben und \u201egegessen, dann neu eingeplant\u201c sehen f\u00fcr die App gleich aus; statt zu raten, fragt sie dich. Bei einem wirklich neuen Gericht fragt sie nicht, da ist nichts zweideutig."
+  },
+  {
     "datum": "2026-10-25",
     "art": "besser",
     "text": "„Brauche ich diese Woche nicht“ gibt es nicht mehr. Der Knopf im Blatt einer Zutat ist weg, und der Block unten auf der Einkaufsliste auch. Was du nicht brauchst, hakst du ab — das ist ab jetzt der einzige Weg, und nach sieben Tagen steht es von selbst wieder offen da. Eigene Posten kannst du weiterhin löschen. Falls bei dir noch etwas gestrichen war: Es steht jetzt wieder auf der Liste."

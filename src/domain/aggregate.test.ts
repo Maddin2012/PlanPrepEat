@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildShoppingList,
+  hasNewDish,
+  movedDishes,
+  planChange,
+  planPosition,
   byStoreOrder,
   collectPlanned,
   liveShoppingKeys,
@@ -10,6 +14,7 @@ import {
   shoppingKey,
 } from './aggregate.ts'
 import { emptyShoppingState } from './types.ts'
+import type { PlannedRecipe } from './aggregate.ts'
 import type {
   Ingredient,
   ShoppingItem,
@@ -50,6 +55,24 @@ function recipe(
   }
 }
 
+/**
+ * Ein Rezept auf einen Platz im Plan legen.
+ *
+ * Jeder Aufruf bekommt von selbst einen **eigenen** Platz. Das ist für die
+ * meisten Tests gleichgültig, aber nicht für die, die prüfen, ob ein Häkchen
+ * noch gilt: Zwei Gerichte an derselben Stelle wären ein Gericht, das zweimal
+ * dasteht — und das heißt etwas anderes.
+ */
+let platzZaehler = 0
+function plan(
+  recipe: Recipe,
+  servings: number,
+  slot = `2026-10-2${platzZaehler++ % 10}_dinner`,
+  nth = 0,
+): PlannedRecipe {
+  return { recipe, servings, position: planPosition(slot, recipe.id, nth) }
+}
+
 const catalog = new Map<string, Ingredient>([
   ['onion', ingredient('onion', 'Zwiebeln')],
   ['milk', ingredient('milk', 'Milch')],
@@ -82,8 +105,8 @@ describe('buildShoppingList', () => {
 
     const list = buildShoppingList(
       [
-        { recipe: a, servings: 2 },
-        { recipe: b, servings: 2 },
+        plan(a, 2),
+        plan(b, 2),
       ],
       catalog,
       emptyShoppingState(),
@@ -105,8 +128,8 @@ describe('buildShoppingList', () => {
 
     const list = buildShoppingList(
       [
-        { recipe: a, servings: 2 },
-        { recipe: b, servings: 2 },
+        plan(a, 2),
+        plan(b, 2),
       ],
       catalog,
       emptyShoppingState(),
@@ -124,7 +147,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -139,7 +162,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 5 }],
+      [plan(a, 5)],
       catalog,
       emptyShoppingState(),
     )
@@ -153,7 +176,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 3 }],
+      [plan(a, 3)],
       catalog,
       emptyShoppingState(),
     )
@@ -168,7 +191,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -185,7 +208,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -205,7 +228,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -219,7 +242,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -233,7 +256,7 @@ describe('buildShoppingList', () => {
     ])
 
     const list = buildShoppingList(
-      [{ recipe: a, servings: 2 }],
+      [plan(a, 2)],
       catalog,
       emptyShoppingState(),
     )
@@ -248,7 +271,7 @@ describe('Reihenfolge der Einkaufsliste', () => {
     { ingredientId: 'pasta', name: 'Nudeln', amount: 250, unit: 'g' },
     { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
   ])
-  const planned = [{ recipe: dreierlei, servings: 2 }]
+  const planned = [plan(dreierlei, 2)]
 
   const milk = shoppingKey('milk', 'ml')
   const pasta = shoppingKey('pasta', 'g')
@@ -334,7 +357,7 @@ describe('Reihenfolge der Einkaufsliste', () => {
       { ingredientId: 'milk', name: 'Milch', amount: 1, unit: 'l' },
       { ingredientId: 'onion', name: 'Zwiebeln', amount: 100, unit: 'g' },
     ])
-    const namen = buildShoppingList([{ recipe: inLitern, servings: 2 }], catalog, {
+    const namen = buildShoppingList([plan(inLitern, 2)], catalog, {
       ...emptyShoppingState(),
       storeOrder: platz('milk', 'onion'),
     }).map((item) => item.name)
@@ -379,7 +402,7 @@ describe('Nutzer-Zustand über der Liste', () => {
   const a = recipe('a', 'Auflauf', 2, [
     { ingredientId: 'onion', name: 'Zwiebeln', amount: 200, unit: 'g' },
   ])
-  const planned = [{ recipe: a, servings: 2 }]
+  const planned = [plan(a, 2)]
   const onionKey = shoppingKey('onion', 'g')
 
   it('übernimmt Häkchen', () => {
@@ -433,6 +456,7 @@ describe('Nutzer-Zustand über der Liste', () => {
     const state: ShoppingState = {
       checked: { [onionKey]: HEUTE },
       checkedAmount: {},
+      checkedPlan: {},
       overrides: {},
       manual: [{ id: 'm1', name: 'Klopapier', amount: 1, unit: 'pkg' }],
       storeOrder: [],
@@ -443,7 +467,7 @@ describe('Nutzer-Zustand über der Liste', () => {
       { ingredientId: 'pasta', name: 'Nudeln', amount: 100, unit: 'g' },
     ])
     const erweitert = buildShoppingList(
-      [...planned, { recipe: b, servings: 2 }],
+      [...planned, plan(b, 2)],
       catalog,
       state,
       HEUTE,
@@ -462,14 +486,19 @@ describe('pruneShoppingState', () => {
     const state: ShoppingState = {
       checked: { [shoppingKey('onion', 'g')]: HEUTE, [manualKey('m1')]: HEUTE },
       checkedAmount: { [shoppingKey('onion', 'g')]: 200 },
+      checkedPlan: {},
       overrides: { [shoppingKey('weg', 'g')]: 5 },
       manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
       storeOrder: ['onion', 'weg', manualKey('m1')],
     }
 
+    // `HEUTE` muss mit: Ohne festes Datum nimmt `pruneShoppingState` die Uhr
+    // des Rechners, und die Häkchen aus diesem Stand wären je nach Tag des
+    // Testlaufs abgelaufen oder nicht.
     const pruned = pruneShoppingState(
       state,
       new Set([shoppingKey('onion', 'g')]),
+      HEUTE,
     )
 
     expect(pruned.checked).toEqual({
@@ -491,9 +520,13 @@ describe('pruneShoppingState', () => {
       storeOrder: ['onion', 'weg', manualKey('m1')],
     }
 
+    // `HEUTE` muss mit: Ohne festes Datum nimmt `pruneShoppingState` die Uhr
+    // des Rechners, und die Häkchen aus diesem Stand wären je nach Tag des
+    // Testlaufs abgelaufen oder nicht.
     const pruned = pruneShoppingState(
       state,
       new Set([shoppingKey('onion', 'g')]),
+      HEUTE,
     )
 
     expect(pruned.storeOrder).toEqual(['onion', 'weg', manualKey('m1')])
@@ -518,7 +551,7 @@ describe('liveShoppingKeys', () => {
     const a = recipe('a', 'Auflauf', 2, [
       { ingredientId: 'milk', name: 'Milch', amount: 1, unit: 'l' },
     ])
-    expect(liveShoppingKeys([{ recipe: a, servings: 2 }])).toEqual(
+    expect(liveShoppingKeys([plan(a, 2)])).toEqual(
       new Set([shoppingKey('milk', 'ml')]),
     )
   })
@@ -565,6 +598,7 @@ describe('byStoreOrder', () => {
     amount: null,
     unit: null,
     remaining: null,
+    positions: [],
     checked: false,
     edited: false,
     manual: false,
@@ -628,10 +662,9 @@ describe('Nachschlag: mehr nötig als beim Abhaken', () => {
 
   const liste = (anzahl: number, state: ShoppingState) =>
     buildShoppingList(
-      Array.from({ length: anzahl }, (_, i) => ({
-        recipe: pasta(`r${i}`, 500),
-        servings: 2,
-      })),
+      Array.from({ length: anzahl }, (_, i) =>
+        plan(pasta(`r${i}`, 500), 2),
+      ),
       catalog,
       state,
       HEUTE,
@@ -685,8 +718,8 @@ describe('Nachschlag: mehr nötig als beim Abhaken', () => {
     }
     const [salz] = buildShoppingList(
       [
-        { recipe: salzig('s1'), servings: 2 },
-        { recipe: salzig('s2'), servings: 2 },
+        plan(salzig('s1'), 2),
+        plan(salzig('s2'), 2),
       ],
       catalog,
       state,
@@ -714,5 +747,212 @@ describe('Nachschlag: mehr nötig als beim Abhaken', () => {
     )
     expect(gekuerzt.checked).toEqual({})
     expect(gekuerzt.checkedAmount).toEqual({})
+  })
+})
+
+/**
+ * Martins Meldung vom 18.11.: „Die Nudeln wurden nicht mit reingenommen, weil
+ * wir gerade erst Spaghetti gegessen haben."
+ *
+ * Der Einkauf war erledigt und die Nudeln abgehakt. Dann kam ein neues
+ * Nudelgericht in den Plan — und blieb unsichtbar, weil die alte Regel nur
+ * Mengen verglich: `500 > 500` ist falsch, also galt das Häkchen weiter. Dass
+ * die gekauften Nudeln längst gegessen waren, konnte die Menge nicht wissen.
+ */
+describe('Ein neu eingeplantes Gericht holt seine Zutaten zurück', () => {
+  const nudelKey = shoppingKey('pasta', 'g')
+  const SPAGHETTI = '2026-10-19_dinner'
+  const AUFLAUF = '2026-10-22_dinner'
+
+  const nudelrezept = (id: string, name: string) =>
+    recipe(id, name, 2, [
+      { ingredientId: 'pasta', name: 'Nudeln', amount: 500, unit: 'g' },
+    ])
+  const spaghetti = nudelrezept('spag', 'Spaghetti')
+  const auflauf = nudelrezept('aufl', 'Nudelauflauf')
+
+  /** Nach dem Einkauf: 500 g gekauft, abgehakt, damals stand nur Spaghetti da. */
+  const nachDemEinkauf: ShoppingState = {
+    ...emptyShoppingState(),
+    checked: { [nudelKey]: HEUTE },
+    checkedAmount: { [nudelKey]: 500 },
+    checkedPlan: { [nudelKey]: [planPosition(SPAGHETTI, 'spag', 0)] },
+  }
+
+  it('Martins Fall: Spaghetti gegessen, Auflauf neu eingeplant', () => {
+    const [nudeln] = buildShoppingList(
+      [
+        // Das gekochte Spaghetti steht weiter auf seinem Tag im Plan.
+        plan(spaghetti, 2, SPAGHETTI),
+        plan(auflauf, 2, AUFLAUF),
+      ],
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(false)
+    expect(nudeln.amount).toBe(1000)
+    expect(nudeln.remaining).toBe(500)
+  })
+
+  it('auch wenn das alte Gericht aus dem Plan gefallen ist', () => {
+    // Dann ist nichts abzuziehen: Der Einkauf wurde verbraucht, es steht die
+    // volle Menge da. `500 > 500` wäre falsch — trotzdem muss die Zeile offen
+    // sein, und genau daran ist die alte Regel gescheitert.
+    const [nudeln] = buildShoppingList(
+      [plan(auflauf, 2, AUFLAUF)],
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(false)
+    expect(nudeln.amount).toBe(500)
+    expect(nudeln.remaining).toBeNull()
+  })
+
+  it('auch wenn das neue Gericht weniger braucht als gekauft wurde', () => {
+    // Die Großpackung: 1 kg gekauft, das neue Gericht will 500 g. Die Menge
+    // spricht dagegen, der Plan dafür — und der Plan hat recht, denn gegessen
+    // ist gegessen.
+    const [nudeln] = buildShoppingList(
+      [plan(auflauf, 2, AUFLAUF)],
+      catalog,
+      { ...nachDemEinkauf, checkedAmount: { [nudelKey]: 1000 } },
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(false)
+    expect(nudeln.remaining).toBeNull()
+  })
+
+  it('dasselbe Rezept ein zweites Mal zählt als neues Gericht', () => {
+    const [nudeln] = buildShoppingList(
+      [plan(spaghetti, 2, SPAGHETTI), plan(spaghetti, 2, AUFLAUF)],
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(false)
+  })
+
+  it('zweimal am selben Platz ebenso — zwei Bleche sind zwei Gerichte', () => {
+    const [nudeln] = buildShoppingList(
+      [plan(spaghetti, 2, SPAGHETTI), plan(spaghetti, 2, SPAGHETTI, 1)],
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(false)
+  })
+
+  it('ein bloß weggefallenes Gericht lässt das Häkchen stehen', () => {
+    // Gegessen oder abbestellt — gekauft ist es trotzdem.
+    const [nudeln] = buildShoppingList(
+      [plan(auflauf, 2, AUFLAUF)],
+      catalog,
+      {
+        ...nachDemEinkauf,
+        checkedPlan: {
+          [nudelKey]: [
+            planPosition(SPAGHETTI, 'spag', 0),
+            planPosition(AUFLAUF, 'aufl', 0),
+          ],
+        },
+        checkedAmount: { [nudelKey]: 1000 },
+      },
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(true)
+  })
+
+  it('ein verschobenes Gericht lässt das Häkchen stehen — die Frage kommt extra', () => {
+    const verschoben = [plan(spaghetti, 2, AUFLAUF)]
+    const [nudeln] = buildShoppingList(
+      verschoben,
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(true)
+
+    const gemeldet = movedDishes(verschoben, catalog, nachDemEinkauf, HEUTE)
+    expect(gemeldet).toHaveLength(1)
+    expect(gemeldet[0]).toMatchObject({
+      recipeId: 'spag',
+      name: 'Spaghetti',
+      from: SPAGHETTI,
+      to: AUFLAUF,
+      keys: [nudelKey],
+    })
+  })
+
+  it('bei einem neuen Gericht wird nicht gefragt', () => {
+    const gemeldet = movedDishes(
+      [plan(spaghetti, 2, SPAGHETTI), plan(auflauf, 2, AUFLAUF)],
+      catalog,
+      nachDemEinkauf,
+      HEUTE,
+    )
+    expect(gemeldet).toEqual([])
+  })
+
+  /**
+   * Der Stand am Tag des Updates: Häkchen ja, gemerkte Plan-Stellen nein. Ein
+   * Update darf keinen fertigen Einkauf wieder aufmachen.
+   */
+  it('lässt ein Häkchen ohne gemerkte Plan-Stellen in Ruhe', () => {
+    const [nudeln] = buildShoppingList(
+      [plan(spaghetti, 2, SPAGHETTI), plan(auflauf, 2, AUFLAUF)],
+      catalog,
+      {
+        ...emptyShoppingState(),
+        checked: { [nudelKey]: HEUTE },
+        checkedAmount: { [nudelKey]: 1000 },
+      },
+      HEUTE,
+    )
+    expect(nudeln.checked).toBe(true)
+  })
+
+  it('wirft die gemerkten Stellen weg, sobald das Häkchen weg ist', () => {
+    const gekuerzt = pruneShoppingState(
+      { ...nachDemEinkauf, checked: {} },
+      new Set([nudelKey]),
+      HEUTE,
+    )
+    expect(gekuerzt.checkedPlan).toEqual({})
+  })
+})
+
+describe('planChange und hasNewDish', () => {
+  const a0 = planPosition('2026-10-20_dinner', 'a', 0)
+  const a1 = planPosition('2026-10-21_dinner', 'a', 0)
+  const b0 = planPosition('2026-10-21_dinner', 'b', 0)
+
+  it('ohne gemerkten Stand gibt es nichts zu vergleichen', () => {
+    expect(planChange(undefined, new Set([a0]))).toBeNull()
+    expect(hasNewDish(null)).toBe(false)
+  })
+
+  it('nennt Dazugekommenes und Weggefallenes', () => {
+    expect(planChange([a0], new Set([a1, b0]))).toEqual({
+      added: [a1, b0],
+      gone: [a0],
+    })
+  })
+
+  it('ein anderes Rezept ist ein neues Gericht', () => {
+    expect(hasNewDish(planChange([a0], new Set([a0, b0])))).toBe(true)
+  })
+
+  it('dasselbe Rezept an anderer Stelle ist ein Verschieben', () => {
+    expect(hasNewDish(planChange([a0], new Set([a1])))).toBe(false)
+  })
+
+  it('verschoben **und** eines dazu bleibt ein neues Gericht', () => {
+    expect(hasNewDish(planChange([a0], new Set([a1, b0])))).toBe(true)
+  })
+
+  it('nur weggefallen ist kein neues Gericht', () => {
+    expect(hasNewDish(planChange([a0, b0], new Set([a0])))).toBe(false)
   })
 })

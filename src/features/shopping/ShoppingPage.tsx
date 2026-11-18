@@ -33,9 +33,11 @@ import type {
   ShoppingState,
   UnitCode,
 } from '../../domain/types.ts'
+import type { MovedDish } from '../../domain/aggregate.ts'
 import {
   buildShoppingList,
   collectPlanned,
+  movedDishes,
   liveShoppingKeys,
   manualKey,
   parseManualKey,
@@ -45,8 +47,9 @@ import {
 } from '../../domain/aggregate.ts'
 import {
   clearMark,
-  dropAmount,
+  dropNote,
   rememberAmount,
+  rememberPositions,
   setMark,
 } from '../../domain/shoppingMarks.ts'
 import { canonical } from '../../domain/undoHistory.ts'
@@ -61,7 +64,11 @@ import {
 import { UNIT_LABELS, UNIT_ORDER, formatAmount } from '../../domain/units.ts'
 import { formatShoppingListText } from '../../domain/exportList.ts'
 import {
+  MEAL_LABELS,
+  WEEKDAY_LONG,
   formatRange,
+  fromISODate,
+  parseSlotKey,
   windowEnd,
   windowStart,
   todayISO,
@@ -92,6 +99,19 @@ import {
 import { findByName, suggestNames } from '../../domain/shoppingNames.ts'
 import { shareText } from '../../lib/share.ts'
 import { parseAmount } from '../recipes/ingredientDraft.ts'
+
+/**
+ * Ein Platz im Plan, wie ihn Martin lesen würde: „Mittwoch, Abendbrot".
+ *
+ * Nur der Wochentag, kein Datum: Die Rückfrage betrifft immer die nächsten
+ * Tage, und „Mittwoch" ist schneller erfasst als „26.10.".
+ */
+function slotLabel(key: string): string {
+  const platz = parseSlotKey(key)
+  if (!platz) return 'einem anderen Tag'
+  const tag = WEEKDAY_LONG[fromISODate(platz.date).getDay()]
+  return `${tag}, ${MEAL_LABELS[platz.meal]}`
+}
 
 export default function ShoppingPage() {
   const repository = useRepository()
@@ -125,6 +145,19 @@ export default function ShoppingPage() {
 
   const items = useMemo(
     () => buildShoppingList(planned, ingredients, state),
+    [planned, ingredients, state],
+  )
+
+  /**
+   * Die Gerichte, bei denen die App nicht weiß, ob nachgekauft werden muss.
+   *
+   * Verschoben und „gegessen, dann neu eingeplant" sehen in den Daten gleich
+   * aus. Statt zu raten — und sich dabei in der Hälfte der Fälle zu irren —
+   * fragt die Liste nach. Ein neues Gericht landet dagegen ohne Rückfrage
+   * oben; da ist nichts zweideutig.
+   */
+  const verschoben = useMemo(
+    () => movedDishes(planned, ingredients, state),
     [planned, ingredients, state],
   )
 
@@ -206,12 +239,67 @@ export default function ShoppingPage() {
           // Dazu die Menge, die gerade auf der Zeile stand. Daran erkennt die
           // Liste später, ob durch ein neues Rezept mehr nötig geworden ist.
           checkedAmount: item.checked
-            ? dropAmount(current.checkedAmount, item.key)
+            ? dropNote(current.checkedAmount, item.key)
             : rememberAmount(current.checkedAmount, item.key, item.amount),
+          // Dazu, welche Gerichte die Zutat gerade verlangen. Kommt später
+          // eines dazu, steht sie wieder offen auf der Liste — unabhängig
+          // davon, ob die Menge gewachsen ist.
+          checkedPlan: item.checked
+            ? dropNote(current.checkedPlan, item.key)
+            : rememberPositions(current.checkedPlan, item.key, item.positions),
         }),
       )
     },
     [update],
+  )
+
+  /**
+   * Die Antwort auf die Rückfrage zu einem verschobenen Gericht.
+   *
+   * **Ja** nimmt die Häkchen seiner Zutaten weg — sie stehen wieder offen da.
+   * **Nein** schreibt die gemerkten Stellen auf den heutigen Stand fort; damit
+   * ist die Frage beantwortet und kommt nicht wieder. Dafür braucht es kein
+   * eigenes Feld „schon gefragt": Die Frage entsteht ja gerade daraus, dass
+   * gemerkter und heutiger Stand auseinandergehen.
+   *
+   * Beides läuft durch `update`, damit **Rückgängig** auch hier greift.
+   */
+  const answerMove = useCallback(
+    (dish: MovedDish, wiederDrauf: boolean) => {
+      const heutige = new Map(
+        items.map((item) => [item.key, item.positions] as const),
+      )
+      update(
+        wiederDrauf
+          ? `${dish.name}: Zutaten wieder auf die Liste`
+          : `${dish.name}: Zutaten bleiben abgehakt`,
+        (current) => {
+          let checked = current.checked
+          let checkedAmount = current.checkedAmount
+          let checkedPlan = current.checkedPlan
+          for (const key of dish.keys) {
+            if (wiederDrauf) {
+              checked = clearMark(checked, key)
+              checkedAmount = dropNote(checkedAmount, key)
+              checkedPlan = dropNote(checkedPlan, key)
+            } else {
+              checkedPlan = rememberPositions(
+                checkedPlan,
+                key,
+                heutige.get(key) ?? [],
+              )
+            }
+          }
+          return { ...current, checked, checkedAmount, checkedPlan }
+        },
+      )
+      flash(
+        wiederDrauf
+          ? `Zutaten von ${dish.name} stehen wieder auf der Liste.`
+          : `${dish.name} bleibt abgehakt.`,
+      )
+    },
+    [items, update],
   )
 
   // Die Liste kommt schon sortiert an: offene zuerst, dann die abgehakten.
@@ -281,7 +369,8 @@ export default function ShoppingPage() {
         update(`${name.trim()} wieder offen`, (current) => ({
           ...current,
           checked: clearMark(current.checked, vorhanden),
-          checkedAmount: dropAmount(current.checkedAmount, vorhanden),
+          checkedAmount: dropNote(current.checkedAmount, vorhanden),
+          checkedPlan: dropNote(current.checkedPlan, vorhanden),
         }))
         setHighlight(vorhanden)
         setTimeout(() => setHighlight(null), 2600)
@@ -405,6 +494,39 @@ export default function ShoppingPage() {
       {/* Die Eingabezeile steht auch bei leerer Liste da: Sonst käme man ohne
           eingeplante Rezepte gar nicht an einen eigenen Posten heran. */}
       <div className="space-y-5 px-4 pt-4 pb-6">
+        {/*
+          Die Rückfrage steht **oben**, vor der Liste: Sie entscheidet darüber,
+          was in der Liste fehlt, und wäre weiter unten genau das, was man im
+          Laden übersieht.
+        */}
+        {verschoben.map((dish) => (
+          <div
+            key={`${dish.recipeId}|${dish.from}|${dish.to}`}
+            className="rounded-2xl bg-surface p-3 ring-1 ring-accent"
+          >
+            <p className="text-sm leading-relaxed text-ink-900">
+              <span className="font-semibold">{dish.name}</span> steht jetzt am{' '}
+              {slotLabel(dish.to)} statt am {slotLabel(dish.from)}. Zutaten
+              wieder auf die Liste?
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={() => answerMove(dish, true)}
+              >
+                Ja, wieder drauf
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => answerMove(dish, false)}
+              >
+                Nein, hab ich noch
+              </Button>
+            </div>
+          </div>
+        ))}
+
         <div className="space-y-2">
           <SortableList
             items={open}

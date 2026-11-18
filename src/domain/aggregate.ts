@@ -26,6 +26,15 @@ export { manualKey, orderKey, parseManualKey, shoppingKey } from './shoppingKeys
 export interface PlannedRecipe {
   recipe: Recipe
   servings: number
+  /**
+   * Wo im Plan dieses Rezept steht — siehe `planPosition`.
+   *
+   * **Ohne diese Angabe wäre die Einkaufsliste blind für den Grund**, aus dem
+   * eine Zutat gebraucht wird. Sie sähe nur Mengen, und eine Menge kann nicht
+   * sagen, ob die gekauften Nudeln noch im Schrank liegen oder längst gegessen
+   * sind.
+   */
+  position: string
 }
 
 /**
@@ -39,6 +48,10 @@ export function collectPlanned(
 ): PlannedRecipe[] {
   const planned: PlannedRecipe[] = []
   for (const slot of slots) {
+    // Dasselbe Rezept darf zweimal auf demselben Platz liegen (zwei Bleche
+    // Auflauf). Ohne diesen Zähler trügen beide dieselbe Position, und das
+    // zweite zählte als „war schon da".
+    const gezaehlt = new Map<string, number>()
     for (const entry of slot.entries) {
       // Freie Einträge („Pizza bestellen") haben keine Zutaten. Ausgesiebt
       // würden sie auch von der Prüfung darunter — ohne `recipeId` findet die
@@ -48,10 +61,40 @@ export function collectPlanned(
       const recipe = recipesById.get(entry.recipeId)
       // Ein zwischenzeitlich gelöschtes Rezept wird stillschweigend übersprungen.
       if (!recipe) continue
-      planned.push({ recipe, servings: entry.servings })
+      const wievielte = gezaehlt.get(entry.recipeId) ?? 0
+      gezaehlt.set(entry.recipeId, wievielte + 1)
+      planned.push({
+        recipe,
+        servings: entry.servings,
+        position: planPosition(slot.key, entry.recipeId, wievielte),
+      })
     }
   }
   return planned
+}
+
+/**
+ * Eine Stelle im Plan: Platz, Rezept und — bei mehrfach belegtem Platz — die
+ * wievielte.
+ *
+ * `slotKey` trennt mit `_`, hier wird mit `|` getrennt; die beiden kommen sich
+ * also nicht ins Gehege.
+ */
+export function planPosition(
+  slot: string,
+  recipeId: string,
+  nth: number,
+): string {
+  return `${slot}|${recipeId}|${nth}`
+}
+
+/** Platz und Rezept aus einer Position zurückholen. */
+export function parsePlanPosition(
+  position: string,
+): { slot: string; recipeId: string } | null {
+  const teile = position.split('|')
+  if (teile.length !== 3) return null
+  return { slot: teile[0], recipeId: teile[1] }
 }
 
 interface Bucket {
@@ -60,6 +103,58 @@ interface Bucket {
   amount: number
   unit: UnitCode
   sources: Set<string>
+  positions: Set<string>
+}
+
+/** Was sich am Plan getan hat, seit das Häkchen gesetzt wurde. */
+export interface PlanChange {
+  added: string[]
+  gone: string[]
+}
+
+/**
+ * Vergleicht die beim Abhaken gemerkten Stellen mit den heutigen.
+ *
+ * `undefined` heißt „nichts gemerkt" — ein Häkchen aus der Zeit vor diesem
+ * Feld. Dann gibt es nichts zu vergleichen, und der Aufrufer lässt es stehen.
+ */
+export function planChange(
+  then: readonly string[] | undefined,
+  now: ReadonlySet<string>,
+): PlanChange | null {
+  if (!then) return null
+  const damals = new Set(then)
+  return {
+    added: [...now].filter((position) => !damals.has(position)),
+    gone: then.filter((position) => !now.has(position)),
+  }
+}
+
+/**
+ * Ist wirklich ein Gericht **dazugekommen** — oder wurde nur eines verschoben?
+ *
+ * Verschieben sieht in den Daten genauso aus wie Wegfallen plus Dazukommen:
+ * Der Eintrag ist am alten Platz weg und am neuen da. Deshalb wird gepaart,
+ * und zwar über das **Rezept**, nicht über die Portionen — eine veränderte
+ * Portionszahl fängt der Mengenvergleich ab.
+ *
+ * Bleibt nach dem Paaren etwas Dazugekommenes übrig, ist es ein neues Gericht,
+ * und seine Zutaten gehören auf die Liste. Das ist Martins Regel: Wer ein
+ * Rezept einplant, kauft dafür ein — egal, was vorher war.
+ */
+export function hasNewDish(change: PlanChange | null): boolean {
+  if (!change) return false
+  const offen = change.gone
+    .map((position) => parsePlanPosition(position)?.recipeId)
+    .filter((id): id is string => id !== undefined)
+
+  for (const position of change.added) {
+    const rezept = parsePlanPosition(position)?.recipeId
+    const passend = rezept === undefined ? -1 : offen.indexOf(rezept)
+    if (passend === -1) return true
+    offen.splice(passend, 1)
+  }
+  return false
 }
 
 /**
@@ -75,7 +170,7 @@ function collectBuckets(
 ): Map<string, Bucket> {
   const buckets = new Map<string, Bucket>()
 
-  for (const { recipe, servings } of planned) {
+  for (const { recipe, servings, position } of planned) {
     for (const item of recipe.items) {
       const scaled = scaleAmount(item.amount, recipe.servings, servings)
       const { amount, unit } = normalize(scaled, item.unit)
@@ -86,6 +181,7 @@ function collectBuckets(
       if (bucket) {
         bucket.amount += amount
         bucket.sources.add(recipe.name)
+        bucket.positions.add(position)
       } else {
         buckets.set(key, {
           key,
@@ -93,6 +189,7 @@ function collectBuckets(
           amount,
           unit,
           sources: new Set([recipe.name]),
+          positions: new Set([position]),
         })
       }
     }
@@ -105,15 +202,23 @@ function collectBuckets(
  * Einen zusammengerechneten Posten in die Form der Liste bringen.
  *
  * Hier fällt auch die Entscheidung, ob ein gesetztes Häkchen **noch gilt**.
- * Es klebt an der Zutat, nicht an der Menge — wird später mehr nötig, weil ein
- * weiteres Rezept dieselbe Zutat braucht, war der Posten bisher trotzdem
- * abgehakt und lag unten im Erledigt-Block, nur mit größerer Zahl. Dort sieht
- * niemand nach, wenn der Einkauf als fertig gilt.
+ * Zwei Dinge können es fallen lassen:
  *
- * Deshalb wird die gebrauchte Menge mit der verglichen, die beim Abhaken
- * dastand. Ist sie gewachsen, fällt das Häkchen weg und `remaining` sagt, was
- * noch fehlt. Umgekehrt nicht: Wird **weniger** nötig, weil ein Rezept aus dem
- * Plan verschwindet, bleibt das Häkchen — gekauft ist gekauft.
+ * 1. **Ein Gericht ist dazugekommen.** Dann wird für dieses Gericht
+ *    eingekauft, und zwar unabhängig von jeder Menge. Das ist die wichtigere
+ *    der beiden Regeln und die, die vorher gefehlt hat: Wer Spaghetti gegessen
+ *    und danach ein neues Nudelgericht eingeplant hatte, sah die Nudeln nicht
+ *    auf der Liste, weil `500 > 500` nun einmal falsch ist. Die Menge weiß
+ *    nicht, dass die Nudeln inzwischen im Magen sind — der Plan weiß es.
+ * 2. **Es wird mehr gebraucht als beim Abhaken dastand** (Portionen hoch, das
+ *    Rezept geändert). Dann sagt `remaining`, was noch fehlt.
+ *
+ * `remaining` nur, wenn **nichts** aus dem Plan weggefallen ist: Ist ein
+ * Gericht verschwunden, wurde sein Einkauf vermutlich verbraucht, und ein
+ * Abzug davon wäre geraten. Dann steht die volle Menge da.
+ *
+ * Ein Gericht, das nur **weggefallen** ist, lässt das Häkchen stehen — gegessen
+ * oder abbestellt, gekauft ist es trotzdem.
  */
 function toItem(
   bucket: Bucket,
@@ -127,6 +232,13 @@ function toItem(
     : roundForShopping(bucket.amount, bucket.unit)
 
   const marked = isMarkActive(state.checked[bucket.key], today)
+
+  const wandel = marked
+    ? planChange(state.checkedPlan[bucket.key], bucket.positions)
+    : null
+  const neuesGericht = hasNewDish(wandel)
+  const etwasWeg = (wandel?.gone.length ?? 0) > 0
+
   const bought = state.checkedAmount[bucket.key]
   // Ohne hinterlegte Menge gibt es nichts zu vergleichen: ein Häkchen aus der
   // Zeit vor diesem Feld, oder ein Posten ohne Mengenangabe wie Salz. Beide
@@ -134,6 +246,7 @@ function toItem(
   const comparable =
     marked && typeof bought === 'number' && Number.isFinite(bought)
   const nachschlag = comparable && amount > bought
+  const wiederOffen = neuesGericht || nachschlag
 
   return {
     key: bucket.key,
@@ -142,14 +255,16 @@ function toItem(
     // in der Liste nur mit dem Namen dargestellt.
     amount: amount === 0 ? null : amount,
     unit: amount === 0 ? null : bucket.unit,
-    checked: marked && !nachschlag,
+    checked: marked && !wiederOffen,
     edited: hasOverride,
     manual: false,
     sources: [...bucket.sources].sort((a, b) => a.localeCompare(b, 'de')),
     // Gerundet wie jede andere Menge auch — 333,333 g Mehl kauft niemand.
-    remaining: nachschlag
-      ? roundForShopping(amount - bought, bucket.unit)
-      : null,
+    remaining:
+      wiederOffen && nachschlag && !etwasWeg
+        ? roundForShopping(amount - bought, bucket.unit)
+        : null,
+    positions: [...bucket.positions],
   }
 }
 
@@ -188,6 +303,8 @@ export function buildShoppingList(
       // Ein eigener Posten wächst nicht von selbst — seine Menge steht da,
       // weil jemand sie hingeschrieben hat.
       remaining: null,
+      // Und er hängt an keinem Rezept, also auch an keiner Stelle im Plan.
+      positions: [],
     })
   }
 
@@ -258,6 +375,75 @@ export function byStoreOrder(
   }
 }
 
+/** Ein Gericht, das von einem Platz auf einen anderen gewandert ist. */
+export interface MovedDish {
+  recipeId: string
+  name: string
+  /** Platzschlüssel, siehe `slotKey` — vorher und jetzt. */
+  from: string
+  to: string
+  /** Die Zutaten, deren Häkchen daran hängen. */
+  keys: string[]
+}
+
+/**
+ * Die Gerichte, bei denen die App **nicht weiß**, ob eingekauft werden muss.
+ *
+ * Verschoben und „gegessen, dann neu eingeplant" sehen in den Daten gleich aus:
+ * Der Eintrag ist am alten Platz weg und am neuen da. Im ersten Fall liegen die
+ * Zutaten noch im Schrank, im zweiten sind sie aufgebraucht. Raten hieße, sich
+ * in der Hälfte der Fälle zu irren — deshalb fragt die Oberfläche nach.
+ *
+ * Gemeldet wird nur, was **abgehakt** ist: Was offen auf der Liste steht,
+ * braucht keine Frage.
+ */
+export function movedDishes(
+  planned: PlannedRecipe[],
+  ingredients: Map<string, Ingredient>,
+  state: ShoppingState,
+  today: ISODate = todayISO(),
+): MovedDish[] {
+  const namen = new Map(planned.map((p) => [p.recipe.id, p.recipe.name]))
+  const gefunden = new Map<string, MovedDish>()
+
+  for (const bucket of collectBuckets(planned, ingredients).values()) {
+    if (!isMarkActive(state.checked[bucket.key], today)) continue
+    const wandel = planChange(state.checkedPlan[bucket.key], bucket.positions)
+    if (!wandel) continue
+
+    // Dieselbe Paarung wie in `hasNewDish`: Was sich über das Rezept paaren
+    // lässt, ist ein Verschieben. Was übrig bleibt, ist ein neues Gericht und
+    // kommt ohne Rückfrage auf die Liste.
+    const offen = wandel.gone
+      .map((position) => parsePlanPosition(position))
+      .filter((p): p is { slot: string; recipeId: string } => p !== null)
+
+    for (const position of wandel.added) {
+      const neu = parsePlanPosition(position)
+      if (!neu) continue
+      const passend = offen.findIndex((alt) => alt.recipeId === neu.recipeId)
+      if (passend === -1) continue
+      const [alt] = offen.splice(passend, 1)
+
+      const id = `${neu.recipeId}|${alt.slot}|${neu.slot}`
+      const schon = gefunden.get(id)
+      if (schon) {
+        if (!schon.keys.includes(bucket.key)) schon.keys.push(bucket.key)
+      } else {
+        gefunden.set(id, {
+          recipeId: neu.recipeId,
+          name: namen.get(neu.recipeId) ?? 'Gericht',
+          from: alt.slot,
+          to: neu.slot,
+          keys: [bucket.key],
+        })
+      }
+    }
+  }
+
+  return [...gefunden.values()]
+}
+
 /**
  * Entfernt Zustand, der zu keinem Posten mehr gehört — etwa das Häkchen einer
  * Zutat, deren Rezept inzwischen aus dem Plan geflogen ist. Ohne das würde ein
@@ -291,6 +477,10 @@ export function pruneShoppingState(
     // Häkchen hat keine Bedeutung mehr und würde beim nächsten Abhaken gegen
     // einen alten Stand verglichen. So kann sie ihr Häkchen nicht überleben.
     checkedAmount: pickKeys(state.checkedAmount, (key) => key in checked),
+    // Aus demselben Grund an `checked` gebunden: Gemerkte Plan-Stellen ohne
+    // Häkchen sagen nichts mehr und würden beim nächsten Abhaken gegen einen
+    // alten Stand verglichen.
+    checkedPlan: pickKeys(state.checkedPlan, (key) => key in checked),
     overrides: pickKeys(state.overrides, isLive),
     manual: state.manual,
     storeOrder: capStoreOrder(state.storeOrder.filter(keepsPlace)),

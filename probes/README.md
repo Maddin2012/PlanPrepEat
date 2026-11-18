@@ -48,6 +48,8 @@ Playwright, sagt der Läufer genau diesen Befehl.
 | `ohne-streichen.mjs` | Das Streichen ist fort — und daneben ist nichts kaputt: Menge ändern geht weiter, eigene Posten bleiben löschbar. |
 | `rueckgaengig.mjs` | Der Rückgängig-Knopf über Häkchen, Menge, gelöschten Posten und Reiterwechsel, mit einer Messung der Kopfzeilenbreite. |
 | `erledigt.mjs` | Der Erledigt-Block steht alphabetisch, während oben die geschobene Ladenreihenfolge gilt. Schiebt dafür erst eine Runde, die dem Alphabet widerspricht. |
+| `nachgeplant.mjs` | Ein neu eingeplantes Gericht bringt seine Zutaten zurück — **auch wenn die Menge nicht wächst**, weil das alte Gericht aus dem Plan ist. Genau daran ist es gescheitert. |
+| `verschoben.mjs` | Die Rückfrage beim Verschieben, beide Antworten — und dass „Nein" nicht beim nächsten Blick wiederkommt. |
 | `nachschlag.mjs` | Kommt nach dem Abhaken ein Rezept dazu, steht die Zutat wieder **oben** — gemessen wird die Stelle im Baum, nicht nur die Zahl. |
 
 ## Beim Schreiben einer neuen Probe

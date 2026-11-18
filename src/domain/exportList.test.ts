@@ -11,6 +11,7 @@ function item(partial: Partial<ShoppingItem> & { name: string }): ShoppingItem {
     edited: false,
     manual: false,
     remaining: null,
+    positions: [],
     sources: [],
     ...partial,
   }

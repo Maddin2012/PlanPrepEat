@@ -41,6 +41,7 @@ describe('canonical', () => {
   const basis: ShoppingState = {
     checked: { 'a|g': '2026-10-23', 'b|g': '2026-10-22' },
     checkedAmount: { 'a|g': 500 },
+    checkedPlan: { 'a|g': ['2026-10-20_dinner|r1|0'] },
     overrides: { 'a|g': 500 },
     manual: [{ id: 'm1', name: 'Klopapier', amount: null, unit: null }],
     storeOrder: ['a', 'b', 'c'],

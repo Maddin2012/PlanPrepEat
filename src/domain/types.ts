@@ -199,6 +199,17 @@ export interface ShoppingState {
    * Haus ist.
    */
   checkedAmount: Record<string, number>
+  /**
+   * Welche Stellen im Plan diese Zutat verlangt haben, als abgehakt wurde —
+   * Schlüssel → Liste von Positionen (siehe `planPosition`).
+   *
+   * **Das ist die Antwort auf „muss ich das nachkaufen?".** Die Menge allein
+   * kann sie nicht geben: Wer Spaghetti gegessen und danach ein neues
+   * Nudelgericht eingeplant hat, braucht dieselben 500 g ein zweites Mal, und
+   * `500 > 500` ist falsch. Kommt dagegen eine Stelle im Plan dazu, wird dafür
+   * eingekauft — ohne Rechnerei.
+   */
+  checkedPlan: Record<string, string[]>
   /** Von Hand korrigierte Mengen, überschreiben den berechneten Wert. */
   overrides: Record<string, number>
   manual: ManualItem[]
@@ -240,11 +251,20 @@ export interface ShoppingItem {
    * Laden braucht.
    */
   remaining: number | null
+  /**
+   * Die Stellen im Plan, aus denen dieser Posten kommt (siehe `planPosition`).
+   *
+   * Nicht für die Anzeige — dafür steht `sources` da, mit den Rezeptnamen. Das
+   * hier wird beim Abhaken mitgeschrieben, damit später zu erkennen ist, ob
+   * seitdem ein Gericht dazugekommen ist. Bei eigenen Posten leer.
+   */
+  positions: string[]
 }
 
 export const emptyShoppingState = (): ShoppingState => ({
   checked: {},
   checkedAmount: {},
+  checkedPlan: {},
   overrides: {},
   manual: [],
   storeOrder: [],
@@ -277,6 +297,10 @@ export function normalizeShoppingState(value: unknown): ShoppingState {
           (entry) => typeof entry === 'number' && Number.isFinite(entry),
         )
       : empty.checkedAmount,
+    // Fehlt das Feld, ist zu den vorhandenen Häkchen unbekannt, welche
+    // Gerichte dahinterstanden — dann bleiben sie stehen. Nur Listen aus
+    // Zeichenketten zählen; alles andere wäre beim Vergleichen Zufall.
+    checkedPlan: toPlanMap(value.checkedPlan),
     overrides: isRecord(value.overrides)
       ? pickBy(value.overrides, (entry) => typeof entry === 'number')
       : empty.overrides,
@@ -310,6 +334,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function onlyStrings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((e) => typeof e === 'string') : []
+}
+
+/**
+ * Die gemerkten Plan-Stellen auf eine brauchbare Form bringen.
+ *
+ * Ein leerer Eintrag fliegt raus: Er wäre nicht dasselbe wie „nichts gemerkt".
+ * „Nichts gemerkt" lässt ein Häkchen in Ruhe, eine leere Liste dagegen hieße
+ * „damals stand nichts im Plan" — dann sähe jedes Gericht wie neu aus und
+ * risse jedes alte Häkchen mit.
+ */
+function toPlanMap(value: unknown): Record<string, string[]> {
+  if (!isRecord(value)) return {}
+  const result: Record<string, string[]> = {}
+  for (const [key, entry] of Object.entries(value)) {
+    const positions = onlyStrings(entry)
+    if (positions.length > 0) result[key] = positions
+  }
+  return result
 }
 
 function pickBy<T>(
