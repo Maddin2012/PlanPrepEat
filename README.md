@@ -49,7 +49,8 @@ Chrome verarbeitet den Ton auf Googles Servern. Browser ohne diese Schnittstelle
 **Essensplan.** Ein fortlaufender Kalender, je Tag eine Spalte für Mittagessen
 und eine für Abendbrot. Im Blick sind 12 Tage: heute, die drei Tage davor und
 acht voraus. Die vergangenen Tage sind mit Absicht dabei — lief ein Tag anders
-als gedacht, schiebt ihr das Gericht von dort einfach weiter. Gescrollt wird in
+als gedacht, **drückt ihr lange auf das Feld** und schiebt das Gericht weiter
+(siehe unten). Gescrollt wird in
 beide Richtungen — geladen sind ein Monat zurück und vier voraus, und wer noch
 weiter will, tippt am Ende auf „30 Tage früher" bzw. „30 Tage später". Der Knopf
 „Heute" oben rechts holt euch jederzeit zurück.
@@ -117,7 +118,18 @@ Ein Gericht, das **nur wegfällt**, lässt die Häkchen in Ruhe: gegessen oder
 abbestellt, gekauft ist es trotzdem. Zutaten ohne Mengenangabe (Salz) bleiben
 ebenfalls abgehakt, solange kein neues Gericht dazukommt.
 
-**Verschoben? Dann fragt die Liste nach.** Ein Gericht, das von einem Tag auf
+**Ein Gericht weiterschieben: lange drücken.** Ein halbsekündiger Druck auf
+ein belegtes Feld öffnet „Wohin damit?" — eine Liste der nächsten vierzehn
+Tage mit beiden Mahlzeiten; ein Tipp, und das Gericht liegt dort. Liegt mehr
+als eines auf dem Platz, wird vorher gefragt, welches gemeint ist. Der **kurze**
+Tipp öffnet weiterhin das Feld zum Bearbeiten, und auf einem leeren Feld tut
+der lange Druck nichts.
+
+Gezogen wird dabei nicht: Der Plan scrollt über Monate, und ein Gericht mit dem
+Finger von heute auf nächsten Montag zu ziehen hieße, dabei zu scrollen. Die
+Liste trifft jeden Platz mit einem Tipp.
+
+**Verschoben? Dann fragt die Einkaufsliste nach.** Ein Gericht, das von einem Tag auf
 einen anderen wandert, sieht für die App genauso aus wie eines, das gegessen
 und neu eingeplant wurde — im ersten Fall liegen die Zutaten noch im Schrank,
 im zweiten sind sie weg. Statt zu raten, steht oben auf der Einkaufsliste eine

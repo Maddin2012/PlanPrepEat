@@ -20,6 +20,8 @@ import { Button, cx } from '../../components/ui.tsx'
 import { PlusIcon } from '../../components/Icons.tsx'
 import { eatersLabel } from '../../domain/people.ts'
 import SlotSheet from './SlotSheet.tsx'
+import MoveEntrySheet from './MoveEntrySheet.tsx'
+import { useLongPress } from '../../lib/longPress.ts'
 
 /** Abstand zwischen der klebenden Kopfzeile und der angesprungenen Zeile. */
 const HEADER_GAP = 8
@@ -43,6 +45,8 @@ export default function PlanPage() {
   const [range, setRange] = useState(calendarRange)
   const { data: slots, loading: slotsLoading } = useSlots(range.from, range.to)
 
+  // Welcher Platz gerade verschoben wird — gesetzt durch langes Drücken.
+  const [moving, setMoving] = useState<string | null>(null)
   const [editing, setEditing] = useState<{ date: ISODate; meal: Meal } | null>(
     null,
   )
@@ -218,18 +222,29 @@ export default function PlanPage() {
               people={people}
               recipeName={(id) => recipesById.get(id)?.name}
               onOpen={(meal) => setEditing({ date: day.date, meal })}
+              onMove={(meal) => setMoving(slotKey(day.date, meal))}
             />
           ))}
         </div>
 
         <p className="pt-6 pb-3 text-center text-xs leading-relaxed text-ink-400">
-          Tippe auf ein Feld, um ein Rezept einzuplanen.
+          Tippe auf ein Feld, um ein Rezept einzuplanen. Lange drücken
+          verschiebt, was dort liegt, auf einen anderen Tag.
         </p>
 
         <EdgeButton onClick={() => extend('later')}>
           {EXTEND_DAYS} Tage später
         </EdgeButton>
       </div>
+
+      {moving && (
+        <MoveEntrySheet
+          open
+          fromSlot={moving}
+          entries={entriesByKey.get(moving) ?? []}
+          onClose={() => setMoving(null)}
+        />
+      )}
 
       {editing && (
         <SlotSheet
@@ -274,6 +289,7 @@ function DayRow({
   people,
   recipeName,
   onOpen,
+  onMove,
 }: {
   day: CalendarDay
   registerRow: (element: HTMLDivElement | null) => void
@@ -281,6 +297,8 @@ function DayRow({
   people: string[]
   recipeName: (id: string) => string | undefined
   onOpen: (meal: Meal) => void
+  /** Langer Druck auf ein belegtes Feld. */
+  onMove: (meal: Meal) => void
 }) {
   return (
     <>
@@ -309,13 +327,66 @@ function DayRow({
         )}
       </div>
 
-      {MEALS.map((meal) => {
-        const entries = entriesByKey.get(slotKey(day.date, meal)) ?? []
-        return (
+      {MEALS.map((meal) => (
+        <MealCell
+          key={meal}
+          day={day}
+          meal={meal}
+          entries={entriesByKey.get(slotKey(day.date, meal)) ?? []}
+          people={people}
+          recipeName={recipeName}
+          onOpen={() => onOpen(meal)}
+          onMove={() => onMove(meal)}
+        />
+      ))}
+    </>
+  )
+}
+
+/**
+ * Ein Mahlzeiten-Feld im Plan.
+ *
+ * Eigene Komponente, seit es den langen Druck gibt: `useLongPress` ist ein
+ * Haken und braucht je Feld einen eigenen Zustand — in der Schleife darüber
+ * ginge das nicht.
+ */
+function MealCell({
+  day,
+  meal,
+  entries,
+  people,
+  recipeName,
+  onOpen,
+  onMove,
+}: {
+  day: CalendarDay
+  meal: Meal
+  entries: PlanEntry[]
+  people: string[]
+  recipeName: (id: string) => string | undefined
+  onOpen: () => void
+  onMove: () => void
+}) {
+  // Auf einem leeren Feld gibt es nichts zu verschieben; dort soll der lange
+  // Druck nichts tun, statt ein Blatt ohne Inhalt zu öffnen.
+  const lang = useLongPress({
+    enabled: entries.length > 0,
+    onLongPress: onMove,
+  })
+
+  return (
           <button
-            key={meal}
             type="button"
-            onClick={() => onOpen(meal)}
+            onPointerDown={lang.onPointerDown}
+            onPointerMove={lang.onPointerMove}
+            onPointerUp={lang.onPointerUp}
+            onPointerCancel={lang.onPointerCancel}
+            onClick={(event) => {
+              // Nach einem langen Druck folgt trotzdem ein Klick. Wird er
+              // geschluckt, öffnet sich hier kein zweites Blatt.
+              if (lang.onClick(event)) return
+              onOpen()
+            }}
             aria-label={`${MEAL_LABELS[meal]} am ${day.weekdayLong}, ${day.dayLabel} bearbeiten`}
             className={cx(
               'flex min-h-16 flex-col justify-center gap-1 rounded-lg p-2 text-left transition-colors',
@@ -378,8 +449,5 @@ function DayRow({
               ))
             )}
           </button>
-        )
-      })}
-    </>
   )
 }

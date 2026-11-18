@@ -1,6 +1,11 @@
 [
   {
     "datum": "2026-11-18",
+    "art": "neu",
+    "text": "Im Essensplan kannst du ein Gericht jetzt verschieben: **lange auf das Feld dr\u00fccken**, dann Tag und Mahlzeit w\u00e4hlen \u2014 fertig. Liegen mehrere Gerichte auf dem Platz, fragt die App erst, welches gemeint ist. Ein kurzer Tipp \u00f6ffnet weiter das Feld zum Bearbeiten. Bisher ging Verschieben nur umst\u00e4ndlich: erst am alten Tag wegnehmen, dann am neuen wieder hinzuf\u00fcgen."
+  },
+  {
+    "datum": "2026-11-18",
     "art": "fehler",
     "text": "Planst du ein Rezept ein, stehen seine Zutaten jetzt auf der Einkaufsliste — immer. Bisher konnten sie fehlen, wenn du dieselbe Zutat kurz davor schon einmal abgehakt hattest: Die App verglich nur Mengen und wusste nicht, dass die gekauften Nudeln inzwischen gegessen waren. Genau so fehlten die Nudeln f\u00fcr das neue Gericht nach den Spaghetti."
   },
